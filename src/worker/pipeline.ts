@@ -56,17 +56,34 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
   const cfg = getConfig();
   const now = deps.now ?? (() => Date.now());
   const started = now();
-  const row = await claimReport(reportId);
-  if (!row) return "skipped";
+  const claimed = await claimReport(reportId);
+  if (!claimed) return "skipped";
+  const row = claimed;
   const attempt = row.attemptCount;
   const persona = row.personaName || cfg.PERSONA_NAME;
   const deadline = started + cfg.WORKER_PIPELINE_TIMEOUT_MINUTES * 60_000;
   const usage: Usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 };
+  // 단계 전환 사이(수 분짜리 LLM 호출 중)에도 살아 있음을 알린다. 끊기면 복구 루프가 되돌리고, 우리는 다음 체크포인트에서 멈춘다
+  let lost = false;
+  const hb = setInterval(() => {
+    heartbeat(reportId, attempt).catch((e) => {
+      if (e instanceof JobLostError) lost = true;
+    });
+  }, 30_000);
+  hb.unref();
   const checkDeadline = () => {
+    if (lost) throw new JobLostError();
     if (now() > deadline) throw new LlmError("LLM_UNAVAILABLE", "PIPELINE_TIMEOUT", true);
   };
   const progress = (stage: string, pct: number, message: string) => heartbeat(reportId, attempt, { stage, pct, message });
 
+  try {
+    return await runStages();
+  } finally {
+    clearInterval(hb);
+  }
+
+  async function runStages(): Promise<"done" | "skipped" | "failed"> {
   try {
     // [1] LOAD
     await progress("LOAD", 5, `${persona}가 대화를 펼치고 있어요`);
@@ -290,6 +307,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     const code = classify(e);
     await markFailed(reportId, attempt, code, e instanceof Error ? e.message : String(e));
     return "failed";
+  }
   }
 }
 

@@ -60,6 +60,12 @@ docker compose up --build
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 워커 로그에 `The compiled grammar is too large` | 종합 단계의 구조화 출력 스키마가 API 문법 한도를 넘음 | 수정됨: 종합 단계는 JSON 모드(스키마를 프롬프트에 첨부, 서버에서 zod 검증)로 호출 |
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 로그에 `401` / `authentication_error` | `ANTHROPIC_API_KEY`가 틀리거나 비어 있음 | `.env`의 키 확인 후 `docker compose up -d --force-recreate worker` |
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 로그에 `credit balance is too low` | Console 크레딧 부족 | console.anthropic.com → Billing 에서 충전 |
+| 새 보고서를 만들면 `이미 만들고 있는 보고서(No.N)가 있어요` | 워커 재시작·배포 중에 만들던 보고서가 QUEUED/RUNNING으로 남음 | 수정됨: 워커가 기동 직후 자동 복구. 당장은 그 보고서 화면의 "너무 오래 걸리면 취소하기"로 취소하거나, 아래 SQL로 정리 |
+
+멈춘 보고서를 손으로 정리하려면(워커가 멈춘 상태에서만):
+```powershell
+docker compose exec postgres psql -U ggai -d ggai -c "UPDATE report SET status='CANCELED', finished_at=now(), updated_at=now(), progress_message='취소됨' WHERE status IN ('QUEUED','RUNNING');" -c "DELETE FROM pgboss.job WHERE name='report-generate' AND state IN ('created','active','retry');"
+```
 
 E2E 확인(선택, Git Bash): 서버가 떠 있는 상태에서 `BASE_URL=http://localhost:3000 bash scripts/smoke.sh`. 기본 픽스처는 메시지 304개짜리라 기본 한도(최소 30개)에서도 통과합니다.
 

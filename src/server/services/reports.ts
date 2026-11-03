@@ -1,12 +1,12 @@
 // 보고서 서비스 — docs/06 §2, 상태 머신 QUEUED → RUNNING → SUCCEEDED | FAILED | CANCELED
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, lt, sql } from "drizzle-orm";
 import type { Focus, ReportContent, Tone } from "@/lib/report/schema";
 import { getConfig } from "../config";
 import { randomToken, sha256Hex } from "../crypto";
 import { getDb, schema } from "../db";
 import { ApiError, conflict, notFound } from "../errors";
-import { cancelReportJob, enqueueReportJob } from "../queue";
+import { cancelReportJob, enqueueReportJob, getReportJobState, releaseReportJob } from "../queue";
 import { assertReportAllowed, audit } from "../ratelimit";
 import type { ParticipantSnapshotEntry, ReportRow } from "../schema";
 import { buildParticipantMap, snapshotFromMap } from "./participants";
@@ -120,8 +120,8 @@ export async function createReport(conversationId: string, ownerHash: string, in
     const map = buildParticipantMap(parts, conv.uploaderParticipantId);
     const snapshot: ParticipantSnapshotEntry[] = snapshotFromMap(map);
     if (snapshot.length < 2) throw conflict("NOT_ENOUGH_PARTICIPANTS", "분석할 참여자가 2명 이상 필요해요");
-    const active = await tx.select({ id: schema.report.id }).from(schema.report).where(and(eq(schema.report.conversationId, conversationId), sql`${schema.report.status} IN ('QUEUED','RUNNING')`)).limit(1);
-    if (active[0]) throw conflict("REPORT_ALREADY_RUNNING", "이미 만들고 있는 보고서가 있어요. 끝나면 다시 시도해 주세요");
+    const active = await tx.select({ id: schema.report.id, seq: schema.report.seq }).from(schema.report).where(and(eq(schema.report.conversationId, conversationId), sql`${schema.report.status} IN ('QUEUED','RUNNING')`)).limit(1);
+    if (active[0]) throw conflict("REPORT_ALREADY_RUNNING", `이미 만들고 있는 보고서(No.${active[0].seq})가 있어요. 끝날 때까지 기다리거나, 그 보고서 화면에서 취소한 뒤 다시 만들어 주세요`);
     const maxSeq = await tx.select({ m: sql<number>`coalesce(max(${schema.report.seq}), 0)::int` }).from(schema.report).where(eq(schema.report.conversationId, conversationId));
     const seq = (maxSeq[0]?.m ?? 0) + 1;
     const rows = await tx
@@ -146,8 +146,20 @@ export async function createReport(conversationId: string, ownerHash: string, in
   await audit("REPORT_CREATE", { conversationId, reportId, ownerHash });
   // 커밋 후 큐 투입 (실패 시 FAILED/retryable)
   try {
-    const jobId = await enqueueReportJob(reportId, conversationId);
+    let jobId = await enqueueReportJob(reportId, conversationId);
+    if (!jobId) {
+      // stately 충돌: 이 대화의 끝난 보고서가 남긴 잡(죽은 워커의 active 등)이 singletonKey를 잡고 있다 → 비우고 한 번 더
+      const leftovers = await db
+        .select({ jobId: schema.report.jobId })
+        .from(schema.report)
+        .where(and(eq(schema.report.conversationId, conversationId), sql`${schema.report.status} NOT IN ('QUEUED','RUNNING')`, isNotNull(schema.report.jobId)))
+        .orderBy(desc(schema.report.createdAt))
+        .limit(5);
+      for (const l of leftovers) await releaseReportJob(l.jobId);
+      jobId = await enqueueReportJob(reportId, conversationId);
+    }
     if (jobId) await db.update(schema.report).set({ jobId }).where(eq(schema.report.id, reportId));
+    else await markFailed(reportId, created.attemptCount, "QUEUE_ERROR", "큐에 같은 대화의 잡이 남아 있어요 (singleton 충돌)");
   } catch (e) {
     console.error("[reports] enqueue failed:", e instanceof Error ? e.message : String(e));
     await markFailed(reportId, created.attemptCount, "QUEUE_ERROR");
@@ -345,33 +357,60 @@ export async function logLlmCall(data: { reportId: string; stage: string; chunkI
 }
 
 /** 하트비트가 끊긴 RUNNING 보고서 복구: attempt<max → QUEUED 재투입, 아니면 FAILED(STALE_TIMEOUT) */
-export async function recoverStaleReports(now = new Date()): Promise<{ requeued: number; failed: number }> {
+/**
+ * 멈춘 보고서 복구 (워커 60초 주기 + 기동 직후 bootstrap).
+ * - RUNNING인데 하트비트가 끊김(워커 사망·재시작): 옛 잡을 큐에서 비우고 QUEUED로 되돌려 다시 enqueue
+ * - QUEUED인데 살아 있는 잡이 없음(싱글톤 충돌로 enqueue가 null이었거나 잡이 만료·삭제됨): 다시 enqueue
+ * bootstrap=true면 직전 프로세스가 죽었다고 보고 하트비트 60초 이상 끊긴 RUNNING을 모두 복구한다(주기 하트비트는 30초).
+ */
+export async function recoverStaleReports(now = new Date(), opts: { bootstrap?: boolean } = {}): Promise<{ requeued: number; failed: number }> {
   const cfg = getConfig();
-  const staleBefore = new Date(now.getTime() - cfg.WORKER_STALE_MINUTES * 60_000);
+  const staleMs = opts.bootstrap ? 60_000 : cfg.WORKER_STALE_MINUTES * 60_000;
+  const staleBefore = new Date(now.getTime() - staleMs);
   const db = getDb();
-  const stale = await db.select().from(schema.report).where(and(eq(schema.report.status, "RUNNING"), lt(schema.report.heartbeatAt, staleBefore)));
   let requeued = 0;
   let failed = 0;
-  for (const r of stale) {
-    if (r.attemptCount < cfg.WORKER_MAX_ATTEMPTS) {
-      const rows = await db
-        .update(schema.report)
-        .set({ status: "QUEUED", heartbeatAt: null, progressStage: "QUEUED", progressMessage: "연결이 끊겨 다시 줄 서는 중", updatedAt: now })
-        .where(and(eq(schema.report.id, r.id), eq(schema.report.status, "RUNNING"), eq(schema.report.attemptCount, r.attemptCount)))
-        .returning({ id: schema.report.id });
-      if (rows[0]) {
+
+  const requeue = async (r: ReportRow, fromStatus: "RUNNING" | "QUEUED") => {
+    const rows = await db
+      .update(schema.report)
+      .set({ status: "QUEUED", heartbeatAt: null, progressStage: "QUEUED", progressMessage: fromStatus === "RUNNING" ? "연결이 끊겨 다시 줄 서는 중" : "다시 줄 서는 중", updatedAt: now })
+      .where(and(eq(schema.report.id, r.id), eq(schema.report.status, fromStatus), eq(schema.report.attemptCount, r.attemptCount)))
+      .returning({ id: schema.report.id });
+    if (!rows[0]) return;
+    await releaseReportJob(r.jobId);
+    try {
+      const jobId = await enqueueReportJob(r.id, r.conversationId);
+      if (jobId) {
+        await db.update(schema.report).set({ jobId }).where(eq(schema.report.id, r.id));
         requeued += 1;
-        try {
-          const jobId = await enqueueReportJob(r.id, r.conversationId);
-          if (jobId) await db.update(schema.report).set({ jobId }).where(eq(schema.report.id, r.id));
-        } catch (e) {
-          await markFailed(r.id, r.attemptCount, "QUEUE_ERROR", e instanceof Error ? e.message : String(e));
-        }
+      } else {
+        await markFailed(r.id, r.attemptCount, "QUEUE_ERROR", "큐에 같은 대화의 잡이 남아 있어요 (singleton 충돌)");
+        failed += 1;
       }
-    } else {
+    } catch (e) {
+      await markFailed(r.id, r.attemptCount, "QUEUE_ERROR", e instanceof Error ? e.message : String(e));
+      failed += 1;
+    }
+  };
+
+  const stale = await db.select().from(schema.report).where(and(eq(schema.report.status, "RUNNING"), lt(schema.report.heartbeatAt, staleBefore)));
+  for (const r of stale) {
+    if (r.attemptCount < cfg.WORKER_MAX_ATTEMPTS) await requeue(r, "RUNNING");
+    else {
+      await releaseReportJob(r.jobId);
       await markFailed(r.id, r.attemptCount, "STALE_TIMEOUT");
       failed += 1;
     }
+  }
+
+  // QUEUED인데 잡이 없거나 끝난 상태 (2분 이상 그대로일 때만; bootstrap이면 즉시)
+  const queuedBefore = new Date(now.getTime() - (opts.bootstrap ? 0 : 2 * 60_000));
+  const queued = await db.select().from(schema.report).where(and(eq(schema.report.status, "QUEUED"), lt(schema.report.updatedAt, queuedBefore)));
+  for (const r of queued) {
+    const state = await getReportJobState(r.jobId);
+    if (state === "created" || state === "retry" || state === "active") continue;
+    await requeue(r, "QUEUED");
   }
   return { requeued, failed };
 }

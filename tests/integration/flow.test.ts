@@ -6,9 +6,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FakeLlmClient } from "@/lib/llm";
 import { closeDb, getDb, schema } from "@/server/db";
 import { runMigrations } from "@/server/migrate";
-import { stopBoss } from "@/server/queue";
+import { REPORT_QUEUE, getBoss, stopBoss } from "@/server/queue";
 import { confirmParticipants, deleteConversation, expireRawConversations, getConversationDetail, uploadConversation } from "@/server/services/conversations";
-import { cancelReport, claimReport, createReport, deleteReport, disableShare, enableShare, getReportBySeq, getSharedReport, recoverStaleReports, retryReport } from "@/server/services/reports";
+import { cancelReport, claimReport, createReport, deleteReport, disableShare, enableShare, getReportBySeq, getSharedReport, markFailed, recoverStaleReports, retryReport } from "@/server/services/reports";
 import { runReport } from "@/worker/pipeline";
 
 const OWNER = "a".repeat(64);
@@ -181,6 +181,35 @@ describe("end-to-end service flow", () => {
     expect(first.status).toBe("SUCCEEDED"); // 다른 보고서는 남는다
     const events = await getDb().select().from(schema.auditEvent);
     expect(events.some((e) => e.eventType === "REPORT_DELETE")).toBe(true);
+  });
+
+  it("bootstrap recovery re-enqueues a QUEUED report whose queue job is gone", async () => {
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const before = (await getDb().select().from(schema.report).where(sql`id = ${v.reportId}`))[0];
+    expect(before.jobId).toBeTruthy();
+    const boss = await getBoss();
+    await boss.deleteJob(REPORT_QUEUE, before.jobId!); // 잡이 사라진 QUEUED (싱글톤 충돌·만료 상황 재현)
+    const r = await recoverStaleReports(new Date(), { bootstrap: true });
+    expect(r.requeued).toBeGreaterThanOrEqual(1);
+    const after = (await getDb().select().from(schema.report).where(sql`id = ${v.reportId}`))[0];
+    expect(after.status).toBe("QUEUED");
+    expect(after.jobId).toBeTruthy();
+    expect(after.jobId).not.toBe(before.jobId);
+    await cancelReport(v.reportId, OWNER);
+  });
+
+  it("creating a report releases a dead worker's leftover active job (singleton conflict)", async () => {
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const boss = await getBoss();
+    const fetched = await boss.fetch(REPORT_QUEUE); // 워커처럼 잡을 가져가 active 로 만든다
+    expect(fetched?.length ?? 0).toBeGreaterThanOrEqual(1);
+    await claimReport(v.reportId);
+    await markFailed(v.reportId, 1, "LLM_BAD_REQUEST"); // 보고서는 끝났지만 잡은 active 로 남음 (워커 사망 재현)
+    const next = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    expect(next.status).toBe("QUEUED");
+    const row = (await getDb().select().from(schema.report).where(sql`id = ${next.reportId}`))[0];
+    expect(row.jobId).toBeTruthy();
+    await cancelReport(next.reportId, OWNER);
   });
 
   it("expires raw text and blocks new reports afterwards", async () => {

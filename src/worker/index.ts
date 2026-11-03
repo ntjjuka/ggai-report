@@ -21,6 +21,13 @@ async function main(): Promise<void> {
   const boss = await getBoss("worker");
   const llm = getLlmClient();
   console.info(`[worker] started · provider=${llm.provider} · concurrency=${cfg.WORKER_CONCURRENCY}`);
+  try {
+    // 직전 프로세스가 남긴 RUNNING/QUEUED 보고서를 즉시 복구 (재시작·배포 뒤 "이미 만들고 있는 보고서" 고착 방지)
+    const boot = await recoverStaleReports(new Date(), { bootstrap: true });
+    if (boot.requeued || boot.failed) console.info(`[worker] bootstrap recovery: requeued=${boot.requeued} failed=${boot.failed}`);
+  } catch (e) {
+    console.error("[worker] bootstrap recovery failed:", e instanceof Error ? e.message : String(e));
+  }
   // compose healthcheck: 마이그레이션·큐 준비가 끝난 뒤에만 파일을 만든다 → web은 이 뒤에 뜬다 (첫 요청 500 방지)
   if (process.env.WORKER_READY_FILE) {
     try {

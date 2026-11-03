@@ -55,6 +55,34 @@ export async function cancelReportJob(jobId: string | null): Promise<void> {
   }
 }
 
+/**
+ * 잡을 큐에서 완전히 비운다 (취소 후 삭제). stately 정책은 같은 singletonKey(conversationId)의 잡이
+ * created/retry/active 상태면 새 잡을 받지 않으므로, 죽은 워커가 남긴 active 잡을 치워야 재큐잉·새 보고서가 가능하다.
+ */
+export async function releaseReportJob(jobId: string | null): Promise<void> {
+  if (!jobId) return;
+  try {
+    const boss = await getBoss();
+    await boss.cancel(REPORT_QUEUE, jobId).catch(() => undefined);
+    await boss.deleteJob(REPORT_QUEUE, jobId);
+  } catch (e) {
+    console.warn("[queue] release failed:", e instanceof Error ? e.message : String(e));
+  }
+}
+
+/** 잡 상태. 없으면 null */
+export async function getReportJobState(jobId: string | null): Promise<string | null> {
+  if (!jobId) return null;
+  try {
+    const boss = await getBoss();
+    const job = await boss.getJobById(REPORT_QUEUE, jobId);
+    return job?.state ?? null;
+  } catch (e) {
+    console.warn("[queue] getJobById failed:", e instanceof Error ? e.message : String(e));
+    return null;
+  }
+}
+
 export async function stopBoss(): Promise<void> {
   if (!bossPromise) return;
   const boss = await bossPromise;

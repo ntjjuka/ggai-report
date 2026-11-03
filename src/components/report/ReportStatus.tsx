@@ -51,6 +51,37 @@ export function WritingScreen({ conversationId, seq, persona, initial, etaMinute
       </div>
       <p className="mt-6 text-sm text-muted">{view.progress.message ?? `${etaMinutes}분 안에 보고서가 나올 거예요.`}</p>
       <p className="mt-1 text-xs text-muted">{etaMinutes}분 안에 보고서가 나올 거예요. 이 페이지를 닫아도 링크로 돌아오면 이어서 볼 수 있어요.</p>
+      <CancelReportButton reportId={view.reportId} />
+    </div>
+  );
+}
+
+function CancelReportButton({ reportId }: { reportId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  return (
+    <div className="mt-8">
+      <button
+        type="button"
+        className="text-xs text-muted underline"
+        disabled={busy}
+        onClick={async () => {
+          if (!confirm("지금 만들고 있는 보고서를 취소할까요? 취소한 뒤 새 보고서를 만들 수 있어요.")) return;
+          setBusy(true);
+          setMsg(null);
+          try {
+            await api(`/api/v1/reports/${reportId}/cancel`, { method: "POST" });
+            router.refresh();
+          } catch (e) {
+            setMsg(e instanceof ClientApiError ? e.message : "취소하지 못했어요");
+            setBusy(false);
+          }
+        }}
+      >
+        너무 오래 걸리면 취소하기
+      </button>
+      {msg && <p className="mt-2 text-xs text-red-600">{msg}</p>}
     </div>
   );
 }
