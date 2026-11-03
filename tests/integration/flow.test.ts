@@ -114,22 +114,35 @@ describe("end-to-end service flow", () => {
     expect(await runReport(firstReportId, { llm: new FakeLlmClient("ok") })).toBe("skipped");
   });
 
-  it("fails with retryable error, then retries reusing checkpoints", async () => {
+  it("auto-requeues a retryable failure, then the retry reuses checkpoints", async () => {
     const view = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     expect(view.seq).toBe(2);
-    expect(await runReport(view.reportId, { llm: new FakeLlmClient("rate_limit") })).toBe("failed");
-    const failed = await getReportBySeq(conversationId, 2, OWNER);
-    expect(failed.status).toBe("FAILED");
-    expect(failed.error?.code).toBe("LLM_UNAVAILABLE");
-    expect(failed.error?.retryable).toBe(true);
-    const retried = await retryReport(view.reportId, OWNER);
-    expect(retried.status).toBe("QUEUED");
+    // 재시도 가능한 실패(429·네트워크 끊김 등)는 FAILED가 아니라 자동으로 다시 줄을 선다
+    expect(await runReport(view.reportId, { llm: new FakeLlmClient("rate_limit") })).toBe("requeued");
+    const queued = await getReportBySeq(conversationId, 2, OWNER);
+    expect(queued.status).toBe("QUEUED");
+    expect(queued.attemptCount).toBe(1);
+    expect(queued.progress.message).toContain("다시 쓰는 중");
     expect(await runReport(view.reportId, { llm: new FakeLlmClient("ok") })).toBe("done");
     const ok = await getReportBySeq(conversationId, 2, OWNER);
     expect(ok.status).toBe("SUCCEEDED");
     expect(ok.attemptCount).toBe(2);
     expect(ok.content?.persona.name).toBeTruthy();
     expect(ok.content?.participants.every((p) => p.paragraphs.length >= 1)).toBe(true);
+  });
+
+  it("marks FAILED (retryable) once automatic retries are exhausted, and manual retry is then refused", async () => {
+    const view = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
+    expect(await runReport(view.reportId, { llm: new FakeLlmClient("rate_limit") })).toBe("requeued");
+    expect(await runReport(view.reportId, { llm: new FakeLlmClient("rate_limit") })).toBe("requeued");
+    expect(await runReport(view.reportId, { llm: new FakeLlmClient("rate_limit") })).toBe("failed");
+    const failed = await getReportBySeq(conversationId, view.seq, OWNER);
+    expect(failed.status).toBe("FAILED");
+    expect(failed.attemptCount).toBe(3);
+    expect(failed.error?.code).toBe("LLM_UNAVAILABLE");
+    expect(failed.error?.retryable).toBe(true);
+    await expect(retryReport(view.reportId, OWNER)).rejects.toMatchObject({ code: "INVALID_STATE" });
+    await deleteReport(view.reportId, OWNER);
   });
 
   it("hallucinated ids are dropped and counted; non-korean output is repaired", async () => {

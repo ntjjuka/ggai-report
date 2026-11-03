@@ -107,6 +107,7 @@ REPAIR는 종합 모델로 1회만, 원 초안 + 위반 목록을 주고 **위�
 |---|---|---|---|
 | 원문 만료 | `RAW_EXPIRED` | ✗ | 생성 요청 단계에서 409로 선차단 |
 | LLM 429/5xx 지속 | `LLM_UNAVAILABLE` | ✓ | 재시도 시 체크포인트 재사용 |
+| 스트림 수신 중 연결 끊김(undici `terminated`, `fetch failed`, `ECONNRESET` 등) | `LLM_UNAVAILABLE` | ✓ | 2026-11-03: 클라이언트가 네트워크 계열을 재시도(호출당 3회, cause 포함 로그)하고, 그래도 실패하면 파이프라인이 **20초 뒤 자동 재큐잉**(`attempt_count < WORKER_MAX_ATTEMPTS`; `PIPELINE_TIMEOUT` 제외). 한도에 닿으면 FAILED(사용자 "다시 시도"는 한도 때문에 거부되므로 새 보고서) |
 | LLM 400(스키마/요청) | `LLM_BAD_REQUEST` | ✗ | 버그 — 알림 |
 | refusal 2회 | `LLM_REFUSED` | ✗ | 사용자 문구: "이 대화는 분석할 수 없어요" |
 | 커버리지 < 60% | `INSUFFICIENT_COVERAGE` | ✓ | |

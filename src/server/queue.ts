@@ -40,9 +40,9 @@ export function getBoss(role: "web" | "worker" = "web"): Promise<PgBoss> {
   return bossPromise;
 }
 
-export async function enqueueReportJob(reportId: string, conversationId: string): Promise<string | null> {
+export async function enqueueReportJob(reportId: string, conversationId: string, opts: { startAfterSec?: number } = {}): Promise<string | null> {
   const boss = await getBoss();
-  return boss.send(REPORT_QUEUE, { reportId } satisfies ReportJobData, { singletonKey: conversationId });
+  return boss.send(REPORT_QUEUE, { reportId } satisfies ReportJobData, { singletonKey: conversationId, ...(opts.startAfterSec ? { startAfter: opts.startAfterSec } : {}) });
 }
 
 export async function cancelReportJob(jobId: string | null): Promise<void> {

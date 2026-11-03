@@ -30,7 +30,7 @@ import { getDb, schema } from "@/server/db";
 import { ApiError } from "@/server/errors";
 import { loadMessagesForReport } from "@/server/services/conversations";
 import { mapFromSnapshot } from "@/server/services/participants";
-import { JobLostError, claimReport, getStageResult, heartbeat, logLlmCall, markFailed, markSucceeded, saveStageResult } from "@/server/services/reports";
+import { JobLostError, claimReport, getStageResult, heartbeat, logLlmCall, markFailed, markSucceeded, requeueRunning, saveStageResult } from "@/server/services/reports";
 
 export interface PipelineDeps {
   llm: LlmClient;
@@ -51,7 +51,12 @@ function sha256(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }
 
-export async function runReport(reportId: string, deps: PipelineDeps): Promise<"done" | "skipped" | "failed"> {
+export type RunResult = "done" | "skipped" | "failed" | "requeued";
+
+/** 재시도 가능한 실패(네트워크 끊김·429·5xx·출력 검증 실패 등)는 사용자 손을 빌리지 않고 이 간격 뒤 자동으로 다시 줄을 선다 */
+const AUTO_RETRY_DELAY_SEC = 20;
+
+export async function runReport(reportId: string, deps: PipelineDeps): Promise<RunResult> {
   const cfg = getConfig();
   const now = deps.now ?? (() => Date.now());
   const started = now();
@@ -89,7 +94,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     clearInterval(hb);
   }
 
-  async function runStages(): Promise<"done" | "skipped" | "failed"> {
+  async function runStages(): Promise<RunResult> {
   try {
     // [1] LOAD
     await progress("LOAD", 5, `${persona}가 대화를 펼치고 있어요`);
@@ -144,6 +149,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
         return { value: cached.value, usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, model: cached.model, latencyMs: 0, attempts: 0, cached: true };
       }
       checkDeadline();
+      const t0 = now();
       try {
         const res = await deps.llm.generateJson<T>({ ...req, system });
         const cost = actualCostUsd(res.model, res.usage);
@@ -157,7 +163,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
         return { ...res, cached: false };
       } catch (e) {
         const code = e instanceof LlmError ? e.code : "UNKNOWN";
-        await logLlmCall({ reportId, stage: req.stage, chunkIndex, model: req.model, requestKey: req.requestKey, attempt, status: code === "LLM_REFUSED" ? "REFUSAL" : code === "LLM_MAX_TOKENS" ? "MAX_TOKENS" : e instanceof LlmError && e.retryable ? "RETRYABLE_ERROR" : "FATAL_ERROR", errorType: code });
+        await logLlmCall({ reportId, stage: req.stage, chunkIndex, model: req.model, requestKey: req.requestKey, attempt, status: code === "LLM_REFUSED" ? "REFUSAL" : code === "LLM_MAX_TOKENS" ? "MAX_TOKENS" : e instanceof LlmError && e.retryable ? "RETRYABLE_ERROR" : "FATAL_ERROR", errorType: code, latencyMs: now() - t0 });
         throw e;
       }
     };
@@ -323,7 +329,18 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
       return "skipped";
     }
     const code = classify(e);
-    await markFailed(reportId, attempt, code, e instanceof Error ? e.message : String(e));
+    const detail = e instanceof Error ? e.message : String(e);
+    // 재시도 가능한 실패는 자동으로 다시 줄을 선다 (청크 결과는 캐시돼 있어 종합만 다시 쓴다). 한도에 닿으면 FAILED(사용자 재시도 가능)
+    if (e instanceof LlmError && e.retryable && code !== "PIPELINE_TIMEOUT" && attempt < cfg.WORKER_MAX_ATTEMPTS) {
+      clearInterval(hb);
+      const next = attempt + 1;
+      const requeued = await requeueRunning(reportId, `${persona}가 잠깐 끊겨서 다시 쓰는 중이에요 (${next}/${cfg.WORKER_MAX_ATTEMPTS}번째 시도, ${code})`, { delaySec: AUTO_RETRY_DELAY_SEC });
+      if (requeued) {
+        console.warn(`[pipeline] ${reportId} ${code}: ${detail.slice(0, 160)} → ${AUTO_RETRY_DELAY_SEC}초 뒤 자동 재시도 (${next}/${cfg.WORKER_MAX_ATTEMPTS})`);
+        return "requeued";
+      }
+    }
+    await markFailed(reportId, attempt, code, detail);
     return "failed";
   }
   }

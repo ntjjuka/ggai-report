@@ -296,6 +296,8 @@ export async function disableShare(reportId: string, ownerHash: string): Promise
 export async function deleteReport(reportId: string, ownerHash: string): Promise<void> {
   const row = await findOwnedReport(reportId, ownerHash);
   if (row.status === "QUEUED" || row.status === "RUNNING") throw conflict("INVALID_STATE", "만드는 중인 보고서는 먼저 취소한 뒤 삭제할 수 있어요");
+  // 자동 재시도로 예약된(지연) 잡이 남아 있으면 같은 대화의 다음 보고서가 singleton 충돌로 막힌다 → 행을 지우기 전에 비운다
+  await releaseReportJob(row.jobId);
   await getDb().delete(schema.report).where(eq(schema.report.id, reportId));
   shareTokenCache.delete(reportId);
   // audit_event.report_id는 FK(ON DELETE SET NULL)라 삭제된 ID를 넣을 수 없다 → 대화 ID만 남긴다
@@ -402,7 +404,7 @@ export async function logLlmCall(data: { reportId: string; stage: string; chunkI
  * 워커가 종료(재시작·배포)될 때 자기가 처리 중이던 보고서를 즉시 QUEUED로 되돌린다.
  * 하트비트 타임아웃을 기다리지 않으므로 재배포 뒤 10분씩 멈춰 보이는 일이 없다. 잡은 비우고 다시 넣는다(실패하면 bootstrap 복구가 집어 간다).
  */
-export async function requeueRunning(reportId: string, reason = "워커 재시작으로 다시 줄 서는 중"): Promise<boolean> {
+export async function requeueRunning(reportId: string, reason = "워커 재시작으로 다시 줄 서는 중", opts: { delaySec?: number } = {}): Promise<boolean> {
   const db = getDb();
   const rows = await db.select().from(schema.report).where(and(eq(schema.report.id, reportId), eq(schema.report.status, "RUNNING"))).limit(1);
   const r = rows[0];
@@ -415,7 +417,7 @@ export async function requeueRunning(reportId: string, reason = "워커 재시�
   if (!updated[0]) return false;
   await releaseReportJob(r.jobId);
   try {
-    const jobId = await enqueueReportJob(reportId, r.conversationId);
+    const jobId = await enqueueReportJob(reportId, r.conversationId, { startAfterSec: opts.delaySec });
     await db.update(schema.report).set({ jobId: jobId ?? null }).where(eq(schema.report.id, reportId));
   } catch {
     /* 큐가 이미 닫혔으면 다음 워커의 bootstrap 복구(QUEUED + 잡 없음 → 즉시 재큐잉)가 처리 */

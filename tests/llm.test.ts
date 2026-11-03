@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { AnthropicLlmClient, extractJsonObject, isGrammarTooLargeError } from "@/lib/llm";
+import { AnthropicLlmClient, extractJsonObject, isGrammarTooLargeError, isNetworkError } from "@/lib/llm";
 
 const Schema = z.object({ headline: z.string(), n: z.number() });
 
@@ -109,5 +109,38 @@ describe("anthropic client — JSON mode fallback", () => {
   it("other 400s stay LLM_BAD_REQUEST", async () => {
     const { c } = stubbed(async () => { throw new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "model: not found" } }, "400 model: not found", new Headers()); }, async () => fakeMessage("{}"));
     await expect(c.generateJson(req("REPAIR"))).rejects.toMatchObject({ code: "LLM_BAD_REQUEST" });
+  });
+});
+
+describe("anthropic client — mid-stream network termination", () => {
+  it("classifies undici 'terminated' (socket closed while streaming) as a network error", () => {
+    const e = new TypeError("terminated");
+    (e as { cause?: unknown }).cause = Object.assign(new Error("other side closed"), { name: "SocketError", code: "UND_ERR_SOCKET" });
+    expect(isNetworkError(e)).toBe(true);
+    expect(isNetworkError(new Error("fetch failed"))).toBe(true);
+    expect(isNetworkError(new Error("응답에 JSON 객체가 없음"))).toBe(false);
+    expect(isNetworkError(grammarError())).toBe(false);
+  });
+
+  it("retries the same request after the stream is terminated and succeeds on the next attempt", async () => {
+    let n = 0;
+    const { c, calls } = stubbed(
+      async () => { throw new Error("parse must not be called"); },
+      async () => {
+        n += 1;
+        if (n === 1) throw new TypeError("terminated");
+        return fakeMessage('{"headline":"h","n":2}');
+      },
+    );
+    const res = await c.generateJson(req("SYNTHESIS"));
+    expect(res.value).toEqual({ headline: "h", n: 2 });
+    expect(res.attempts).toBe(2);
+    expect(calls.create).toBe(2);
+  });
+
+  it("gives up as LLM_UNAVAILABLE (retryable) when the stream keeps terminating", async () => {
+    const { c, calls } = stubbed(async () => { throw new Error("x"); }, async () => { throw new TypeError("terminated"); });
+    await expect(c.generateJson(req("SYNTHESIS"))).rejects.toMatchObject({ code: "LLM_UNAVAILABLE", retryable: true });
+    expect(calls.create).toBe(3);
   });
 });

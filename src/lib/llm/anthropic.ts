@@ -216,6 +216,7 @@ export class AnthropicLlmClient implements LlmClient {
         }
         const retryable = isRetryable(e);
         if (retryable && attempts < this.maxAttempts) {
+          console.warn(`[llm] ${req.stage}: ${describe(e).slice(0, 160)} → 재시도 ${attempts + 1}/${this.maxAttempts} (${Math.round((Date.now() - started) / 1000)}초 경과)`);
           await this.sleep(RETRY_DELAYS_MS[Math.min(attempts - 1, RETRY_DELAYS_MS.length - 1)]);
           continue;
         }
@@ -230,8 +231,28 @@ export class AnthropicLlmClient implements LlmClient {
   }
 }
 
+/**
+ * 스트림 본문을 받는 도중 TCP 연결이 끊기면 SDK 오류가 아니라 Node(undici)의 TypeError("terminated")가 그대로 올라온다
+ * (cause: SocketError "other side closed" 등). 몇 분짜리 종합 호출에서 실제로 발생했으므로 네트워크 계열은 전부 재시도한다.
+ */
+const NETWORK_ERROR = /terminated|fetch failed|ECONNRESET|ECONNREFUSED|EPIPE|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|other side closed|network error|UND_ERR|Body Timeout|Headers Timeout/i;
+
+function errorText(e: unknown): string {
+  if (!(e instanceof Error)) return String(e);
+  const code = (e as { code?: unknown }).code;
+  const cause = (e as { cause?: unknown }).cause;
+  const causeText = cause instanceof Error ? ` (cause: ${cause.name} ${cause.message} ${(cause as { code?: unknown }).code ?? ""})`.replace(/\s+\)/, ")") : "";
+  return `${e.name} ${e.message} ${typeof code === "string" ? code : ""}${causeText}`.replace(/\s+/g, " ").trim();
+}
+
+export function isNetworkError(e: unknown): boolean {
+  if (e instanceof Anthropic.APIError) return false;
+  return NETWORK_ERROR.test(errorText(e));
+}
+
 function isRetryable(e: unknown): boolean {
   if (e instanceof Anthropic.APIUserAbortError) return true; // 워치독 abort(스트림 멈춤) → 재시도
+  if (isNetworkError(e)) return true; // 스트림 도중 연결 끊김("terminated") → 재시도
   if (e instanceof Anthropic.RateLimitError) return true;
   if (e instanceof Anthropic.InternalServerError) return true;
   if (e instanceof Anthropic.APIConnectionError) return true; // 타임아웃 포함
@@ -241,5 +262,5 @@ function isRetryable(e: unknown): boolean {
 
 function describe(e: unknown): string {
   if (e instanceof Anthropic.APIError) return `${e.name} ${e.status ?? ""} ${e.message}`.trim();
-  return e instanceof Error ? e.message : String(e);
+  return errorText(e);
 }
