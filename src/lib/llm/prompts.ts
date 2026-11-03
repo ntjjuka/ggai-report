@@ -1,5 +1,6 @@
 // docs/07 §5 + docs/14 — 프롬프트. 시스템 프롬프트는 바이트 고정(캐시), 가변값은 사용자 메시지에만.
 import { FOCUS_LABEL, type Focus, type Mood, type Tone } from "@/lib/report/schema";
+import { TRANSCRIPT_FORMAT_NOTE } from "@/lib/report/transcript";
 import type { ScorePrior } from "@/lib/stats/priors";
 
 export interface PersonaConfig {
@@ -119,6 +120,7 @@ export function buildChunkUserPrompt(args: {
   return [
     `[대화 정보] 참여자: ${participantsLine(args.participants)}. 대화 유형: ${FOCUS_LABEL[args.focus]}. 이 청크: ${args.label} (${args.messageCount}개 메시지, 전체의 ${args.index + 1}/${args.total} 구간).`,
     `[유형 지침] ${FOCUS_GUIDE[args.focus]}`,
+    TRANSCRIPT_FORMAT_NOTE,
     `[할 일] 이 구간에서 사건(events), 사람별 관심·노력 신호(signals: participantId는 위 ID), 인상적인 순간(highlights: 실제로 웃기거나 설레거나 어색한 지점만), 키워드(8개 이내), 로스트 소재(roastMaterial: 반복되는 행동 패턴만, 근거 ID 필수), 갈등과 회복(conflicts), 계획과 이행(plans), 안전 신호(safetyFlags)를 추출한다.`,
     `단답·늦은 답장·건조한 말투·화제 끊김은 낮은 점수로 솔직하게 반영한다.${group ? " 단체방이므로 같은 방에 있었다는 사실만으로 친밀도를 추정하지 않고, 이름 호명·직접 질문과 답·이어지는 주제처럼 상호작용이 분명한 것만 근거로 쓴다." : ""}`,
     `메시지 ID는 전사에 있는 것만 쓴다.`,
@@ -168,7 +170,7 @@ export function buildSynthesisUserPrompt(args: {
   }
   lines.push(`[뱃지 카탈로그] ${args.badgeCatalog}`);
   if (args.mode === "SINGLE" && args.transcript) {
-    lines.push(`<transcript>`, args.transcript, `</transcript>`);
+    lines.push(TRANSCRIPT_FORMAT_NOTE, `<transcript>`, args.transcript, `</transcript>`);
   } else {
     lines.push(`[구간별 추출 결과(JSON 배열)]`, args.chunkJson ?? "[]");
     lines.push(`[구간별 하이라이트 후보 원문 — 인용 ID는 반드시 이 목록 안에서]`, args.highlightCandidates ?? "(없음)");

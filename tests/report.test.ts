@@ -68,10 +68,49 @@ describe("transcript", () => {
     expect(maskText("연락은 010-1234-5678로, 계좌 110-123-456789, https://www.example.com/a?b=1")).toBe("연락은 [전화번호]로, 계좌 [계좌], [링크: example.com]");
     const s = setup();
     const text = renderTranscript(s.transcript);
-    expect(text).toContain("m0 [2026-09-25 20:02] 박민수(나): 오늘 수업 끝나고 뭐해?");
+    expect(text).toContain("## 2026-09-25 (금)");
+    expect(text).toContain("m0 20:02 박민수(나): 오늘 수업 끝나고 뭐해?");
     expect(text).toContain("[사진]");
     expect(text).toContain("[파일: 주말계획.pdf]");
     expect(text).not.toContain("들어왔습니다");
+    expect(text).toContain(" ⏎ "); // 여러 줄 본문은 ⏎로 이어 붙인다
+  });
+
+  it("compacts the transcript: merges same-sender runs, shortens laughs, counts repeats, keeps context breaks", () => {
+    const s = setup();
+    const base = s.transcript[0];
+    const mk = (i: number, pid: string, name: string, text: string, minute: number, kind: "TEXT" | "PHOTO" = "TEXT", brk = 0) => ({
+      ...base,
+      id: `m${i}`,
+      index: i,
+      pid,
+      name,
+      isUploader: pid === "p1",
+      kind,
+      text,
+      rawText: text,
+      at: `2026-01-05T21:${String(minute).padStart(2, "0")}`,
+      ms: Date.UTC(2026, 0, 5, 21, minute),
+      contextBreakBefore: brk,
+    });
+    const msgs = [
+      mk(0, "p1", "박민수", "오늘", 0),
+      mk(1, "p1", "박민수", "뭐해ㅋㅋㅋㅋㅋㅋㅋㅋ", 1),
+      mk(2, "p1", "박민수", "심심해!!!!!", 2),
+      mk(3, "p2", "이서연", "[사진]", 3, "PHOTO"),
+      mk(4, "p2", "이서연", "[사진]", 3, "PHOTO"),
+      mk(5, "p2", "이서연", "[사진]", 3, "PHOTO"),
+      mk(6, "p1", "박민수", "5분 뒤 메시지는 안 묶인다", 9),
+      mk(7, "p2", "이서연", "생략 뒤 첫 메시지", 10, "TEXT", 4),
+    ];
+    const lines = renderTranscript(msgs).split("\n");
+    expect(lines[0]).toBe("## 2026-01-05 (월)");
+    expect(lines[1]).toBe("m0~m2 21:00 박민수(나): 오늘 / 뭐해ㅋㅋㅋ / 심심해!!");
+    expect(lines[2]).toBe("m3~m5 21:03 이서연: [사진] ×3");
+    expect(lines[3]).toBe("m6 21:09 박민수(나): 5분 뒤 메시지는 안 묶인다");
+    expect(lines[4]).toBe("[다른 참여자 메시지 4개 생략]");
+    expect(lines[5]).toBe("m7 21:10 이서연: 생략 뒤 첫 메시지");
+    expect(buildEvidenceIndex(msgs).get("m4")?.text).toBe("[사진]"); // 묶여도 모든 ID는 근거 색인에 남는다
   });
 });
 

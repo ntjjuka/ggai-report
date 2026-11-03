@@ -11,6 +11,9 @@ const EnvSchema = z.object({
   LLM_PROVIDER: z.enum(["anthropic", "fake"]).default("anthropic"),
   ANTHROPIC_API_KEY: z.string().optional(),
   LLM_CHUNK_MODEL: z.string().default("claude-sonnet-5-5"),
+  /** 전사가 LLM_CHUNK_LARGE_TOKENS를 넘으면 청크 추출에 쓰는 싼 모델 (Haiku 5.5: Sonnet의 1/20 단가) */
+  LLM_CHUNK_MODEL_LARGE: z.string().default("claude-haiku-5-5"),
+  LLM_CHUNK_LARGE_TOKENS: z.coerce.number().default(1_000_000),
   LLM_SYNTHESIS_MODEL: z.string().default("claude-opus-5-5"),
   LLM_FALLBACK_MODEL: z.string().default("claude-opus-4-8"),
   LLM_SINGLE_PASS_MAX_TOKENS: z.coerce.number().default(150_000),

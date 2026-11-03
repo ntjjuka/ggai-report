@@ -80,21 +80,95 @@ export function buildTranscript(eff: EffectiveMessage[], participants: Map<strin
       kind: m.kind,
       text,
       rawText: m.text,
-      tokens: estimateTokens(`m${m.index} [${m.at}] ${name}: ${text}`),
+      tokens: estimateTokens(`m${m.index} ${m.at.slice(11, 16)} ${name}: ${compactBody(text)}`),
       contextBreakBefore: m.contextBreakBefore,
       ms: m.ms,
     };
   });
 }
 
-export function renderLine(m: TranscriptMessage): string {
-  const body = m.text.includes("\n") ? m.text.split("\n").join("\n     ") : m.text;
-  const prefix = m.contextBreakBefore > 0 ? `[다른 참여자 메시지 ${m.contextBreakBefore}개 생략]\n` : "";
-  return `${prefix}${m.id} [${m.at.replace("T", " ")}] ${m.name}${m.isUploader ? "(나)" : ""}: ${body}`;
+/** 프롬프트에 넣는 전사 형식 설명 (압축 규칙을 모델에게 알린다) */
+export const TRANSCRIPT_FORMAT_NOTE =
+  "[전사 형식] `## 날짜 (요일)` 줄 아래에 `mID 시:분 이름: 본문` 한 줄씩. 같은 사람이 2분 안에 연달아 보낸 메시지는 `m200~m203`처럼 묶고 본문은 ` / `로 나눴다. 근거 ID는 묶음 안의 어떤 ID든 쓸 수 있다(첫 ID 권장). `×3`은 같은 내용이 3번 반복됐다는 뜻, `ㅋㅋㅋ`처럼 긴 웃음은 3자로 줄였다. `⏎`는 줄바꿈.";
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const MERGE_GAP_MS = 2 * 60_000;
+const MERGE_MAX_MSGS = 8;
+const MERGE_MAX_CHARS = 320;
+
+/** 본문 압축: 긴 웃음·반복 문장부호·줄바꿈 축약 (통계는 원문으로 계산하므로 렌더에만 적용) */
+export function compactBody(text: string): string {
+  return text
+    .replace(/([ㅋㅎㅠㅜ])\1{2,}/g, "$1$1$1")
+    .replace(/([!?~.])\1{2,}/g, "$1$1")
+    .replace(/\r?\n+/g, " ⏎ ")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
 }
 
+/** 단독 한 줄 렌더 (하이라이트 후보 등 문맥 밖에서 쓰므로 날짜 포함) */
+export function renderLine(m: TranscriptMessage): string {
+  const prefix = m.contextBreakBefore > 0 ? `[다른 참여자 메시지 ${m.contextBreakBefore}개 생략]\n` : "";
+  return `${prefix}${m.id} ${m.at.replace("T", " ").slice(0, 16)} ${m.name}${m.isUploader ? "(나)" : ""}: ${compactBody(m.text)}`;
+}
+
+function weekdayOf(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? "" : ` (${WEEKDAYS[d.getUTCDay()]})`;
+}
+
+/** 같은 내용 반복(예: [사진] [사진] [사진])을 `[사진] ×3`으로 */
+function joinBodies(bodies: string[]): string {
+  const out: string[] = [];
+  let i = 0;
+  while (i < bodies.length) {
+    let j = i + 1;
+    while (j < bodies.length && bodies[j] === bodies[i]) j++;
+    out.push(j - i >= 2 ? `${bodies[i]} ×${j - i}` : bodies[i]);
+    i = j;
+  }
+  return out.join(" / ");
+}
+
+/**
+ * 압축 전사: 날짜 헤더 + 짧은 시각 + 같은 사람의 연속 메시지 묶기. 토큰 30~45% 절감 (docs/19).
+ * 근거 ID는 전부 보존된다(묶음은 `m200~m203`, 각 ID는 evidence index에 그대로 있음).
+ */
 export function renderTranscript(messages: TranscriptMessage[], header?: string): string {
-  const lines = messages.map(renderLine);
+  const lines: string[] = [];
+  let day = "";
+  let i = 0;
+  while (i < messages.length) {
+    const first = messages[i];
+    const date = first.at.slice(0, 10);
+    if (date !== day) {
+      day = date;
+      lines.push(`## ${date}${weekdayOf(date)}`);
+    }
+    const bodies = [compactBody(first.text)];
+    let last = first;
+    let j = i + 1;
+    let chars = bodies[0].length;
+    while (
+      j < messages.length &&
+      messages[j].pid === first.pid &&
+      messages[j].at.slice(0, 10) === date &&
+      messages[j].contextBreakBefore === 0 &&
+      messages[j].ms - last.ms <= MERGE_GAP_MS &&
+      bodies.length < MERGE_MAX_MSGS &&
+      chars < MERGE_MAX_CHARS
+    ) {
+      const b = compactBody(messages[j].text);
+      bodies.push(b);
+      chars += b.length;
+      last = messages[j];
+      j++;
+    }
+    const prefix = first.contextBreakBefore > 0 ? `[다른 참여자 메시지 ${first.contextBreakBefore}개 생략]\n` : "";
+    const id = j - i > 1 ? `${first.id}~${last.id}` : first.id;
+    lines.push(`${prefix}${id} ${first.at.slice(11, 16)} ${first.name}${first.isUploader ? "(나)" : ""}: ${joinBodies(bodies)}`);
+    i = j;
+  }
   return header ? `${header}\n${lines.join("\n")}` : lines.join("\n");
 }
 

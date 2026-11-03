@@ -110,15 +110,18 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     const evidence = buildEvidenceIndex(transcript);
     if (transcript.length === 0) throw new ApiError(422, "NO_MESSAGES", "분석할 메시지가 없어요");
 
-    // [4] PLAN
+    // [4] PLAN — 전사가 크면 청크 읽기는 싼 모델로 (docs/19 1단계)
+    const transcriptTokens = transcript.reduce((a, m) => a + m.tokens, 0);
+    const chunkModel = transcriptTokens > cfg.LLM_CHUNK_LARGE_TOKENS ? cfg.LLM_CHUNK_MODEL_LARGE : cfg.LLM_CHUNK_MODEL;
     const plan = makePlan(transcript, {
       singlePassMaxTokens: cfg.LLM_SINGLE_PASS_MAX_TOKENS,
       chunkMaxTokens: cfg.LLM_CHUNK_MAX_TOKENS,
       maxTotalTokens: cfg.LLM_MAX_TOTAL_TOKENS,
       maxCostUsd: cfg.LLM_MAX_COST_USD,
-      chunkModel: cfg.LLM_CHUNK_MODEL,
+      chunkModel,
       synthesisModel: cfg.LLM_SYNTHESIS_MODEL,
     });
+    const participantsSig = participants.map((p) => `${p.id}=${p.name}${p.isUploader ? "*" : ""}`).join(",");
     const system = buildSystemPrompt({ name: persona, tone });
     const systemHash = sha256(system).slice(0, 16);
     const scoreKeys = cfg.scoresEnabled ? priors.map((p) => p.key) : [];
@@ -168,16 +171,17 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
           const chunk = queue.shift()!;
           const text = renderTranscript(chunk.messages);
           const user = buildChunkUserPrompt({ participants, focus, label: chunk.label, index: chunk.index, total, messageCount: chunk.messages.length, transcript: text });
-          const requestKey = sha256(`${reportId}|CHUNK|${chunk.index}|${systemHash}|${sha256(user)}|${cfg.LLM_CHUNK_MODEL}`);
+          // 대화 단위 캐시 키(보고서 ID 없음): 같은 대화로 다른 보고서를 만들면 청크 추출을 다시 사지 않는다 (RAW_RETENTION_DAYS 동안 보관)
+          const requestKey = sha256(`${conv.id}|CHUNK|${systemHash}|${focus}|${participantsSig}|${sha256(text)}|${chunkModel}`);
           try {
             const res = await callLlm<ChunkExtraction>(
               {
                 stage: "CHUNK",
-                model: cfg.LLM_CHUNK_MODEL,
+                model: chunkModel,
                 user,
                 schema: ChunkExtractionSchema,
                 maxTokens: 32000, // 청크 추출: 사고 토큰 + JSON
-                effort: "medium",
+                effort: "low", // 구조화 추출엔 충분, 사고 토큰 절감
                 requestKey,
                 hints: { ...hintsBase, messageIds: chunk.messages.map((m) => m.id), speakerOf: Object.fromEntries(chunk.messages.map((m) => [m.id, m.pid])) },
               },
@@ -205,8 +209,12 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     // [6] SYNTHESIS
     await progress("SYNTH", 78, `${persona}가 생각을 정리하고 있어요. 이 단계는 보통 1~2분`);
     const mood: Mood = pickMood(reportId, safetyFlagged);
-    const chunkJson = plan.mode === "CHUNKED" ? JSON.stringify(chunkResults.filter(Boolean).map((c) => ({ label: c.label, ...c.value }))) : null;
-    const highlightMessages = plan.mode === "CHUNKED" ? chunkResults.filter(Boolean).flatMap((c) => c.highlights) : [];
+    // 청크가 많으면 종합 입력을 다이어트: 청크당 상위 항목만, 하이라이트 후보 총량 상한 (Opus 입력 토큰 절감)
+    const okChunks = chunkResults.filter(Boolean);
+    const dense = okChunks.length > 24;
+    const chunkJson = plan.mode === "CHUNKED" ? JSON.stringify(okChunks.map((c) => ({ label: c.label, ...(dense ? trimChunkForSynthesis(c.value) : c.value) }))) : null;
+    const perChunkHighlights = okChunks.length ? Math.max(2, Math.floor(160 / okChunks.length)) : 25;
+    const highlightMessages = plan.mode === "CHUNKED" ? okChunks.flatMap((c) => c.highlights.slice(0, perChunkHighlights)) : [];
     const synthUser = buildSynthesisUserPrompt({
       title: conv.title ?? "카카오톡 대화",
       period: `${stats.period.startedAt.slice(0, 10)} ~ ${stats.period.endedAt.slice(0, 10)}`,
@@ -265,7 +273,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
       const repairKey = sha256(`${reportId}|REPAIR|${systemHash}|${sha256(repairUser)}|${cfg.LLM_SYNTHESIS_MODEL}`);
       try {
         const rep = await callLlm(
-          { stage: "REPAIR", model: cfg.LLM_SYNTHESIS_MODEL, user: repairUser, schema: RepairResponseSchema, maxTokens: 24000, effort: "medium", requestKey: repairKey, hints: { ...hintsBase, messageIds: synthIds.map((m) => m.id), speakerOf: Object.fromEntries(synthIds.map((m) => [m.id, m.pid])) } },
+          { stage: "REPAIR", model: cfg.LLM_SYNTHESIS_MODEL, user: repairUser, schema: RepairResponseSchema, maxTokens: 24000, effort: "low", requestKey: repairKey, hints: { ...hintsBase, messageIds: synthIds.map((m) => m.id), speakerOf: Object.fromEntries(synthIds.map((m) => [m.id, m.pid])) } },
           -2,
         );
         const patched = applyPatches(validation.draft, rep.value.patches);
@@ -294,7 +302,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
       evidence,
       plan: { mode: plan.mode, coveragePct: plan.coveragePct, chunksTotal: plan.chunks.length, chunksSucceeded: plan.chunks.length - chunkFailures },
       metrics: { ...finalCheck.metrics, evidenceTotal: validation.metrics.evidenceTotal, evidenceDropped: validation.metrics.evidenceDropped, repaired },
-      usage: { input: usage.input, output: usage.output, cacheRead: usage.cacheRead, costUsd: usage.costUsd, durationSec: Math.round((now() - started) / 1000), chunkModel: plan.mode === "CHUNKED" ? cfg.LLM_CHUNK_MODEL : null, synthesisModel: cfg.LLM_SYNTHESIS_MODEL },
+      usage: { input: usage.input, output: usage.output, cacheRead: usage.cacheRead, costUsd: usage.costUsd, durationSec: Math.round((now() - started) / 1000), chunkModel: plan.mode === "CHUNKED" ? chunkModel : null, synthesisModel: cfg.LLM_SYNTHESIS_MODEL },
       generatedAt: new Date(now()).toISOString(),
     });
     await markSucceeded(reportId, attempt, content);
@@ -309,6 +317,22 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     return "failed";
   }
   }
+}
+
+/** 종합 프롬프트용 청크 결과 다이어트 (청크 24개 초과 시): 항목 수 상한 + 요약 절단 */
+export function trimChunkForSynthesis(v: ChunkExtraction): ChunkExtraction {
+  const seenSignal = new Set<string>();
+  return {
+    summary: v.summary.slice(0, 300),
+    events: v.events.slice(0, 4),
+    signals: v.signals.filter((s) => !seenSignal.has(s.participantId) && seenSignal.add(s.participantId)),
+    highlights: v.highlights.slice(0, 4),
+    keywords: v.keywords.slice(0, 6),
+    roastMaterial: v.roastMaterial.slice(0, 3),
+    conflicts: v.conflicts.slice(0, 2),
+    plans: v.plans.slice(0, 2),
+    safetyFlags: v.safetyFlags,
+  };
 }
 
 function classify(e: unknown): string {

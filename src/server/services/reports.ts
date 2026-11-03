@@ -458,12 +458,17 @@ export async function recoverStaleReports(now = new Date(), opts: { bootstrap?: 
 }
 
 /** 성공 보고서의 LLM 원출력 체크포인트는 24시간 뒤 삭제 (docs/05 §5) */
+/** 체크포인트 정리. CHUNK 결과는 같은 대화의 다음 보고서가 재사용하므로 원문 보존 기간(RAW_RETENTION_DAYS)만큼 둔다 */
 export async function cleanupStageResults(now = new Date()): Promise<number> {
   const cfg = getConfig();
   const before = new Date(now.getTime() - cfg.STAGE_RESULT_RETENTION_HOURS * 3600_000);
+  const chunkBefore = new Date(now.getTime() - cfg.RAW_RETENTION_DAYS * 86_400_000);
   const rows = await getDb()
     .delete(schema.reportStageResult)
-    .where(sql`${schema.reportStageResult.createdAt} < ${before} AND ${schema.reportStageResult.reportId} IN (SELECT id FROM report WHERE status = 'SUCCEEDED')`)
+    .where(
+      sql`(${schema.reportStageResult.stage} = 'CHUNK' AND ${schema.reportStageResult.createdAt} < ${chunkBefore})
+        OR (${schema.reportStageResult.stage} <> 'CHUNK' AND ${schema.reportStageResult.createdAt} < ${before} AND ${schema.reportStageResult.reportId} IN (SELECT id FROM report WHERE status = 'SUCCEEDED'))`,
+    )
     .returning({ id: schema.reportStageResult.id });
   return rows.length;
 }
