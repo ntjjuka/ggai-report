@@ -179,9 +179,10 @@ export class FakeLlmClient implements LlmClient {
       patches: paths.map((path) => {
         if (path === "verdict.headline") return { path, valueJson: JSON.stringify("둘 중 한 명만 연애 중이다") };
         if (path === "verdict.reportTitle") return { path, valueJson: JSON.stringify("좋지 보고서: 동의는 즉시, 실행은 외주") };
-        if (/^participants\[\d+\]\.paragraphs\[\d+\]$/.test(path)) return { path, valueJson: JSON.stringify({ text: `선톡과 질문을 맡고 있다(${idAt(1)}). 수리된 문단이지만 화법은 유지한다.`, quoteIds: [] }) };
+        if (/^participants\[\d+\]\.paragraphs\[\d+\]$/.test(path)) return { path, valueJson: JSON.stringify({ text: "이 양반은 질문을 던지고 답이 오기 전에 다음 질문을 던진다. 수리된 문단이지만 화법은 유지한다.", quoteIds: [idAt(1)] }) };
         if (/^participants\[\d+\]\.paragraphs$/.test(path)) return { path, valueJson: JSON.stringify([{ text: `선톡과 질문을 맡고 있다(${idAt(1)}). 재료가 모자라 한 문단으로 보고한다.`, quoteIds: [] }]) };
         if (/^participants\[\d+\]\.(title|nickname)$/.test(path)) return { path, valueJson: JSON.stringify("수리된 '별명'") };
+        if (/^participants\[\d+\]\.oneLiner$/.test(path)) return { path, valueJson: JSON.stringify("결론: 말은 전보, 약속은 소설.") };
         if (/^participants\[\d+\]$/.test(path)) return { path, valueJson: JSON.stringify(null) };
         if (/^findings\[\d+\]$/.test(path)) return { path, valueJson: JSON.stringify({ title: "수리된 발견", observed: "보인 것", interpretation: "해석", evidenceIds: [idAt(2)], confidence: "LOW", tags: [] }) };
         return { path, valueJson: JSON.stringify("수리됨") };

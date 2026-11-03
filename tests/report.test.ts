@@ -300,6 +300,25 @@ describe("validator + assembler", () => {
     expect(ai.violations.some((x) => x.reason === "COUNSELOR_TONE" && x.path === "verdict.body[0]")).toBe(true);
   });
 
+  it("moves inline ids out of persona prose into quote bubbles and flags analyst-style statistics", async () => {
+    const s = await fakeDraft("ok");
+    const ctx = { evidence: s.evidence, participantIds: s.parts.map((p) => p.id), isGroup: true, scoreKeys: [], priors: {}, scoresEnabled: false, allowedNumbers: new Set<number>() };
+    const p0 = s.draft.participants[0];
+    const own = s.transcript.filter((m) => m.pid === p0.participantId).map((m) => m.id);
+    p0.paragraphs[0] = { text: `큰소리를 쳤는데(${own[0]}), 정작 결과는 한 마리다(${own[1]}, ${own[2]}). 그래도 ${own[0]} 봐.`, quoteIds: [] };
+    p0.paragraphs[1] = { text: "선톡 220회로 방 전체 선톡의 31%를 혼자 치고, 새벽 메시지 1571개로 1위다. 평균 7.8자.", quoteIds: [] };
+    p0.title = "텍스트 4만 개 낚은 '까부장'";
+    p0.oneLiner = "결론: 말은 7.8자, 목표는 7킬로";
+    const v = validateDraft(s.draft, ctx);
+    const q = v.draft.participants[0];
+    expect(q.paragraphs[0].text).toBe("큰소리를 쳤는데, 정작 결과는 한 마리다. 그래도 봐.");
+    expect(q.paragraphs[0].quoteIds).toEqual(own.slice(0, 3));
+    expect(v.violations.filter((x) => x.reason === "STATS_IN_PERSONA").map((x) => x.path).sort()).toEqual(["participants[0].oneLiner", "participants[0].paragraphs[1]", "participants[0].title"]);
+    // 이야기 속 숫자(날짜·개수·년)는 통계로 보지 않는다
+    const story = validateDraft({ ...s.draft, participants: s.draft.participants.map((p) => ({ ...p, title: "소주 열 병 시키고 한 마리 잡은 '조과 한 마리'", oneLiner: "결론: 금연은 월요일마다, 편의점은 매일", paragraphs: [{ text: "1월에 헬스장 6개월을 끊고 3년 만에 참이슬 10병을 주문했다. 5000자 의뢰도 보냈다.", quoteIds: [] }] })) }, ctx);
+    expect(story.violations.some((x) => x.reason === "STATS_IN_PERSONA")).toBe(false);
+  });
+
   it("clamps scores to prior ±40 and downgrades confidence", async () => {
     const s = await fakeDraft("ok");
     s.draft.scores = s.priors.map((p) => ({ key: p.key, value: 100, oneLiner: "x", confidence: "HIGH" as const }));
@@ -324,6 +343,9 @@ describe("prompts", () => {
     expect(a).toContain("인물 페르소나");
     expect(a).toContain("갤주");
     expect(a).toContain("뻔함 금지");
+    expect(a).toContain("숫자 규칙");
+    expect(a).toContain("폭로자");
+    expect(a).toContain("분석가 말투 ✗");
   });
 
   it("synthesis prompt carries facts, priors, mood and question", () => {
@@ -366,6 +388,8 @@ describe("prompts", () => {
     const verdict = buildSynthesisInstructions(args, "VERDICT");
     const all = buildSynthesisInstructions(args, "ALL");
     expect(persona).toContain("participants (메인 코너");
+    expect(persona).toContain("[숫자 금지]");
+    expect(persona).toContain("[인용 규칙]");
     expect(persona).not.toContain("verdict.body");
     expect(verdict).toContain("verdict.body");
     expect(verdict).not.toContain("participants (메인 코너");

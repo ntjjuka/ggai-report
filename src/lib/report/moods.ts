@@ -1,9 +1,10 @@
 import { MOOD, type Mood } from "./schema";
 import { hashSeed } from "@/lib/tier0/templates";
 
-const WEIGHTS: Record<Mood, number> = { DIRECT: 40, WARM: 25, DRY: 20, HYPED: 15 };
+// 2026-11-03: 건조·다정이 뽑히면 밈·과장이 반으로 줄어 "분석 리포트"처럼 읽힌다(실측) → 랜덤은 직진/들뜸만, 다정은 민감 신호 때만
+const WEIGHTS: Record<Mood, number> = { DIRECT: 55, WARM: 0, DRY: 0, HYPED: 45 };
 
-/** 보고서 ID로 결정되는 가중 랜덤 기분. 민감 신호가 있으면 WARM 강제. */
+/** 보고서 ID로 결정되는 가중 랜덤 기분(직진 55 / 들뜸 45). 민감 신호가 있으면 WARM 강제. */
 export function pickMood(seedKey: string, forceWarm = false): Mood {
   if (forceWarm) return "WARM";
   const r = hashSeed(seedKey) % 100;

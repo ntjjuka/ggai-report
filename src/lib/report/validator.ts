@@ -12,7 +12,7 @@ export interface ValidationContext {
   allowedNumbers: Set<number>;
 }
 
-export type ViolationReason = "NON_KOREAN_SCRIPT" | "FORBIDDEN_TOPIC" | "NO_EVIDENCE" | "TOO_LONG" | "MISSING" | "BAD_ID" | "COUNSELOR_TONE";
+export type ViolationReason = "NON_KOREAN_SCRIPT" | "FORBIDDEN_TOPIC" | "NO_EVIDENCE" | "TOO_LONG" | "MISSING" | "BAD_ID" | "COUNSELOR_TONE" | "STATS_IN_PERSONA";
 
 export interface Violation {
   path: string;
@@ -39,6 +39,10 @@ const COUNSELOR = /전반적으로|긍정적인\s?관계|소통이\s?(?:잘|부�
 const TITLE_MAX = 60;
 const TOPIC_MAX = 4;
 const PARAGRAPH_MAX = 3;
+const QUOTES_PER_PARAGRAPH = 3;
+// 인물 산문의 "분석가 말투" 탐지: 통계 어휘와 N회·N자·N%·메시지 N개 류 (날짜·가격 같은 이야기 숫자는 잡지 않는다)
+const PERSONA_STATS = /평균|중앙값|비율|최장|최단|\d+(?:\.\d+)?\s?(?:회|번째|자|%|퍼센트)(?![가-힣])|(?:메시지|텍스트|선톡|답장|사진)\s?\d[\d,]*(?:만|천|억)?\s?(?:개|건|장)/g;
+const INLINE_ID_GROUP = /\s*\(\s*(?:m\d+\s*[,·、]?\s*)+\)/g;
 const HEADLINE_MAX = 40;
 const SUBLINE_MAX = 30;
 
@@ -109,7 +113,19 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
       type: { label: clip(p.type?.label ?? "", 20), description: clip(p.type?.description ?? "", 160) },
       topics: [...new Set((p.topics ?? []).map((t) => clip(t, 30)).filter(Boolean))].slice(0, TOPIC_MAX),
       paragraphs: (p.paragraphs ?? [])
-        .map((par) => ({ text: (par.text ?? "").trim(), quoteIds: keepIds(par.quoteIds ?? [], p.participantId).slice(0, 2) }))
+        .map((par) => {
+          // 문단 본문의 인라인 ID는 말풍선(quoteIds)으로 옮기고 본문에서 지운다 — 문장 중간 인용 칩은 리듬을 죽인다 (docs/14 §9.4)
+          const raw = par.text ?? "";
+          const inline = [...raw.matchAll(/\bm\d+\b/g)].map((m) => m[0]);
+          const text = raw
+            .replace(INLINE_ID_GROUP, "")
+            .replace(/\bm\d+\b/g, "")
+            .replace(/\(\s*\)/g, "")
+            .replace(/[ \t]{2,}/g, " ")
+            .replace(/\s+([,.!?])/g, "$1")
+            .trim();
+          return { text, quoteIds: keepIds([...(par.quoteIds ?? []), ...inline], p.participantId).slice(0, QUOTES_PER_PARAGRAPH) };
+        })
         .filter((par) => par.text.length > 0)
         .slice(0, PARAGRAPH_MAX),
       oneLiner: clip(p.oneLiner ?? "", 60),
@@ -117,6 +133,14 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
     }));
   draft.participants.forEach((p, i) => {
     if (p.paragraphs.length === 0) violations.push({ path: `participants[${i}].paragraphs`, reason: "MISSING", detail: `참여자 ${p.participantId} 문단 없음 — 1~3문단` });
+    // 분석가 말투(통계 숫자) → 수리: 사건·말·행동으로 다시 쓰게 한다
+    p.paragraphs.forEach((par, j) => {
+      const hits = par.text.match(PERSONA_STATS) ?? [];
+      if (hits.length >= 2) violations.push({ path: `participants[${i}].paragraphs[${j}]`, reason: "STATS_IN_PERSONA", detail: `통계 숫자 ${hits.slice(0, 3).join(", ")} — 인물 문단은 숫자 대신 사건·말·행동으로, 격차 비유·밈 하나씩, 마지막 문장은 꺾기` });
+    });
+    for (const [field, value] of [["title", p.title], ["oneLiner", p.oneLiner]] as const) {
+      if ((value.match(PERSONA_STATS) ?? []).length >= 1) violations.push({ path: `participants[${i}].${field}`, reason: "STATS_IN_PERSONA", detail: "칭호·한 줄 결론에 통계 숫자 금지 — 말 vs 행동 대비나 격차 비유로" });
+    }
   });
   for (const pid of ctx.participantIds) {
     if (!seen.has(pid)) violations.push({ path: `participants[${pid}]`, reason: "MISSING", detail: `참여자 ${pid} 항목 없음` });
