@@ -30,7 +30,8 @@ export function setOwnerCookie(res: NextResponse, token: string): void {
   res.cookies.set(OWNER_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // https 배포에서만 Secure. 로컬 Docker(http://localhost, LAN IP)에서 NODE_ENV=production이라도 쿠키가 버려지지 않게 한다
+    secure: (process.env.APP_BASE_URL ?? "").startsWith("https://"),
     path: "/",
     maxAge: ONE_YEAR,
   });

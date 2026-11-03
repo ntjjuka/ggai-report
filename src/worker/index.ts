@@ -1,4 +1,5 @@
 // 워커 프로세스: pg-boss 소비 + 유지보수 스케줄 (stale 복구·원문 만료·체크포인트 정리)
+import { writeFileSync } from "node:fs";
 import { config as loadEnv } from "dotenv";
 loadEnv();
 
@@ -20,6 +21,14 @@ async function main(): Promise<void> {
   const boss = await getBoss("worker");
   const llm = getLlmClient();
   console.info(`[worker] started · provider=${llm.provider} · concurrency=${cfg.WORKER_CONCURRENCY}`);
+  // compose healthcheck: 마이그레이션·큐 준비가 끝난 뒤에만 파일을 만든다 → web은 이 뒤에 뜬다 (첫 요청 500 방지)
+  if (process.env.WORKER_READY_FILE) {
+    try {
+      writeFileSync(process.env.WORKER_READY_FILE, new Date().toISOString());
+    } catch (e) {
+      console.warn(`[worker] ready file write failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 
   for (let i = 0; i < cfg.WORKER_CONCURRENCY; i++) {
     await boss.work<ReportJobData>(REPORT_QUEUE, { batchSize: 1, pollingIntervalSeconds: 2 }, async (jobs) => {

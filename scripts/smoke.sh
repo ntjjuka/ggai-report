@@ -3,7 +3,8 @@
 # 사용: BASE_URL=http://localhost:3000 bash scripts/smoke.sh  (web + worker 가 떠 있어야 함)
 set -euo pipefail
 BASE="${BASE_URL:-http://localhost:3000}"
-FIXTURE="${FIXTURE:-docs/fixtures/android_ko_basic.txt}"
+# 기본 픽스처는 기본 한도(UPLOAD_MIN_MESSAGES=30)에서도 통과하는 304개짜리. 3인 대화 샘플은 FIXTURE=docs/fixtures/android_ko_basic.txt (UPLOAD_MIN_MESSAGES≤16 필요)
+FIXTURE="${FIXTURE:-docs/fixtures/group_30people.txt}"
 JAR="$(mktemp)"
 OUT="$(mktemp -d)"
 j() { python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(eval('d'+sys.argv[2]))" "$1" "$2"; }

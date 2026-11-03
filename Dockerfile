@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.7
 # 두 타깃: web (Next standalone) · worker (tsx로 TypeScript 직접 실행)
 FROM node:22-alpine AS base
+# corepack이 package.json의 packageManager(pnpm 버전)를 내려받을 때 TTY 프롬프트를 띄우지 않게
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable && apk add --no-cache libc6-compat
 WORKDIR /app
 
