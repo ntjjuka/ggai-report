@@ -54,6 +54,7 @@ export class AnthropicLlmClient implements LlmClient {
   private readonly fallbackModel: string | null;
   private readonly maxAttempts: number;
   private readonly sleep: (ms: number) => Promise<void>;
+  private readonly timeoutMs: number;
 
   constructor(opts: AnthropicClientOptions = {}) {
     this.client = new Anthropic({
@@ -64,7 +65,18 @@ export class AnthropicLlmClient implements LlmClient {
     });
     this.fallbackModel = opts.fallbackModel ?? null;
     this.maxAttempts = opts.maxAttempts ?? 3;
+    this.timeoutMs = opts.timeoutMs ?? 600_000;
     this.sleep = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+  }
+
+  /** SDK의 timeout은 응답 헤더까지만 본다. 스트림 본문이 멈추면 보고서가 영원히 RUNNING이 되므로 전체 시간에 워치독을 건다 */
+  private async collect<M>(stream: { finalMessage(): Promise<M>; abort(): void }): Promise<M> {
+    const timer = setTimeout(() => stream.abort(), this.timeoutMs);
+    try {
+      return await stream.finalMessage();
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async countTokens(model: string, system: string, user: string): Promise<number> {
@@ -95,8 +107,8 @@ export class AnthropicLlmClient implements LlmClient {
         let res: Anthropic.Message & { parsed_output?: unknown };
         if (jsonMode && fast) {
           // Opus fast mode: 출력 2.5배 빠름, 단가 2배. beta 엔드포인트 + beta 플래그 + speed 파라미터 세 가지가 모두 필요
-          const beta = await this.client.beta.messages
-            .stream({
+          const beta = await this.collect(
+            this.client.beta.messages.stream({
               model,
               max_tokens: maxTokens,
               system,
@@ -104,29 +116,29 @@ export class AnthropicLlmClient implements LlmClient {
               output_config: { effort: req.effort },
               speed: "fast",
               betas: ["fast-mode-2026-02-01"],
-            })
-            .finalMessage();
+            }),
+          );
           res = beta as unknown as Anthropic.Message;
         } else if (jsonMode) {
-          res = await this.client.messages
-            .stream({
+          res = await this.collect(
+            this.client.messages.stream({
               model,
               max_tokens: maxTokens,
               system,
               messages: [{ role: "user", content: req.user + jsonModeSuffix(schemaJson, lastFailure) }],
               output_config: { effort: req.effort },
-            })
-            .finalMessage();
+            }),
+          );
         } else {
-          res = await this.client.messages
-            .stream({
+          res = await this.collect(
+            this.client.messages.stream({
               model,
               max_tokens: maxTokens,
               system,
               messages: [{ role: "user", content: req.user }],
               output_config: { format, effort: req.effort },
-            })
-            .finalMessage();
+            }),
+          );
         }
         const usage = {
           input: res.usage.input_tokens,
@@ -219,6 +231,7 @@ export class AnthropicLlmClient implements LlmClient {
 }
 
 function isRetryable(e: unknown): boolean {
+  if (e instanceof Anthropic.APIUserAbortError) return true; // 워치독 abort(스트림 멈춤) → 재시도
   if (e instanceof Anthropic.RateLimitError) return true;
   if (e instanceof Anthropic.InternalServerError) return true;
   if (e instanceof Anthropic.APIConnectionError) return true; // 타임아웃 포함

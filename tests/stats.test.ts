@@ -130,4 +130,17 @@ describe("computeStats", () => {
     expect(computeStats(msgs, map, "b").balance?.uploaderId).toBe("b");
     expect(computeStats(msgs, map, "zzz").balance?.uploaderId).toBe("a"); // 모르는 ID는 폴백
   });
+
+  it("gives each badge to at most one person in a big group (no '답장요정 ×7')", () => {
+    const names = Array.from({ length: 11 }, (_, i) => `사람${i + 1}`);
+    const lines: [string, string, string][] = [];
+    for (let d = 1; d <= 20; d++) for (let i = 0; i < 11; i++) for (let k = 0; k < 3; k++) lines.push([`2025. 1. ${d}. 오후 ${1 + ((i + k) % 8)}:${String((i * 7 + k * 3) % 60).padStart(2, "0")}`, names[i], `메시지 ${d}-${i}-${k} ㅋㅋ 뭐해?`]);
+    const msgs = synth(lines);
+    const map: ParticipantMap = new Map(names.map((n, i) => [n, { id: `p${i + 1}`, name: n, rawNames: [n], isUploader: i === 0 }]));
+    const s = computeStats(msgs, map, "p1");
+    const t0 = buildTier0(s, msgs, "x");
+    const ids = t0.badges.map((b) => b.badgeId);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(t0.badges.length).toBeLessThanOrEqual(8);
+  });
 });

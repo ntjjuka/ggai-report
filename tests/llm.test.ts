@@ -92,6 +92,20 @@ describe("anthropic client — JSON mode fallback", () => {
     expect(calls).toEqual(["fast:fast:fast-mode-2026-02-01", "standard"]);
   });
 
+  it("aborts a stalled stream after the watchdog timeout and retries, then fails as LLM_UNAVAILABLE", async () => {
+    const c = new AnthropicLlmClient({ apiKey: "test-key", sleep: async () => {}, timeoutMs: 30, maxAttempts: 2 });
+    let aborted = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inner = (c as any).client as { messages: { stream: unknown } };
+    inner.messages.stream = () => {
+      let reject: (e: unknown) => void = () => {};
+      const p = new Promise<never>((_, rej) => { reject = rej; });
+      return { finalMessage: () => p, abort: () => { aborted += 1; reject(new Anthropic.APIUserAbortError({ message: "Request was aborted." })); } };
+    };
+    await expect(c.generateJson(req("SYNTHESIS"))).rejects.toMatchObject({ code: "LLM_UNAVAILABLE", retryable: true });
+    expect(aborted).toBe(2);
+  });
+
   it("other 400s stay LLM_BAD_REQUEST", async () => {
     const { c } = stubbed(async () => { throw new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "model: not found" } }, "400 model: not found", new Headers()); }, async () => fakeMessage("{}"));
     await expect(c.generateJson(req("REPAIR"))).rejects.toMatchObject({ code: "LLM_BAD_REQUEST" });

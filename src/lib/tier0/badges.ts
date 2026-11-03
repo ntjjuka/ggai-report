@@ -47,7 +47,7 @@ export function assignRuleBadges(stats: ChatStats): AwardedBadge[] {
   const totalInit = Object.values(stats.sessions.starts).reduce((a, b) => a + b, 0) || 1;
   const totalPhotos = people.reduce((a, p) => a + p.photos, 0);
   const totalEnds = people.reduce((a, p) => a + p.sessionEnds, 0) || 1;
-  const candidates: (AwardedBadge & { priority: number })[] = [];
+  const candidates: (AwardedBadge & { priority: number; score: number })[] = [];
   const top = (score: (p: PersonStat) => number) => {
     let best: PersonStat | null = null;
     let bestScore = -Infinity;
@@ -63,35 +63,44 @@ export function assignRuleBadges(stats: ChatStats): AwardedBadge[] {
   {
     const { best } = top((p) => p.initiations);
     if (best && best.initiations >= 3 && best.initiations / totalInit >= Math.min(0.6, 1.4 / people.length)) {
-      candidates.push({ participantId: best.id, badgeId: "first_texter", reason: `선톡 ${best.initiations}회 (${Math.round((best.initiations / totalInit) * 100)}%)`, priority: 9 });
+      candidates.push({ participantId: best.id, badgeId: "first_texter", reason: `선톡 ${best.initiations}회 (${Math.round((best.initiations / totalInit) * 100)}%)`, priority: 9, score: best.initiations });
     }
   }
   for (const p of people) {
     if (p.replyMedianSec !== null && p.replyCount >= 10) {
-      if (p.replyMedianSec <= 180) candidates.push({ participantId: p.id, badgeId: "reply_fairy", reason: `답장 중앙값 ${fmtMin(p.replyMedianSec)}`, priority: 8 });
-      else if (p.replyMedianSec >= 6 * 3600) candidates.push({ participantId: p.id, badgeId: "seen_zone_master", reason: `답장 중앙값 ${fmtMin(p.replyMedianSec)}`, priority: 10 });
-      else if (p.replyMedianSec >= 2 * 3600) candidates.push({ participantId: p.id, badgeId: "slow_burner", reason: `답장 중앙값 ${fmtMin(p.replyMedianSec)}`, priority: 7 });
+      if (p.replyMedianSec <= 180) candidates.push({ participantId: p.id, badgeId: "reply_fairy", reason: `답장 중앙값 ${fmtMin(p.replyMedianSec)}`, priority: 8, score: -p.replyMedianSec });
+      else if (p.replyMedianSec >= 6 * 3600) candidates.push({ participantId: p.id, badgeId: "seen_zone_master", reason: `답장 중앙값 ${fmtMin(p.replyMedianSec)}`, priority: 10, score: p.replyMedianSec });
+      else if (p.replyMedianSec >= 2 * 3600) candidates.push({ participantId: p.id, badgeId: "slow_burner", reason: `답장 중앙값 ${fmtMin(p.replyMedianSec)}`, priority: 7, score: p.replyMedianSec });
     }
-    if (p.messages >= 20 && p.lateNight / p.messages >= 0.15) candidates.push({ participantId: p.id, badgeId: "night_owl", reason: `새벽 메시지 ${p.lateNight}개 (${Math.round((p.lateNight / p.messages) * 100)}%)`, priority: 6 });
-    if (p.textMessages >= 20 && p.avgLen >= 40) candidates.push({ participantId: p.id, badgeId: "essay_writer", reason: `평균 ${p.avgLen}자`, priority: 5 });
-    if (p.textMessages >= 20 && p.laughs / p.textMessages >= 2) candidates.push({ participantId: p.id, badgeId: "laugh_machine", reason: `메시지당 ㅋ ${Math.round((p.laughs / p.textMessages) * 10) / 10}개`, priority: 6 });
-    if (p.messages >= 20 && p.emoticons / p.messages >= 0.2) candidates.push({ participantId: p.id, badgeId: "emoji_bomber", reason: `메시지의 ${Math.round((p.emoticons / p.messages) * 100)}%가 이모티콘`, priority: 5 });
-    if (p.textMessages >= 20 && p.questions / p.textMessages >= 0.3) candidates.push({ participantId: p.id, badgeId: "question_master", reason: `질문 ${p.questions}개`, priority: 5 });
-    if (p.photos >= 10 && p.photos / Math.max(1, totalPhotos) >= 0.3) candidates.push({ participantId: p.id, badgeId: "photo_shuttle", reason: `사진 ${p.photos}장`, priority: 4 });
-    if (p.links >= 5) candidates.push({ participantId: p.id, badgeId: "link_curator", reason: `링크 ${p.links}개`, priority: 4 });
-    if (people.length >= 3 && p.longestSilentDays >= 14) candidates.push({ participantId: p.id, badgeId: "ghost", reason: `${p.longestSilentDays}일 잠수`, priority: 7 });
-    if (people.length === 2 && totalEnds >= 10 && p.sessionEnds / totalEnds >= 0.65) candidates.push({ participantId: p.id, badgeId: "closer", reason: `대화 마무리 ${p.sessionEnds}회 (${Math.round((p.sessionEnds / totalEnds) * 100)}%)`, priority: 4 });
+    if (p.messages >= 20 && p.lateNight / p.messages >= 0.15) candidates.push({ participantId: p.id, badgeId: "night_owl", reason: `새벽 메시지 ${p.lateNight}개 (${Math.round((p.lateNight / p.messages) * 100)}%)`, priority: 6, score: p.lateNight / p.messages });
+    if (p.textMessages >= 20 && p.avgLen >= 40) candidates.push({ participantId: p.id, badgeId: "essay_writer", reason: `평균 ${p.avgLen}자`, priority: 5, score: p.avgLen });
+    if (p.textMessages >= 20 && p.laughs / p.textMessages >= 2) candidates.push({ participantId: p.id, badgeId: "laugh_machine", reason: `메시지당 ㅋ ${Math.round((p.laughs / p.textMessages) * 10) / 10}개`, priority: 6, score: p.laughs / p.textMessages });
+    if (p.messages >= 20 && p.emoticons / p.messages >= 0.2) candidates.push({ participantId: p.id, badgeId: "emoji_bomber", reason: `메시지의 ${Math.round((p.emoticons / p.messages) * 100)}%가 이모티콘`, priority: 5, score: p.emoticons / p.messages });
+    if (p.textMessages >= 20 && p.questions / p.textMessages >= 0.3) candidates.push({ participantId: p.id, badgeId: "question_master", reason: `질문 ${p.questions}개`, priority: 5, score: p.questions / p.textMessages });
+    if (p.photos >= 10 && p.photos / Math.max(1, totalPhotos) >= 0.3) candidates.push({ participantId: p.id, badgeId: "photo_shuttle", reason: `사진 ${p.photos}장`, priority: 4, score: p.photos });
+    if (p.links >= 5) candidates.push({ participantId: p.id, badgeId: "link_curator", reason: `링크 ${p.links}개`, priority: 4, score: p.links });
+    if (people.length >= 3 && p.longestSilentDays >= 14) candidates.push({ participantId: p.id, badgeId: "ghost", reason: `${p.longestSilentDays}일 잠수`, priority: 7, score: p.longestSilentDays });
+    if (people.length === 2 && totalEnds >= 10 && p.sessionEnds / totalEnds >= 0.65) candidates.push({ participantId: p.id, badgeId: "closer", reason: `대화 마무리 ${p.sessionEnds}회 (${Math.round((p.sessionEnds / totalEnds) * 100)}%)`, priority: 4, score: p.sessionEnds / totalEnds });
   }
   if (people.length >= 3) {
     const { best } = top((p) => p.laughs + p.emoticons * 3);
-    if (best && best.laughs + best.emoticons * 3 >= 30) candidates.push({ participantId: best.id, badgeId: "mood_maker", reason: `ㅋ ${best.laughs}개 + 이모티콘 ${best.emoticons}개`, priority: 6 });
+    if (best && best.laughs + best.emoticons * 3 >= 30) candidates.push({ participantId: best.id, badgeId: "mood_maker", reason: `ㅋ ${best.laughs}개 + 이모티콘 ${best.emoticons}개`, priority: 6, score: best.laughs + best.emoticons * 3 });
   }
-  // 사람당 2개, 우선순위 순
+  // 같은 뱃지는 가장 두드러진 1명에게만 (단톡에서 "답장요정 ×7"처럼 의미 없는 반복 방지)
+  const bestByBadge = new Map<string, AwardedBadge & { priority: number; score: number }>();
+  for (const c of candidates) {
+    const cur = bestByBadge.get(c.badgeId);
+    if (!cur || c.score > cur.score) bestByBadge.set(c.badgeId, c);
+  }
+  // 사람당 2개, 전체 8개, 우선순위 순
   const byPerson = new Map<string, (AwardedBadge & { priority: number })[]>();
-  for (const c of candidates.sort((a, b) => b.priority - a.priority)) {
+  const out: AwardedBadge[] = [];
+  for (const c of [...bestByBadge.values()].sort((a, b) => b.priority - a.priority)) {
     const arr = byPerson.get(c.participantId) ?? [];
-    if (arr.length < 2 && !arr.some((x) => x.badgeId === c.badgeId)) arr.push(c);
+    if (arr.length >= 2 || out.length >= 8) continue;
+    arr.push(c);
     byPerson.set(c.participantId, arr);
+    out.push({ participantId: c.participantId, badgeId: c.badgeId, reason: c.reason });
   }
-  return [...byPerson.values()].flat().map(({ participantId, badgeId, reason }) => ({ participantId, badgeId, reason }));
+  return out;
 }

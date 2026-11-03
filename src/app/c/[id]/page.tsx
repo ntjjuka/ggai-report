@@ -21,6 +21,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   }
   const persona = process.env.PERSONA_NAME ?? "까비서";
   const active = d.reports.find((r) => r.status === "QUEUED" || r.status === "RUNNING");
+  const nameOf = (pid: string | null) => (pid ? d.participants.find((p) => p.participantId === pid)?.displayName ?? "" : "");
   return (
     <div className="space-y-8">
       <header>
@@ -55,13 +56,15 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
           {(d.tier0.badges.length > 0 || d.tier0.awards.length > 0) && (
             <div className="mt-3 flex flex-wrap gap-2">
               {d.tier0.badges.map((b, i) => (
-                <span key={`b${i}`} className="rounded-full bg-pastel-yellow px-2 py-0.5 text-xs font-semibold text-[#6b4f00]">
+                <span key={`b${i}`} className="rounded-full bg-pastel-yellow px-2 py-0.5 text-xs font-semibold text-[#6b4f00]" title={b.reason}>
                   {b.icon} {b.name}
+                  {nameOf(b.participantId) ? ` · ${nameOf(b.participantId)}` : ""}
                 </span>
               ))}
               {d.tier0.awards.map((a, i) => (
-                <span key={`a${i}`} className="rounded-full bg-pastel-peach px-2 py-0.5 text-xs font-semibold text-[#7a3b12]">
+                <span key={`a${i}`} className="rounded-full bg-pastel-peach px-2 py-0.5 text-xs font-semibold text-[#7a3b12]" title={a.reason}>
                   🏆 {a.name}
+                  {nameOf(a.participantId) ? ` · ${nameOf(a.participantId)}` : ""}
                 </span>
               ))}
             </div>
