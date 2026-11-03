@@ -109,6 +109,18 @@ describe("parser rules", () => {
     expect(chat.messages.find((m) => m.sender === "플레이봇")?.kind).toBe("BOT");
   });
 
+  it("handles a 150k-message export without RangeError (full phone export)", () => {
+    const names = ["김하늘", "박민수", "이서연"];
+    const lines: string[] = ["김하늘 님과 카카오톡 대화", "저장한 날짜 : 2025년 1월 1일 오후 1:00", ""];
+    for (let i = 0; i < 150_000; i++) {
+      if (i % 400 === 0) lines.push(`--------------- 2025년 ${1 + Math.floor(i / 12000) % 12}월 ${1 + (Math.floor(i / 400) % 28)}일 수요일 ---------------`);
+      lines.push(`2025. ${1 + Math.floor(i / 12000) % 12}. ${1 + (Math.floor(i / 400) % 28)}. 오후 ${1 + (i % 11)}:${String(i % 60).padStart(2, "0")}, ${names[i % 3]} : 메시지 ${i}`);
+    }
+    const chat = parseTexts([{ name: "KakaoTalkChats.txt", text: lines.join("\n") }], LIMITS);
+    expect(chat.messages.length).toBe(150_000);
+    expect(chat.participants.length).toBe(3);
+  });
+
   it("rejects unsupported file types", () => {
     expect(() => parseUploads([{ name: "a.docx", bytes: new Uint8Array([1]) }], LIMITS)).toThrowError(
       expect.objectContaining({ code: "UNSUPPORTED_FILE_TYPE" }),

@@ -90,6 +90,16 @@ describe("planner", () => {
     expect(chunks.every((c) => c.messages.length >= 1)).toBe(true);
   });
 
+  it("chunks and merges 150k tiny messages without RangeError", () => {
+    const s = setup();
+    const base = s.transcript[0];
+    const big = Array.from({ length: 150_000 }, (_, i) => ({ ...base, tokens: 8, index: i, id: `m${i}`, at: `2025-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 27) + 1).padStart(2, "0")}T10:00` }));
+    const plan = makePlan(big, { ...PLAN_CFG, maxTotalTokens: 600_000 });
+    expect(plan.mode).toBe("CHUNKED");
+    expect(plan.chunks.length).toBeGreaterThan(1);
+    expect(plan.coveragePct).toBeLessThanOrEqual(100);
+  });
+
   it("samples to coverage < 100 when exceeding max total tokens and throws when cost cap is impossible", () => {
     const s = setup();
     const huge = Array.from({ length: 400 }, (_, i) => ({ ...s.transcript[i % s.transcript.length], tokens: 10_000, at: `2025-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 27) + 1).padStart(2, "0")}T10:00`, index: i, id: `m${i}` }));

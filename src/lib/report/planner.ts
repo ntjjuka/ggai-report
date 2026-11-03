@@ -82,7 +82,7 @@ export function chunkByMonth(messages: TranscriptMessage[], chunkMax: number): C
   for (const p of pieces) {
     const last = merged[merged.length - 1];
     if (last && last.tokens + sum(p.messages) <= chunkMax && !last.label.includes("(")) {
-      last.messages.push(...p.messages);
+      for (const m of p.messages) last.messages.push(m);
       last.tokens += sum(p.messages);
       last.label = `${last.label.split("~")[0]}~${p.label}`;
     } else {
@@ -151,7 +151,7 @@ function sampleChunks(chunks: Chunk[], ratio: number, chunkMax: number): Chunk[]
   for (const c of sampled) {
     const last = merged[merged.length - 1];
     if (last && last.tokens + c.tokens <= chunkMax) {
-      last.messages.push(...c.messages);
+      for (const m of c.messages) last.messages.push(m);
       last.tokens += c.tokens;
       last.label = `${last.label.split("~")[0]}~${c.label}`;
     } else {

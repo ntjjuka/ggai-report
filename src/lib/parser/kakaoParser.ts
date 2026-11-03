@@ -320,7 +320,7 @@ export function parseTexts(files: NamedText[], limits: ParseLimits = DEFAULT_PAR
     fmt = fmt ?? fileFmt;
     const r = fileFmt === "KAKAO_CSV" ? parseCsv(f.text) : parseText(f.text, fileFmt);
     title = title ?? r.title;
-    all.push(...r.messages);
+    for (const m of r.messages) all.push(m); // spread(push(...arr))는 10만 개 넘는 배열에서 RangeError
     warn.orphanLines += r.warnings.orphanLines;
     warn.unknownSystemLines += r.warnings.unknownSystemLines;
     warn.dateUnknownBeforeSeparator += r.warnings.dateUnknownBeforeSeparator;
