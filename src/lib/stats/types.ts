@@ -33,6 +33,8 @@ export interface PersonStat {
   longestMessageIndex: number | null;
   longestMessageLen: number;
   sessionEnds: number; // 세션 마지막 발화 수
+  /** 이 사람이 방 전체보다 유난히 많이 쓴 단어(관심사 힌트): count=본인, total=방 전체 */
+  focusWords: { word: string; count: number; total: number }[];
   longestSilentDays: number; // 본인 최장 무발화 기간(일)
   fastReplyRate: number | null; // 칼답률: 답장 중 60초 이내 비율 (0..1)
   vocative: { term: string; count: number } | null; // 서로를 부르는 말 (가장 자주 쓴 호칭)

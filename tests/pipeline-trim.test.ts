@@ -53,3 +53,20 @@ describe("collectPersonaCandidates", () => {
     expect(out.has("p3")).toBe(false);
   });
 });
+
+describe("buildInterestDigest", () => {
+  it("aggregates chunk topics per person by chunk count and lists callbacks", async () => {
+    const { buildInterestDigest } = await import("@/worker/pipeline");
+    const chunk = (pid: string, topics: string[], callbacks: string[] = []) => ({
+      summary: "", events: [], highlights: [], keywords: [], conflicts: [], plans: [], safetyFlags: [], roastMaterial: [],
+      signals: [{ participantId: pid, interest: 0, effort: 0, toneLabel: "", reason: "", topics, details: [], callbacks, evidenceIds: [] }],
+    });
+    const chunks = [chunk("p1", ["테슬라 모델3", "낚시"], ["까부장"]), chunk("p1", ["테슬라 모델3 ", "주식"], ["까부장"]), chunk("p1", ["테슬라 모델3", "테슬라 모델3"]), chunk("p2", ["쿠팡 반품"])];
+    const out = buildInterestDigest(chunks, [{ id: "p1", name: "지훈" }, { id: "p2", name: "진호" }, { id: "p3", name: "눈팅" }])!;
+    const lines = out.split("\n");
+    expect(lines[0]).toBe("p1=지훈: 집착 테슬라 모델3(3), 낚시(1), 주식(1) · 별명·놀림거리 까부장");
+    expect(lines[1]).toBe("p2=진호: 집착 쿠팡 반품(1)");
+    expect(lines.length).toBe(2); // 재료 없는 사람은 생략
+    expect(buildInterestDigest([], [{ id: "p1", name: "a" }])).toBeNull();
+  });
+});

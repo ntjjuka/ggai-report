@@ -175,3 +175,19 @@ describe("data blobs do not win longest-message or length statistics", () => {
     expect(stats.total.media.other).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("focus words (interest hints)", () => {
+  it("surfaces words one person uses far more than the room, in the per-person facts line", () => {
+    const chat = parseUploads([{ name: "android_ko_basic.txt", bytes: new Uint8Array(readFileSync(join(process.cwd(), "docs", "fixtures", "android_ko_basic.txt"))) }], { maxMessages: 300_000, minMessages: 1, maxParticipants: 60 });
+    const map = mapOf(chat, "박민수");
+    const base = chat.messages[0];
+    const extra: Message[] = Array.from({ length: 5 }, (_, i) => ({ ...base, index: 1000 + i, sender: "이서연", kind: "TEXT", text: `테슬라 모델3 또 올랐네 테슬라 ${i}`, at: `2026-09-26T2${i}:00`, mentions: [], hasLink: false, fileName: null }));
+    const stats = computeStats([...chat.messages, ...extra], map, "p1");
+    const seo = stats.perPerson.find((p) => p.name === "이서연")!;
+    expect(seo.focusWords[0]?.word).toBe("테슬라");
+    expect(seo.focusWords[0]?.count).toBe(10);
+    expect(seo.focusWords[0]?.total).toBe(10);
+    const facts = renderStatsFacts(stats, [...chat.messages, ...extra], computePriors(stats, "GROUP"));
+    expect(facts.some((f) => f.text.includes("집중 단어(본인/방 전체) 테슬라(10/10)"))).toBe(true);
+  });
+});

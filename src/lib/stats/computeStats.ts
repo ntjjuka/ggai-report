@@ -91,6 +91,7 @@ export function computeStats(messages: Message[], map: ParticipantMap, uploaderI
   const emojiCounts = new Map<string, Map<string, number>>();
   const vocatives = new Map<string, Map<string, number>>();
   const wordCounts = new Map<string, number>();
+  const personWords = new Map<string, Map<string, number>>();
   const emojiTotals = new Map<string, number>();
   let longestLaughRun: { id: string; len: number; index: number } | null = null;
   const lastSeen = new Map<string, number>();
@@ -120,6 +121,7 @@ export function computeStats(messages: Message[], map: ParticipantMap, uploaderI
         longestMessageIndex: null,
         longestMessageLen: 0,
         sessionEnds: 0,
+        focusWords: [],
         longestSilentDays: 0,
         fastReplyRate: null,
         vocative: null,
@@ -180,6 +182,9 @@ export function computeStats(messages: Message[], map: ParticipantMap, uploaderI
       for (const w of m.text.match(WORD_RE) ?? []) {
         if (STOPWORDS.has(w)) continue;
         wordCounts.set(w, (wordCounts.get(w) ?? 0) + 1);
+        const pw = personWords.get(m.pid) ?? new Map<string, number>();
+        pw.set(w, (pw.get(w) ?? 0) + 1);
+        personWords.set(m.pid, pw);
       }
       for (const vm of m.text.matchAll(VOCATIVE_RE)) {
         const vc = vocatives.get(m.pid) ?? new Map<string, number>();
@@ -292,6 +297,16 @@ export function computeStats(messages: Message[], map: ParticipantMap, uploaderI
   const names = new Set([...per.values()].flatMap((p) => [p.name, ...(participants.find((x) => x.id === p.id)?.rawNames ?? [])]));
   const wordEntries = [...wordCounts.entries()].filter(([w]) => !names.has(w)).sort((a, b) => b[1] - a[1]);
   funFacts.topWords = wordEntries.slice(0, 5).map(([word, count]) => ({ word, count }));
+  // 사람별 집중 단어: 본인이 3번 이상 썼고, 방 전체 사용량 중 본인 몫이 큰 단어(관심사 힌트). 점수 = 횟수 × 집중도
+  for (const [pid, pw] of personWords) {
+    const stat = per.get(pid);
+    if (!stat) continue;
+    stat.focusWords = [...pw.entries()]
+      .filter(([w, c]) => c >= 3 && !names.has(w))
+      .map(([word, count]) => ({ word, count, total: wordCounts.get(word) ?? count }))
+      .sort((a, b) => b.count * (b.count / b.total) - a.count * (a.count / a.total) || b.count - a.count)
+      .slice(0, 6);
+  }
   const per10k = (c: number) => (c / Math.max(1, total.textMessages)) * 10_000;
   funFacts.verbalTics = wordEntries
     .filter(([w, c]) => c >= 2 && w.length <= 6)

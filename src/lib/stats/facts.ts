@@ -38,7 +38,7 @@ export function renderStatsFacts(stats: ChatStats, messages: Message[], priors: 
   const totalInit = Object.values(stats.sessions.starts).reduce((a, b) => a + b, 0) || 1;
   for (const p of stats.perPerson) {
     add(
-      `${p.name}: 텍스트 메시지 ${p.textMessages.toLocaleString()}개(${pct(p.share)}%, 사진·이모티콘 등 첨부 ${(p.messages - p.textMessages).toLocaleString()}개 별도), 선톡 ${p.initiations}회(${pct(p.initiations / totalInit)}%), 답장 중앙값 ${p.replyMedianSec === null ? "집계 불가" : formatDuration(p.replyMedianSec)}${p.replyP90Sec === null ? "" : `(상위 10%는 ${formatDuration(p.replyP90Sec)} 이상)`}, 평균 ${p.avgLen}자, 질문 ${p.questions}개, ㅋ/ㅎ ${p.laughs}개, 이모티콘 ${p.emoticons}개, 사진 ${p.photos}장, 새벽(0~5시) 메시지 ${p.lateNight}개, 링크 ${p.links}개, 대화 마무리 ${p.sessionEnds}회.`,
+      `${p.name}: 텍스트 메시지 ${p.textMessages.toLocaleString()}개(${pct(p.share)}%, 사진·이모티콘 등 첨부 ${(p.messages - p.textMessages).toLocaleString()}개 별도), 선톡 ${p.initiations}회(${pct(p.initiations / totalInit)}%), 답장 중앙값 ${p.replyMedianSec === null ? "집계 불가" : formatDuration(p.replyMedianSec)}${p.replyP90Sec === null ? "" : `(상위 10%는 ${formatDuration(p.replyP90Sec)} 이상)`}, 평균 ${p.avgLen}자, 질문 ${p.questions}개, ㅋ/ㅎ ${p.laughs}개, 이모티콘 ${p.emoticons}개, 사진 ${p.photos}장, 새벽(0~5시) 메시지 ${p.lateNight}개, 링크 ${p.links}개, 대화 마무리 ${p.sessionEnds}회${p.focusWords.length ? `, 집중 단어(본인/방 전체) ${p.focusWords.map((w) => `${w.word}(${w.count}/${w.total})`).join(" ")}` : ""}.`,
       p.textMessages,
       p.messages - p.textMessages,
       pct(p.share),

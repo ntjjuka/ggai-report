@@ -234,6 +234,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
     const personaCandidates = personaMessages.size
       ? [...personaMessages.entries()].map(([pid, msgs]) => `${pid}=${participants.find((p) => p.id === pid)?.name ?? pid}:\n${msgs.map(renderLine).join("\n")}`).join("\n")
       : null;
+    const interestDigest = plan.mode === "CHUNKED" ? buildInterestDigest(okChunks.map((c) => c.value), participants) : null;
     const synthArgs = {
       title: conv.title ?? "카카오톡 대화",
       period: `${stats.period.startedAt.slice(0, 10)} ~ ${stats.period.endedAt.slice(0, 10)}`,
@@ -250,6 +251,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       chunkJson,
       highlightCandidates: highlightMessages.length ? highlightMessages.map(renderLine).join("\n") : null,
       personaCandidates,
+      interestDigest,
       badgeCatalog: BADGE_CATALOG,
     };
     const synthContext = buildSynthesisContext(synthArgs);
@@ -420,6 +422,31 @@ export function collectPersonaCandidates(chunks: ChunkExtraction[], participantI
     out.set(pid, picked);
   }
   return out;
+}
+
+/** 청크 signals의 topics(구간 수)·callbacks(별명)를 사람별로 집계 — 인물 로스트의 뼈대인 "관심사"를 결정적으로 뽑아 종합에 넘긴다 */
+export function buildInterestDigest(chunks: ChunkExtraction[], participants: { id: string; name: string }[], topN = 6): string | null {
+  const topics = new Map<string, Map<string, number>>();
+  const callbacks = new Map<string, Map<string, number>>();
+  const norm = (t: string) => t.replace(/\s+/g, " ").trim().replace(/[.,·]+$/g, "").toLowerCase();
+  for (const c of chunks) {
+    for (const sg of c.signals) {
+      const t = topics.get(sg.participantId) ?? new Map<string, number>();
+      for (const raw of new Set((sg.topics ?? []).map(norm).filter((x) => x.length >= 2 && x.length <= 30))) t.set(raw, (t.get(raw) ?? 0) + 1);
+      topics.set(sg.participantId, t);
+      const cb = callbacks.get(sg.participantId) ?? new Map<string, number>();
+      for (const raw of new Set((sg.callbacks ?? []).map(norm).filter((x) => x.length >= 1 && x.length <= 30))) cb.set(raw, (cb.get(raw) ?? 0) + 1);
+      callbacks.set(sg.participantId, cb);
+    }
+  }
+  const lines: string[] = [];
+  for (const p of participants) {
+    const t = [...(topics.get(p.id)?.entries() ?? [])].sort((a, b) => b[1] - a[1]).slice(0, topN);
+    const cb = [...(callbacks.get(p.id)?.entries() ?? [])].sort((a, b) => b[1] - a[1]).slice(0, 4);
+    if (t.length === 0 && cb.length === 0) continue;
+    lines.push(`${p.id}=${p.name}: 집착 ${t.length ? t.map(([k, n]) => `${k}(${n})`).join(", ") : "(없음)"}${cb.length ? ` · 별명·놀림거리 ${cb.map(([k]) => k).join(", ")}` : ""}`);
+  }
+  return lines.length ? lines.join("\n") : null;
 }
 
 function sleepMs(ms: number): Promise<void> {

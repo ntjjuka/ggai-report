@@ -161,7 +161,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
                 )}
                 {p.topics?.length > 0 && (
                   <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-                    <span className="font-bold text-muted">주로 떠든 얘기</span>
+                    <span className="font-bold text-muted">관심사</span>
                     {p.topics.map((t) => (
                       <span key={t} className="rounded-full bg-pastel-lavender px-2 py-0.5 font-semibold text-[#3c2a7a]">
                         #{t}
