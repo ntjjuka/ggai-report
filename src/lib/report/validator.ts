@@ -112,6 +112,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
         .map((par) => ({ text: (par.text ?? "").trim(), quoteIds: keepIds(par.quoteIds ?? [], p.participantId).slice(0, 2) }))
         .filter((par) => par.text.length > 0)
         .slice(0, PARAGRAPH_MAX),
+      oneLiner: clip(p.oneLiner ?? "", 60),
       badgeIds: [...new Set(p.badgeIds)].slice(0, 2),
     }));
   draft.participants.forEach((p, i) => {
@@ -158,9 +159,9 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
     for (const k of ctx.scoreKeys) if (!byKey.has(k)) violations.push({ path: `scores[${k}]`, reason: "MISSING" });
   }
 
-  // moments
+  // moments — 재밌게 읽은 장면: 실제 메시지가 붙는 것만, 등장인물은 스냅샷에 있는 사람만
   draft.moments = draft.moments
-    .map((m) => ({ ...m, messageIds: keepIds(m.messageIds) }))
+    .map((m) => ({ ...m, title: clip(m.title ?? "", 40), summary: (m.summary ?? "").trim(), participantIds: [...new Set((m.participantIds ?? []).filter((id) => pidSet.has(id)))].slice(0, 4), messageIds: keepIds(m.messageIds) }))
     .filter((m) => m.messageIds.length > 0)
     .slice(0, 8);
 
@@ -327,6 +328,7 @@ export function enforceFinal(draft: ReportDraft, violations: Violation[]): Repor
         if (m[2] === "nickname") p.nickname = "";
         if (m[2] === "type") p.type = { label: "", description: "" };
         if (m[2] === "emoji") p.emoji = "🙂";
+        if (m[2] === "oneLiner") p.oneLiner = "";
       }
     } else if (v.path === "verdict.reportTitle") out.verdict.reportTitle = ""; else if (v.path === "verdict.headline") out.verdict.headline = [...out.verdict.headline].slice(0, HEADLINE_MAX - 1).join("") + "…";
     else if ((m = v.path.match(/^whatIWouldDo\[(\d+)\]/))) out.whatIWouldDo[Number(m[1])] = { title: "보류", body: "내가 너라면 이 항목은 다음 보고서로 넘긴다.", deadline: "다음 보고서" };

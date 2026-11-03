@@ -75,6 +75,43 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
         )}
       </section>
 
+      {/* 1a 재밌게 읽은 장면 — 페르소나의 재료 */}
+      {content.moments.length > 0 && (
+        <Section title={`${persona}가 재밌게 읽은 장면`} sub="책 한 권 읽듯 끝까지 읽고 고른 장면이야. 이 장면들이 아래 페르소나의 재료고, 말풍선은 실제 메시지.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {content.moments.map((m, i) => (
+              <div key={i} className="rounded-3xl bg-pastel-beige p-4">
+                <div className="text-sm font-extrabold">
+                  {MOMENT_ICON[m.kind] ?? "💬"} {m.title || m.caption}
+                </div>
+                {m.summary && (
+                  <p className="mt-1 text-sm leading-relaxed">
+                    <T s={m.summary} />
+                  </p>
+                )}
+                {m.participants?.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {m.participants.map((p) => (
+                      <span key={p.id} className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold" style={{ color: colorOf(p.name) }}>
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {m.messages.map((e) => (
+                  <div key={e.messageId} className="bubble mt-2 text-[14px]">
+                    <div className="text-xs font-bold" style={{ color: colorOf(e.participantName) }}>
+                      {e.participantName}
+                    </div>
+                    {e.text}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       {/* 1b 인물 페르소나 — 메인 코너 */}
       <Section title={isGroup ? "멤버 페르소나 · 전원 해부" : "두 사람 페르소나"} sub={`${persona}가 대화 속 팩트로만 깎았어. 말풍선은 그 사람이 실제로 보낸 메시지야.`}>
         <div className="space-y-5">
@@ -131,6 +168,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
                     </div>
                   ))}
                 </div>
+                {p.oneLiner && <p className="mt-4 rounded-2xl bg-ink px-4 py-2 text-sm font-extrabold text-white">{p.oneLiner}</p>}
                 {(p.badges.length > 0 || p.awardNames.length > 0) && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {p.badges.map((b) => (
@@ -344,29 +382,6 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
                   <div className="h-full rounded-full bg-ink" style={{ width: `${s.value}%` }} />
                 </div>
                 <p className="mt-2 text-sm text-muted">{s.oneLiner}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* 9 검증된 순간 */}
-      {content.moments.length > 0 && (
-        <Section title="검증된 순간" sub="실제 대화 그대로">
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {content.moments.map((m, i) => (
-              <div key={i} className="w-72 shrink-0 rounded-3xl bg-pastel-beige p-4">
-                <div className="text-sm font-bold">
-                  {MOMENT_ICON[m.kind] ?? "💬"} {m.caption}
-                </div>
-                {m.messages.map((e) => (
-                  <div key={e.messageId} className="bubble mt-2 text-[14px]">
-                    <div className="text-xs font-bold" style={{ color: colorOf(e.participantName) }}>
-                      {e.participantName}
-                    </div>
-                    {e.text}
-                  </div>
-                ))}
               </div>
             ))}
           </div>

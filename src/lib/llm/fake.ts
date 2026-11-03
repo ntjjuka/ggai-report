@@ -89,6 +89,7 @@ export class FakeLlmClient implements LlmClient {
             quoteIds: q2,
           },
         ],
+        oneLiner: i === 0 ? "결론: 방의 전원 버튼은 이 사람 손에 있다." : i === 1 ? "결론: 동의는 즉시, 실행은 외주." : "결론: 접속은 하고 글은 안 쓴다.",
         badgeIds: i === 0 ? ["first_texter"] : i === 1 ? ["slow_burner"] : [],
       };
     });
@@ -150,10 +151,10 @@ export class FakeLlmClient implements LlmClient {
       ],
       scores,
       moments: [
-        { kind: "funny", caption: "둘 다 웃은 순간", messageIds: [idAt(17)] },
-        { kind: "awkward", caption: "답이 하루 늦게 온 순간", messageIds: [idAt(18)] },
-        { kind: "banter", caption: "티키타카", messageIds: [idAt(19), idAt(20)] },
-        { kind: "touching", caption: "먼저 사과한 순간", messageIds: [idAt(21)] },
+        { kind: "funny", title: "둘 다 웃은 날", summary: "한쪽이 농담을 던지고 다른 쪽이 받았다. 이 방에서 드문 일이라 기록해 둔다.", participantIds: ps.slice(0, 2), messageIds: [idAt(17)] },
+        { kind: "awkward", title: "하루 늦은 답", summary: "질문이 올라오고 답은 다음 날 왔다. 그 사이 아무도 재촉하지 않았다는 게 더 어색하다.", participantIds: ps.slice(0, 1), messageIds: [idAt(18)] },
+        { kind: "banter", title: "티키타카 3분", summary: "짧은 메시지가 연달아 오갔다. 이 방의 최고 속도 구간이다.", participantIds: ps.slice(0, 2), messageIds: [idAt(19), idAt(20)] },
+        { kind: "touching", title: "먼저 사과한 사람", summary: "다툼 뒤 먼저 손을 내민 쪽이 정해져 있다. 늘 같은 사람이다.", participantIds: ps.slice(1, 2), messageIds: [idAt(21)] },
       ],
       visualCaptions: { monthly: "최다 달과 최저 달의 차이가 이 관계의 온도차다.", heatmap: "골든아워는 밤이다.", reply: "답장 속도 차이가 곧 관심 차이는 아니지만, 보통은 그렇다.", initiation: `선톡 ${num}%. 전원 버튼은 한 손에 있다.` },
       answer: hasQuestion ? { body: `짧게 답할게. 관심은 있어. 근데 ${idAt(4)}를 보면 그 관심이 손가락까지 내려오진 않아. 숫자로는 선톡 ${num}%가 답이야.`, confidence: "MEDIUM", evidenceIds: [idAt(4)] } : null,

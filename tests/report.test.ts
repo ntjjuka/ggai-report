@@ -189,7 +189,16 @@ describe("validator + assembler", () => {
       for (const par of p.paragraphs) for (const q of par.quotes) expect(q.participantId).toBe(p.participantId);
     }
     expect(content.participants.some((p) => p.paragraphs.some((par) => par.quotes.length > 0))).toBe(true);
+    expect(content.participants.every((p) => (p.oneLiner ?? "").startsWith("결론:"))).toBe(true);
     expect(content.verdict.reportTitle).toContain("보고서");
+    // 재밌게 읽은 장면: 제목·서술·등장인물(스냅샷에 있는 사람만)·실제 메시지
+    expect(content.moments.length).toBeGreaterThanOrEqual(3);
+    for (const m of content.moments) {
+      expect(m.title.length).toBeGreaterThan(0);
+      expect(m.summary.length).toBeGreaterThan(0);
+      expect(m.participants.every((x) => s.parts.some((q) => q.id === x.id && q.name === x.name))).toBe(true);
+      expect(m.messages.length).toBeGreaterThan(0);
+    }
     expect(content.scores.length).toBe(5);
     expect(content.findings.every((f) => f.evidence.every((e) => e.text.length > 0))).toBe(true);
     expect(content.weekChanged.pivot?.text).toBeTruthy();
@@ -274,7 +283,9 @@ describe("validator + assembler", () => {
     s.draft.participants[1].paragraphs = [];
     s.draft.participants[0].paragraphs[1].text = "이 사람은 뚱뚱해서 그래.";
     s.draft.participants[0].topics = ["카페", "카페", "주말", "약속", "x", "y"];
+    s.draft.moments[0].participantIds = ["ghost", s.parts[0].id, s.parts[0].id];
     const v = validateDraft(s.draft, ctx);
+    expect(v.draft.moments[0].participantIds).toEqual([s.parts[0].id]);
     expect(v.draft.participants[0].paragraphs[0].quoteIds.includes(other.id)).toBe(false);
     expect(v.draft.participants[0].topics).toEqual(["카페", "주말", "약속", "x"]);
     expect(v.violations.some((x) => x.reason === "MISSING" && x.path === "participants[1].paragraphs")).toBe(true);

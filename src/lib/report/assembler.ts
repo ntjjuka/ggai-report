@@ -63,6 +63,7 @@ export function assembleReport(input: ReportDraft, ctx: AssembleContext): Report
         type: { label: d?.type?.label || "미분류", description: d?.type?.description ?? "" },
         topics: d?.topics ?? [],
         paragraphs: paragraphs.length ? paragraphs : [{ text: `${ctx.personaName}가 이 사람은 판단을 보류했어. 텍스트 메시지가 ${ctx.stats.perPerson.find((x) => x.id === p.id)?.textMessages ?? 0}개라 캐릭터를 잡기엔 재료가 모자라. 숫자만 남긴다.`, quotes: [] }],
+        oneLiner: d?.oneLiner || "",
         badges: badgeIds.filter((id) => BADGE_BY_ID[id]).slice(0, 2).map((id) => ({ id, name: BADGE_BY_ID[id].name, icon: BADGE_BY_ID[id].icon })),
         awardNames: awardNamesByPid.get(p.id) ?? [],
       };
@@ -130,7 +131,9 @@ export function assembleReport(input: ReportDraft, ctx: AssembleContext): Report
     whatIWouldDo: draft.whatIWouldDo,
     awards: draft.awards.map((a) => ({ name: a.name, participantId: a.participantId, participantName: nameOf(a.participantId), reason: a.reason, evidence: ev(a.evidenceIds) })),
     scores,
-    moments: draft.moments.map((m) => ({ kind: m.kind, caption: m.caption, messages: ev(m.messageIds) })).filter((m) => m.messages.length > 0),
+    moments: draft.moments
+      .map((m) => ({ kind: m.kind, title: m.title, summary: m.summary, participants: m.participantIds.map((id) => ({ id, name: nameOf(id) ?? id })), messages: ev(m.messageIds) }))
+      .filter((m) => m.messages.length > 0),
     visuals: {
       monthly: ctx.stats.rhythm.monthly,
       heatmap: ctx.stats.rhythm.heatmap,

@@ -30,3 +30,25 @@ describe("trimChunkForSynthesis", () => {
     expect(t.safetyFlags).toEqual(["SELF_HARM"]);
   });
 });
+
+describe("collectPersonaCandidates", () => {
+  it("keeps only the speaker's own messages, dedupes, caps per person and spreads over time", async () => {
+    const { collectPersonaCandidates } = await import("@/worker/pipeline");
+    const mk = (i: number, pid: string) => ({ id: `m${i}`, index: i, pid, name: pid, isUploader: false, kind: "TEXT" as const, text: `t${i}`, rawText: `t${i}`, at: "2026-01-01T00:00", ms: i, tokens: 1, contextBreakBefore: 0 });
+    const evidence = new Map<string, ReturnType<typeof mk>>();
+    for (let i = 0; i < 60; i++) evidence.set(`m${i}`, mk(i, i % 2 === 0 ? "p1" : "p2"));
+    const chunk = (ids: string[], pid: string) => ({
+      summary: "", events: [], highlights: [], keywords: [], conflicts: [], plans: [], safetyFlags: [],
+      signals: [{ participantId: pid, interest: 0, effort: 0, toneLabel: "", reason: "", topics: [], details: [], evidenceIds: ids }],
+      roastMaterial: [{ participantId: pid, observation: "", evidenceIds: ids, device: "" }],
+    });
+    const chunks = [chunk(["m0", "m1", "m2", "m4", "m999"], "p1"), chunk(["m6", "m8", "m10", "m12", "m14", "m16", "m18", "m20", "m22", "m24", "m26"], "p1"), chunk(["m1", "m3"], "p2")];
+    const out = collectPersonaCandidates(chunks, ["p1", "p2", "p3"], evidence, 20);
+    const p1 = out.get("p1")!;
+    expect(p1.every((m) => m.pid === "p1")).toBe(true); // m1(p2 메시지)·m999(없음) 제외
+    expect(p1.length).toBe(6); // 사람당 상한 = clamp(floor(20/3), 3, 10) = 6, 시간순 고르게
+    expect(p1[0].id).toBe("m0");
+    expect(out.get("p2")!.map((m) => m.id)).toEqual(["m1", "m3"]);
+    expect(out.has("p3")).toBe(false);
+  });
+});

@@ -43,7 +43,40 @@ export const ChunkExtractionSchema = z.object({
 export type ChunkExtraction = z.infer<typeof ChunkExtractionSchema>;
 
 // ── 종합 초안 (docs/07 §4.2) ─────────────────────────────────────────
+// 키 순서 = 작성 순서: ① 재밌게 읽은 장면(moments) ② 인물 페르소나(participants) ③ 판정(verdict) … (책 한 권을 다 읽고 → 인상적인 장면 → 사람별 정리 → 명쾌한 결론)
 export const ReportDraftSchema = z.object({
+  moments: z
+    .array(
+      z.object({
+        kind: z.enum(MOMENT_KINDS),
+        title: z.string().describe("장면 제목 조어 ≤30자"),
+        summary: z.string().describe("그 장면이 왜 재밌었는지 2~3문장 서술(로스트 화법, 등장인물의 말 그대로 되돌려주기)"),
+        participantIds: z.array(z.string()).describe("등장인물 participantId 1~4"),
+        messageIds: Ids.describe("그 장면의 실제 메시지 1~3개"),
+      }),
+    )
+    .describe("전체를 다 읽고 가장 재밌게 읽은 장면 5~7개 — 책 한 권을 읽고 인상적인 에피소드를 고르듯. 이 장면들이 인물 페르소나의 재료다"),
+  participants: z.array(
+    z.object({
+      participantId: z.string(),
+      emoji: z.string().describe("이 사람 캐릭터를 요약하는 이모지 1개"),
+      title: z.string().describe("칭호 20~45자: 「수식절 + '별명'」 꼴. 예: 회식 자리마다 다음 회식을 예약하는 '2차 사장'"),
+      nickname: z.string().describe("title 속 따옴표 별명만"),
+      type: z.object({
+        label: z.string().describe("이 방에서 이 사람의 유형 라벨 4~12자(…형/…파/…족), 예: 프로 불참러형"),
+        description: z.string().describe("그 유형이 이 대화에서 어떻게 드러나는지 한 문장"),
+      }),
+      topics: z.array(z.string()).describe("이 사람이 주로 떠든 주제 2~4개, 구체 명사(상품·장소·취미·불평거리·자랑거리). '일상'처럼 뭉개지 않는다"),
+      paragraphs: z.array(
+        z.object({
+          text: z.string().describe("로스트 문단 150~450자: 재밌게 읽은 장면 속 본인의 말·행동 디테일 2~3개를 쌓고 마지막 절에서 꺾는다"),
+          quoteIds: Ids.describe("이 문단을 뒷받침하는 그 사람 메시지 0~2개. 서버가 문단 아래 말풍선으로 붙인다"),
+        }),
+      ).describe("2~3문단(참여자 9명 이상이면 텍스트 지분 상위 8명만 2~3문단, 나머지 1문단)"),
+      oneLiner: z.string().describe("이 사람을 끝내는 명쾌한 한 줄 결론 15~40자, '결론:'으로 시작"),
+      badgeIds: z.array(z.string()).describe("뱃지 id 0~2개"),
+    }),
+  ),
   verdict: z.object({
     reportTitle: z.string().describe("보고서 제목 조어 20~40자: 「○○ 보고서: 부제」 꼴. 이 방에서만 나올 수 있는 명사로"),
     headline: z.string().describe("40자 이내, 이모지 0, 숫자 1개 이하. 스크린샷용 한 문장 판정"),
@@ -80,26 +113,6 @@ export const ReportDraftSchema = z.object({
     evidenceIds: Ids,
     confidence: Conf,
   }),
-  participants: z.array(
-    z.object({
-      participantId: z.string(),
-      emoji: z.string().describe("이 사람 캐릭터를 요약하는 이모지 1개"),
-      title: z.string().describe("칭호 20~45자: 「수식절 + '별명'」 꼴. 예: 회식 자리마다 다음 회식을 예약하는 '2차 사장'"),
-      nickname: z.string().describe("title 속 따옴표 별명만"),
-      type: z.object({
-        label: z.string().describe("이 방에서 이 사람의 유형 라벨 4~12자(…형/…파/…족), 예: 프로 불참러형"),
-        description: z.string().describe("그 유형이 이 대화에서 어떻게 드러나는지 한 문장"),
-      }),
-      topics: z.array(z.string()).describe("이 사람이 주로 떠든 주제 2~4개, 구체 명사(상품·장소·취미·불평거리·자랑거리). '일상'처럼 뭉개지 않는다"),
-      paragraphs: z.array(
-        z.object({
-          text: z.string().describe("로스트 문단 150~450자: 본인이 말한 구체 디테일 2~3개를 쌓고 마지막 절에서 꺾는다"),
-          quoteIds: Ids.describe("이 문단을 뒷받침하는 그 사람 메시지 0~2개. 서버가 문단 아래 말풍선으로 붙인다"),
-        }),
-      ).describe("2~3문단(참여자 9명 이상이면 텍스트 지분 상위 8명만 2~3문단, 나머지 1문단)"),
-      badgeIds: z.array(z.string()).describe("뱃지 id 0~2개"),
-    }),
-  ),
   findings: z.array(
     z.object({
       title: z.string(),
@@ -113,7 +126,6 @@ export const ReportDraftSchema = z.object({
   whatIWouldDo: z.array(z.object({ title: z.string(), body: z.string().describe("'내가 너라면 …'으로 시작, 2문장"), deadline: z.string().describe("예: 이번 주") })),
   awards: z.array(z.object({ name: z.string().describe("행동 기반 상 이름, 예: 읽씹 장인상"), participantId: z.string().nullable(), reason: z.string(), evidenceIds: Ids })),
   scores: z.array(z.object({ key: z.string(), value: z.number().describe("0~100"), oneLiner: z.string().describe("숫자나 ID 1개 이상 포함"), confidence: Conf })),
-  moments: z.array(z.object({ kind: z.enum(MOMENT_KINDS), caption: z.string(), messageIds: Ids })),
   visualCaptions: z.object({ monthly: z.string(), heatmap: z.string(), reply: z.string(), initiation: z.string() }),
   answer: z.object({ body: z.string(), confidence: Conf, evidenceIds: Ids }).nullable(),
   shareCard: z.object({ headline: z.string(), subline: z.string().describe("30자 이내") }),
@@ -166,6 +178,8 @@ export interface ReportContent {
     type: { label: string; description: string };
     topics: string[];
     paragraphs: { text: string; quotes: Evidence[] }[];
+    /** 명쾌한 한 줄 결론 ("결론: …"). 구버전 보고서에는 없다 */
+    oneLiner?: string;
     badges: { id: string; name: string; icon: string }[];
     awardNames: string[];
   }[];
@@ -173,7 +187,8 @@ export interface ReportContent {
   whatIWouldDo: ReportDraft["whatIWouldDo"];
   awards: (Omit<ReportDraft["awards"][number], "evidenceIds"> & { participantName: string | null; evidence: Evidence[] })[];
   scores: (ReportDraft["scores"][number] & { label: string; prior: number | null })[];
-  moments: { kind: MomentKind; caption: string; messages: Evidence[] }[];
+  /** 까비서가 재밌게 읽은 장면(판정 직후). 구버전 보고서는 caption만 있다 */
+  moments: { kind: MomentKind; title: string; summary: string; caption?: string; participants: { id: string; name: string }[]; messages: Evidence[] }[];
   visuals: {
     monthly: { month: string; total: number; perPerson: Record<string, number> }[];
     heatmap: number[][];

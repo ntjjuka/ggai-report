@@ -136,7 +136,8 @@ async function evalFile(llm: LlmClient, file: string, outDir: string) {
     ...content.verdict.body,
     ...content.dynamic.paragraphs,
     content.firstMove.body,
-    ...content.participants.flatMap((p) => [p.title, ...p.paragraphs.map((par) => par.text)]),
+    ...content.participants.flatMap((p) => [p.title, ...p.paragraphs.map((par) => par.text), p.oneLiner ?? ""]),
+    ...content.moments.map((m) => m.summary),
     ...content.findings.map((f) => `${f.observed} ${f.interpretation}`),
     ...content.whatIWouldDo.map((w) => w.body),
   ].join("\n");
@@ -172,6 +173,8 @@ async function evalFile(llm: LlmClient, file: string, outDir: string) {
         return all.length ? Math.round(all.reduce((a, b) => a + b, 0) / all.length) : 0;
       })(),
       withQuotes: content.participants.filter((p) => p.paragraphs.some((par) => par.quotes.length > 0)).length,
+      withOneLiner: content.participants.filter((p) => p.oneLiner).length,
+      scenes: content.moments.length,
       typeLabels: content.participants.map((p) => p.type.label),
     },
     voice: {

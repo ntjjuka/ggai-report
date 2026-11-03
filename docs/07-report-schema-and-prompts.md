@@ -55,7 +55,8 @@
 | 0 | 헤더: 보고서 No.·제목·기간·메시지 수·참여자(나)·"{페르소나}가 N% 읽었어요"·**오늘 기분**·안전 안내 | `meta`, `mood`, `safety` | - | 서버 | 항상 | ✓ |
 | 0b | **보고서 제목(조어)** 「○○ 보고서: 부제」 — 헤더 h1 | `verdict.reportTitle` | 1 | LLM | 있을 때 | ✓ |
 | 1 | **결론 보고(판정)** headline(≤40자) + body 3문단(결론·반전 "그런데 m####를 봐"·진짜였던/바뀐+애정 한 절, 마지막 문단 "세 줄 요약" 허용) + 관계 유형 칩 + confidence | `verdict` | 1, 2 | LLM | 항상 | ✓ |
-| 1b | **멤버 페르소나 · 전원 해부**(1:1은 "두 사람 페르소나") — **메인 코너**. 카드마다 유형 칩 · `{emoji} {이름}: {칭호}` · 유형 설명 · "주로 떠든 얘기" #주제 칩 · 로스트 문단 2~3개(각 문단 아래 그 사람의 실제 메시지 말풍선 0~2) · 뱃지(0~2)·어워드 칩 | `participants` | 5 | LLM(+규칙 뱃지 보완) | 항상 | ✗(첫 1명만 ✓) |
+| 1a | **{페르소나}가 재밌게 읽은 장면** 5~7개 — 책 한 권 읽듯 끝까지 읽고 고른 에피소드(kind 아이콘 · 제목 조어 · 2~3문장 서술 · 등장인물 칩 · 실제 메시지 말풍선 1~3). 페르소나의 재료 | `moments` | - | LLM 선택, 서버 텍스트 | 1개 이상 | ✗ |
+| 1b | **멤버 페르소나 · 전원 해부**(1:1은 "두 사람 페르소나") — **메인 코너**. 카드마다 유형 칩 · `{emoji} {이름}: {칭호}` · 유형 설명 · "주로 떠든 얘기" #주제 칩 · 로스트 문단 2~3개(각 문단 아래 그 사람의 실제 메시지 말풍선 0~2) · **한 줄 결론**("결론: …", 검정 띠) · 뱃지(0~2)·어워드 칩 | `participants` | 5 | LLM(+규칙 뱃지 보완) | 항상 | ✗(첫 1명만 ✓) |
 | 2 | **진짜 역학** 2문단 선언문(단톡: 판을 들고 있는 / 사라지는 / 쥔 사람 3칸) | `dynamic` | 3 | LLM | 항상 | ✓ |
 | 3 | **변동 보고 · 바뀐 주** "바뀐 주는 YYYY년 M월 N번째 주다" + 그 전/그 뒤 + 결정적 한 줄(pivot) + confidence; `exists=false`면 "바뀐 주가 없다" 문장 | `weekChanged` | 4 | LLM | 항상 | ✗ |
 | 4 | **누가 먼저 치고, 누가 아닌 척하는지** 먼저 치는 사람·아닌 척하는 사람 칩 + 2~3문장(숫자 1 + 근거 ID 1) | `firstMove` | 3(선언문) | LLM | `body` 있을 때 | ✓ |
@@ -65,7 +66,7 @@
 | 8 | **비서 제안 3건 · 내가 너라면** 정확히 3개(제목·"내가 너라면 …" 본문·시한) | `whatIWouldDo` | 7 | LLM | 항상 | ✗ |
 | 9 | **이달의 상**(어워드) 3개(수상자 또는 "올해의 한 줄"·사유·근거) | `awards` | 8 | LLM | 1개 이상 | ✗ |
 | 10 | **점수** 세트 5개(라벨·`value/20`·게이지·한 줄·confidence) | `scores` | 9 | LLM(+통계 prior, ±40 클램프) | `SCORES_ENABLED` | ✓ |
-| 11 | **검증된 순간** 인용 카드 3~5(kind·캡션·말풍선 1~3) "실제 대화 그대로" | `moments` | - | LLM 선택, 서버 텍스트 | 1개 이상 | ✗ |
+| 11 | (2026-11-03 검증된 순간 → 1a 재밌게 읽은 장면으로 이동·확장. 구버전 보고서의 `caption`만 있는 항목도 1a에 그린다) | - | - | - | - | - |
 | 12 | **숫자로 보는 우리** 월별·요일×시간 히트맵·답장 속도·선톡 비율 + 캡션 4개 | `visuals` | - | 서버 + LLM 캡션 | 항상 | ✓ |
 | 13 | **{페르소나}의 답** Q + 답 + confidence + 근거 | `answer` | - | LLM | 질문 있을 때 | ✗ |
 | 14 | **공유 카드** headline·subline(≤30자, 어워드 1 또는 점수 2)·이모지·서명 멘트 | `shareCard`, `signature` | 10 | LLM + 서버 | 항상 | ✓ |
@@ -103,6 +104,7 @@
                       "topics":["주말 약속","배달 음식","야근 핑계"],
                       "paragraphs":[ { "text":"지훈은 '좋지'로 받고 날짜는 안 낸다. … 결론: 동의는 즉시, 실행은 외주.", "quotes":[ /* Evidence — 그 사람 메시지만, 문단당 ≤2 */ ] },
                                      { "text":"…마지막 절에 애정 한 절", "quotes":[] } ],   /* 2~3문단(9명 이상이면 상위 8명만, 나머지 1문단) */
+                      "oneLiner":"결론: 동의는 즉시, 실행은 외주.",
                       "badges":[{"id":"slow_burner","name":"느림의미학","icon":"🐢"}],   /* LLM badgeIds 0~2, 없으면 규칙 뱃지(Tier 0)로 보완 */
                       "awardNames":["읽씹 장인상"] } ],   /* perPerson 순(메시지 수 내림차순), 전원. 누락자는 기본 칭호·보류 문단으로 채움(§6). 2026-11-03 이전 보고서의 statement/softLanding/evidence는 UI가 문단으로 변환해 그린다 */
   "findings": [ { "id":1, "title":"…", "observed":"보인 것 1문장", "interpretation":"내 해석 1~2문장", "confidence":"HIGH", "tags":["initiative"], "evidence":[ /* 1~3 */ ] } ],   /* 4~6 */
@@ -162,7 +164,8 @@ LLM은 prior를 보고 최종 값을 정하되 **±25 이상 벗어나면 `oneLi
 | `firstMove` | `{ initiatorId: id\|null, pretenderId: id\|null, body(2~3문장: 선톡·질문·답장 속도 숫자 1 + 근거 ID 1), evidenceIds }` |
 | `privateLanguage` | `{ phrases: { phrase, meaning, evidenceIds }[](0~5), runningJokes: { title, summary, evidenceIds }[](0~4) }` — 실제 반복된 것만, 없으면 빈 배열(지어내지 않는다) |
 | `weekChanged` | `{ exists: boolean, weekLabel("2025년 6월 둘째 주"), weekStart(그 주 월요일 YYYY-MM-DD), before, after, pivotMessageId: id\|null, evidenceIds, confidence }` — 뚜렷한 변화가 없으면 `exists=false` + "바뀐 주가 없다" |
-| `participants[]` | `{ participantId, emoji(1개), title(「수식절 + '별명'」 20~45자), nickname, type{ label(…형/…파/…족), description(1문장) }, topics: string[](2~4, 구체 명사), paragraphs: { text(150~450자), quoteIds(그 사람 메시지 0~2) }[](2~3; 9명 이상이면 상위 8명만 2~3, 나머지 1), badgeIds: string[](0~2) }` — 모든 참여자 ID 각 1개. **메인 코너** |
+| `moments[]` | `{ kind, title(≤30자 조어), summary(2~3문장 서술), participantIds(1~4), messageIds(1~3) }`(5~7) — **스키마 첫 키**: 책 한 권을 다 읽고 재밌게 읽은 장면부터 고른 뒤 사람별로 정리한다 |
+| `participants[]` | `{ participantId, emoji(1개), title(「수식절 + '별명'」 20~45자), nickname, type{ label(…형/…파/…족), description(1문장) }, topics: string[](2~4, 구체 명사), paragraphs: { text(150~450자), quoteIds(그 사람 메시지 0~2) }[](2~3; 9명 이상이면 상위 8명만 2~3, 나머지 1), oneLiner("결론:"으로 시작하는 한 줄 15~40자), badgeIds: string[](0~2) }` — 모든 참여자 ID 각 1개. **메인 코너**, 스키마 둘째 키 |
 | `findings[]` | `{ title, observed, interpretation, evidenceIds(1~3), confidence, tags: string[] }`(3~5, 서로 다른 주제) |
 | `whatIWouldDo[]` | `{ title, body("내가 너라면 …"으로 시작, 조건·시한 포함), deadline }`(정확히 3) |
 | `awards[]` | `{ name(행동 기반), participantId: id\|null("올해의 한 줄상"은 null), reason, evidenceIds }`(3) |
@@ -230,7 +233,7 @@ LLM은 prior를 보고 최종 값을 정하되 **±25 이상 벗어나면 `oneLi
 - whatIWouldDo: 3개. 각 항목 "내가 너라면 …"으로 시작, 조건과 시한 포함("이번 주 안에", "다음 선톡 전에"). 명령형("차단해") 금지, 선택지로.
 - awards: 3개. 이름은 행동 기반으로 웃기게("내일부터 장인상", "링크 한 방상"), 수상자 1명 + 사유 1문장 + 근거 ID. "올해의 한 줄상"은 메시지 하나를 수상자로(participantId null, evidence에 그 ID).
 - scores: {{scoresEnabled ? "5개 전부. oneLiner는 숫자나 ID를 하나 이상 포함. prior에서 25 이상 벗어나면 이유를 쓴다." : "빈 배열."}}
-- moments: 3~5개, kind 다양하게. 실제로 웃기거나 설레거나 어색한 지점만.
+- moments(작성 순서 ①): 전체에서 가장 재밌게 읽은 장면 5~7개 — 제목 조어·왜 재밌었는지 2~3문장(나중에 꺼내면 부끄러운 지점 우선)·등장인물·메시지 ID 1~3. 사람별로 최소 하나씩 걸리게 고른다. participants는 이 장면들을 사람별로 다시 정리한 결과여야 하며, 사람마다 가장 숨기고 싶었을 발언을 최소 한 번 말풍선으로 소환한다. oneLiner는 "결론:"으로 시작하는 한 줄.
 - visualCaptions: 월별/히트맵/답장/선톡 그래프 밑 한 줄씩. 숫자 사실에서만.
 - shareCard: headline은 verdict.headline과 같거나 더 짧게, subline은 어워드 1개 또는 점수 2개 요약.
 - 전체: 같은 비유 체계(음식·스포츠·법정·우편) 2회 이상 금지. 떡볶이 언급 최대 1회. 대화 속 밈·말버릇 콜백 1회 이상(재료가 있을 때만).
@@ -309,5 +312,6 @@ REPAIR 호출은 종합 모델로 **1회**(`maxTokens 8000`, `effort medium`), �
 - `participants` 스키마를 `{nickname, role, statement, softLanding, evidenceIds}` → `{emoji, title, nickname, type{label,description}, topics[], paragraphs[{text, quoteIds}], badgeIds}`로 교체. 인물 섹션을 판정 직후 **메인 코너**로 이동(§2 1b). `verdict.reportTitle`(조어 제목) 추가.
 - 청크 `signals`에 `topics`·`details`를 추가하고, 파이프라인이 청크가 가리킨 그 사람의 실제 메시지를 **인물별 인용 후보**(사람당 3~10개, 총 120개)로 종합 프롬프트에 넣는다(`collectPersonaCandidates`). CHUNKED 모드에서도 문단 아래 말풍선이 붙는 이유.
 - 시스템 프롬프트 화법 전면 개편(§1): 짧은 문장 규칙 → 디테일을 쌓는 긴 문장, 3인칭 관찰자 종결, 커뮤니티 어법·밈 팔레트·뻔함 금지·격차 비유. **반말 고정**(존댓말 옵션·`tone` 요청 필드·`DEFAULT_TONE` 삭제, DB 컬럼 `report.tone`은 `'CASUAL'` 고정 기록).
-- 출력 토큰 절감(페르소나 문단 증가 상쇄): 판정 3문단, 발견 3~4, 어워드 3, 순간 3~5, 역학 2문단.
+- 출력 토큰 절감(페르소나 문단 증가 상쇄): 판정 3문단, 발견 3~4, 어워드 3, 역학 2문단.
+- 작성 순서 고정(사용자 요청: "책 한 권을 읽고 재밌게 읽은 부분을 요약한 뒤 사람별로 정리하고 명쾌한 해답"): 스키마 키 순서를 `moments → participants → verdict → …`로 바꾸고 프롬프트에 [작성 순서] 명시. `moments`를 제목·서술·등장인물이 있는 "재밌게 읽은 장면"으로 확장해 판정 직후에 배치(구 "검증된 순간" 대체), 인물마다 `oneLiner`("결론: …") 추가. "낱낱이 파헤쳐 부끄럽게": 사람마다 가장 숨기고 싶었을 발언을 최소 한 번 말풍선으로 소환하라는 규칙.
 - 검증기: 문단별 인용 화자 검증, 문단 0개 MISSING(수리), 금지어에서 본인 다이어트 선언 제외, AI 티 어휘를 상담사 톤으로 탐지.
