@@ -1,0 +1,6 @@
+.env
+*.zip
+node_modules/
+build/
+.gradle/
+__pycache__/
