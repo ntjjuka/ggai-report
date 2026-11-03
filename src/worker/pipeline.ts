@@ -176,7 +176,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
                 model: cfg.LLM_CHUNK_MODEL,
                 user,
                 schema: ChunkExtractionSchema,
-                maxTokens: 8000,
+                maxTokens: 32000, // 청크 추출: 사고 토큰 + JSON
                 effort: "medium",
                 requestKey,
                 hints: { ...hintsBase, messageIds: chunk.messages.map((m) => m.id), speakerOf: Object.fromEntries(chunk.messages.map((m) => [m.id, m.pid])) },
@@ -233,7 +233,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
         model: cfg.LLM_SYNTHESIS_MODEL,
         user: synthUser,
         schema: ReportDraftSchema,
-        maxTokens: 16000,
+        maxTokens: 64000, // 종합: 사고 토큰(effort high) + 초안 JSON 8~12k
         effort: "high",
         requestKey: synthKey,
         hints: { ...hintsBase, messageIds: synthIds.map((m) => m.id), speakerOf: Object.fromEntries(synthIds.map((m) => [m.id, m.pid])) },
@@ -265,7 +265,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
       const repairKey = sha256(`${reportId}|REPAIR|${systemHash}|${sha256(repairUser)}|${cfg.LLM_SYNTHESIS_MODEL}`);
       try {
         const rep = await callLlm(
-          { stage: "REPAIR", model: cfg.LLM_SYNTHESIS_MODEL, user: repairUser, schema: RepairResponseSchema, maxTokens: 8000, effort: "medium", requestKey: repairKey, hints: { ...hintsBase, messageIds: synthIds.map((m) => m.id), speakerOf: Object.fromEntries(synthIds.map((m) => [m.id, m.pid])) } },
+          { stage: "REPAIR", model: cfg.LLM_SYNTHESIS_MODEL, user: repairUser, schema: RepairResponseSchema, maxTokens: 24000, effort: "medium", requestKey: repairKey, hints: { ...hintsBase, messageIds: synthIds.map((m) => m.id), speakerOf: Object.fromEntries(synthIds.map((m) => [m.id, m.pid])) } },
           -2,
         );
         const patched = applyPatches(validation.draft, rep.value.patches);

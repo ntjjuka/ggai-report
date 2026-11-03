@@ -18,13 +18,19 @@ function fakeMessage(text: string, stop = "end_turn") {
   return { id: "msg", type: "message", role: "assistant", model: "claude-opus-5-5", stop_reason: stop, stop_sequence: null, content: [{ type: "thinking", thinking: "", signature: "" }, { type: "text", text, citations: null }], usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } };
 }
 
+/** parseImpl = 구조화 출력(format 있음) 호출, createImpl = JSON 모드(format 없음) 호출 — 둘 다 stream().finalMessage() 경로 */
 function stubbed(parseImpl: () => Promise<unknown>, createImpl: () => Promise<unknown>) {
   const c = new AnthropicLlmClient({ apiKey: "test-key", sleep: async () => {} });
-  const calls = { parse: 0, create: 0 };
+  const calls = { parse: 0, create: 0, maxTokens: [] as number[] };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inner = (c as any).client as { messages: { parse: unknown; create: unknown } };
-  inner.messages.parse = async () => { calls.parse += 1; return parseImpl(); };
-  inner.messages.create = async () => { calls.create += 1; return createImpl(); };
+  const inner = (c as any).client as { messages: { stream: unknown } };
+  inner.messages.stream = (params: { max_tokens: number; output_config?: { format?: unknown } }) => {
+    calls.maxTokens.push(params.max_tokens);
+    const structured = !!params.output_config?.format;
+    if (structured) calls.parse += 1;
+    else calls.create += 1;
+    return { finalMessage: () => (structured ? parseImpl() : createImpl()) };
+  };
   return { c, calls };
 }
 
@@ -43,7 +49,8 @@ describe("anthropic client — JSON mode fallback", () => {
     const { c, calls } = stubbed(async () => { throw new Error("parse must not be called"); }, async () => fakeMessage('```json\n{"headline":"둘 중 한 명만 연애 중이다","n":3}\n```'));
     const res = await c.generateJson(req("SYNTHESIS"));
     expect(res.value).toEqual({ headline: "둘 중 한 명만 연애 중이다", n: 3 });
-    expect(calls).toEqual({ parse: 0, create: 1 });
+    expect(calls.parse).toBe(0);
+    expect(calls.create).toBe(1);
   });
 
   it("switches a stage to JSON mode after a grammar-too-large 400 and remembers it", async () => {
@@ -62,6 +69,12 @@ describe("anthropic client — JSON mode fallback", () => {
     const { c } = stubbed(async () => { throw new Error("unused"); }, async () => fakeMessage(i++ === 0 ? "not json" : '{"headline":"h"}'));
     await expect(c.generateJson(req("SYNTHESIS"))).rejects.toMatchObject({ code: "LLM_BAD_OUTPUT" });
     expect(i).toBe(2);
+  });
+
+  it("bumps max_tokens once when output is cut off, then fails with LLM_MAX_TOKENS", async () => {
+    const { c, calls } = stubbed(async () => { throw new Error("unused"); }, async () => fakeMessage('{"headline":"h"', "max_tokens"));
+    await expect(c.generateJson({ ...req("SYNTHESIS"), maxTokens: 64000 })).rejects.toMatchObject({ code: "LLM_MAX_TOKENS" });
+    expect(calls.maxTokens).toEqual([64000, 96000]);
   });
 
   it("other 400s stay LLM_BAD_REQUEST", async () => {

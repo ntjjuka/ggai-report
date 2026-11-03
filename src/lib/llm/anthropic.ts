@@ -13,7 +13,8 @@ export interface AnthropicClientOptions {
 }
 
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
-const MAX_OUTPUT_TOKENS = 32000;
+// Opus/Sonnet 5.5는 사고(thinking) 토큰이 max_tokens 안에서 소비된다 → 넉넉히 잡고, 긴 출력은 스트리밍으로 받아 HTTP 타임아웃을 피한다
+const MAX_OUTPUT_TOKENS = 120_000;
 
 /**
  * 구조화 출력(output_config.format)은 서버가 JSON Schema를 문법으로 컴파일한다. 종합 초안(ReportDraft)처럼 큰 스키마는
@@ -88,23 +89,28 @@ export class AnthropicLlmClient implements LlmClient {
       attempts += 1;
       const jsonMode = jsonModeStages.has(req.stage);
       try {
+        // 항상 스트리밍(finalMessage로 수집): max_tokens가 커도 요청 타임아웃에 걸리지 않는다
         let res: Anthropic.Message & { parsed_output?: unknown };
         if (jsonMode) {
-          res = await this.client.messages.create({
-            model,
-            max_tokens: maxTokens,
-            system,
-            messages: [{ role: "user", content: req.user + jsonModeSuffix(schemaJson, lastFailure) }],
-            output_config: { effort: req.effort },
-          });
+          res = await this.client.messages
+            .stream({
+              model,
+              max_tokens: maxTokens,
+              system,
+              messages: [{ role: "user", content: req.user + jsonModeSuffix(schemaJson, lastFailure) }],
+              output_config: { effort: req.effort },
+            })
+            .finalMessage();
         } else {
-          res = await this.client.messages.parse({
-            model,
-            max_tokens: maxTokens,
-            system,
-            messages: [{ role: "user", content: req.user }],
-            output_config: { format, effort: req.effort },
-          });
+          res = await this.client.messages
+            .stream({
+              model,
+              max_tokens: maxTokens,
+              system,
+              messages: [{ role: "user", content: req.user }],
+              output_config: { format, effort: req.effort },
+            })
+            .finalMessage();
         }
         const usage = {
           input: res.usage.input_tokens,
@@ -144,6 +150,19 @@ export class AnthropicLlmClient implements LlmClient {
           }
         } else if (res.parsed_output !== null && res.parsed_output !== undefined) {
           value = res.parsed_output as T;
+        } else {
+          // 스트림 수집 결과에 parsed_output이 없으면 텍스트를 직접 파싱
+          const text = res.content
+            .filter((b): b is Anthropic.TextBlock => b.type === "text")
+            .map((b) => b.text)
+            .join("");
+          try {
+            const checked = req.schema.safeParse(extractJsonObject(text));
+            if (checked.success) value = checked.data;
+            else lastFailure = checked.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+          } catch (e) {
+            lastFailure = e instanceof Error ? e.message : String(e);
+          }
         }
         if (value === null) {
           if (!badOutputRetried) {

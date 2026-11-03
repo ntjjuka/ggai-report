@@ -30,8 +30,9 @@ export interface Plan {
 }
 
 const GAP_MS = SESSION_GAP_HOURS * 3600_000;
-const CHUNK_OUT_TOKENS = 3000;
-const SYNTH_OUT_TOKENS = 9000;
+// 출력 토큰 추정에는 사고(thinking) 토큰이 포함된다 (Opus/Sonnet 5.5는 사고를 끌 수 없고 출력 단가로 과금)
+const CHUNK_OUT_TOKENS = 6000;
+const SYNTH_OUT_TOKENS = 30000;
 const SYNTH_FIXED_IN = 6000; // 시스템+통계 사실+지침
 
 export class PlanError extends Error {
