@@ -1,5 +1,6 @@
 // docs/08 §3 결정적 통계 계산기 (statsVersion 1)
 import type { Message } from "@/lib/parser/types";
+import { isBlobLike } from "@/lib/parser/patterns";
 import { MEDIA_KINDS, SYSTEM_KINDS } from "@/lib/parser/types";
 import { atToMs, dateKey, hourOf, monthKey, weekKey, weekdayOf, daysBetween } from "./time";
 import { SESSION_GAP_HOURS, type ChatStats, type EffectiveParticipant, type FunFacts, type ParticipantMap, type PersonStat } from "./types";
@@ -50,7 +51,7 @@ export function toEffectiveMessages(messages: Message[], map: ParticipantMap): E
       at: m.at,
       ms: atToMs(m.at),
       pid: p.id,
-      kind: m.kind,
+      kind: m.kind === "TEXT" && isBlobLike(m.text) ? "DATA" : m.kind, // 구버전 업로드(덩어리가 TEXT로 저장됨) 호환
       text: m.text,
       hasLink: m.hasLink,
       mentions: m.mentions,

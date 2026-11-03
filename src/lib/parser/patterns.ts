@@ -99,3 +99,25 @@ export function isBotSender(name: string): boolean {
   const n = name.trim();
   return BOT_SENDERS.has(n) || BOT_SENDER_RE.test(n);
 }
+
+// ── 데이터 덩어리(헥스 덤프·해시·base64·로그) 판정 ─────────────────────────
+// 실측(2026-11-03): 파일·이미지가 헥스 문자열로 들어온 메시지가 "가장 긴 메시지"·장문파·평균 길이를 독식했다.
+// 이런 본문은 대화가 아니므로 kind "DATA"로 분류해 텍스트 통계·전사에서 뺀다(첨부처럼 개수만 센다).
+const HEX_RUN = /[0-9a-fA-F]{32,}/;
+const LONG_OPAQUE_TOKEN = /(?:^|\s)[A-Za-z0-9+/=_-]{60,}(?=\s|$)/;
+
+export function isBlobLike(text: string): boolean {
+  const t = text.trim();
+  if (t.length < 40) return false;
+  const nonSpace = t.replace(/\s+/g, "");
+  if (nonSpace.length === 0) return false;
+  const hangul = (nonSpace.match(/[가-힣]/g) ?? []).length;
+  if (HEX_RUN.test(t)) {
+    const hex = (nonSpace.match(/[0-9a-fA-F]/g) ?? []).length;
+    if (hex / nonSpace.length >= 0.6) return true; // 헥스 덤프·해시 나열
+  }
+  if (hangul === 0 && LONG_OPAQUE_TOKEN.test(t) && !/https?:\/\//.test(t)) return true; // base64·토큰 덩어리 (URL은 제외)
+  const letters = hangul + (nonSpace.match(/[A-Za-z]/g) ?? []).length;
+  if (nonSpace.length >= 120 && letters / nonSpace.length < 0.4) return true; // 숫자·기호가 대부분인 긴 본문(로그·좌표·표)
+  return false;
+}

@@ -54,6 +54,7 @@ export function classifyBody(body: string): { kind: MessageKind; text: string; f
   const f = P.FILE_RE.exec(b);
   if (f) return { kind: "FILE", text: b, fileName: f[2].trim() };
   if (!b) return { kind: "EMPTY", text: "", fileName: null };
+  if (P.isBlobLike(b)) return { kind: "DATA", text: b, fileName: null };
   return { kind: "TEXT", text: b, fileName: null };
 }
 

@@ -50,6 +50,8 @@ function mediaTag(m: EffectiveMessage): string {
       return "[음성]";
     case "FILE":
       return `[파일: ${m.text.replace(/^(파일|File):\s*/, "").slice(0, 40)}]`;
+    case "DATA":
+      return `[데이터 ${m.text.length}자]`;
     case "MAP":
       return "[지도]";
     case "CONTACT":

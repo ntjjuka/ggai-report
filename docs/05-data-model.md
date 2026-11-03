@@ -215,3 +215,5 @@ CREATE INDEX ix_audit_owner ON audit_event (event_type, owner_hash, created_at);
 - 실행 경로: `pnpm db:migrate`(dotenv로 `.env` 읽음) · 워커 기동 시 `MIGRATE_ON_START !== "false"`(compose 기본 `"true"`) · 통합 테스트 `beforeAll`.
 - 규칙: 변경은 항상 **새 버전 파일**(`0002_….sql`). 기존 파일 수정 금지(이미 적용된 DB에서 재실행되지 않는다). 같은 PR에서 `src/server/schema.ts`를 함께 갱신한다. JSONB 구조 변경은 `schema_version` 증가 + 읽기 분기(현재 `ReportContent.schemaVersion = 1`, `inlineEvidence`는 구버전 호환을 위해 선택 필드).
 - 롤백 SQL은 두지 않는다(전진 전용). 되돌릴 일은 새 버전으로 쓴다.
+
+> 2026-11-03: `MessageKind`에 `DATA`(헥스 덤프·해시·base64·로그 덩어리, 03 부록 C) 추가. 저장 형식은 그대로(원문 JSON 안의 `kind` 문자열), 마이그레이션 없음. 통계에서는 첨부(`media.other`)로 센다.

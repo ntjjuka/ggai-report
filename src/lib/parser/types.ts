@@ -14,6 +14,8 @@ export type MessageKind =
   | "EMOTICON"
   | "VOICE"
   | "FILE"
+  /** 헥스 덤프·해시·base64·로그처럼 사람 말이 아닌 본문 (patterns.isBlobLike). 첨부처럼 개수만 센다 */
+  | "DATA"
   | "MAP"
   | "CONTACT"
   | "DELETED"
@@ -39,6 +41,7 @@ export const MEDIA_KINDS: ReadonlySet<MessageKind> = new Set([
   "EMOTICON",
   "VOICE",
   "FILE",
+  "DATA",
   "MAP",
   "CONTACT",
 ]);

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseUploads, type Message } from "@/lib/parser";
-import { computeStats, computePriors, renderStatsFacts, allowedNumbers, type ParticipantMap } from "@/lib/stats";
+import { computeStats, computePriors, renderStatsFacts, allowedNumbers, toEffectiveMessages, type ParticipantMap } from "@/lib/stats";
 import { buildTier0 } from "@/lib/tier0";
 
 const LIMITS = { maxMessages: 300_000, minMessages: 1, maxParticipants: 60 };
@@ -152,5 +152,26 @@ describe("pickMood", () => {
     for (let i = 0; i < 200; i++) seen.add(pickMood(`r${i}`));
     expect([...seen].sort()).toEqual(["DIRECT", "HYPED"]);
     expect(pickMood("r1", true)).toBe("WARM");
+  });
+});
+
+describe("data blobs do not win longest-message or length statistics", () => {
+  it("maps legacy TEXT blobs to DATA at runtime and excludes them from text stats", async () => {
+    const { parseUploads } = await import("@/lib/parser");
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const chat = parseUploads([{ name: "android_ko_basic.txt", bytes: new Uint8Array(readFileSync(join(process.cwd(), "docs", "fixtures", "android_ko_basic.txt"))) }], { maxMessages: 300_000, minMessages: 1, maxParticipants: 60 });
+    const map = mapOf(chat, "박민수");
+    const blob = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".repeat(4);
+    const victim = chat.messages.find((m) => m.kind === "TEXT" && m.sender === "이서연")!;
+    // 구버전 업로드처럼 TEXT로 저장된 헥스 덩어리
+    const messages = chat.messages.map((m) => (m === victim ? { ...m, text: blob } : m));
+    const eff = toEffectiveMessages(messages, map);
+    expect(eff.find((m) => m.index === victim.index)?.kind).toBe("DATA");
+    const stats = computeStats(messages, map, "p1");
+    const seo = stats.perPerson.find((p) => p.name === "이서연")!;
+    expect(seo.longestMessageLen).toBeLessThan(blob.length);
+    expect(stats.funFacts.longestMessages.every((lm) => lm.len < blob.length)).toBe(true);
+    expect(stats.total.media.other).toBeGreaterThanOrEqual(1);
   });
 });

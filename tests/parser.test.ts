@@ -2,6 +2,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ParseError, parseUploads, parseTexts, decodeBytes, extractTextEntries } from "@/lib/parser";
+import { classifyBody } from "@/lib/parser/kakaoParser";
+import { isBlobLike } from "@/lib/parser/patterns";
 import { zipSync, strToU8 } from "fflate";
 import { isBotSender } from "@/lib/parser/patterns";
 
@@ -125,5 +127,20 @@ describe("parser rules", () => {
     expect(() => parseUploads([{ name: "a.docx", bytes: new Uint8Array([1]) }], LIMITS)).toThrowError(
       expect.objectContaining({ code: "UNSUPPORTED_FILE_TYPE" }),
     );
+  });
+});
+
+describe("data blobs (hex dumps, hashes, base64, logs) are not conversation", () => {
+  it("classifies blob-like bodies as DATA and keeps real text as TEXT", () => {
+    const hex = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 a94a8fe5ccb19ba61c4c0873d391e987982fbbd3";
+    expect(isBlobLike(hex)).toBe(true);
+    expect(classifyBody(hex).kind).toBe("DATA");
+    expect(classifyBody("iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==").kind).toBe("DATA");
+    expect(classifyBody("[12:01:33.004] ERROR 0x7ffe 0x0001 0x0002 0x0003 0x0004 0x0005 0x0006 0x0007 0x0008 0x0009 0x000a 0x000b 0x000c 0x000d 0x000e 0x000f 0x0010 0x0011 0x0012").kind).toBe("DATA");
+    // 사람 말·URL·짧은 코드는 그대로 텍스트
+    expect(classifyBody("오늘 회의 몇 시지? 어제 올린 자료 봤는데 3페이지 숫자가 좀 이상한 것 같아서 다시 확인 부탁할게").kind).toBe("TEXT");
+    expect(classifyBody("https://www.example.com/path/to/some/very/long/resource/that/keeps/going/on/and/on/forever/index.html").kind).toBe("TEXT");
+    expect(classifyBody("커밋은 a1b2c3d 로 올렸어").kind).toBe("TEXT");
+    expect(isBlobLike("ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ")).toBe(false);
   });
 });
