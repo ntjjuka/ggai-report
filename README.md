@@ -122,6 +122,8 @@ pnpm smoke
    - `LLM_MAX_COST_USD`는 보고서 1건의 예상 비용 상한입니다. 넘으면 샘플링(커버리지 < 100%)하거나 `COST_LIMIT_EXCEEDED`로 거절합니다. Console의 월 지출 한도(Spend limit)도 같이 걸어 두세요.
    - 키가 새면 Console에서 즉시 폐기(Disable)하고 새로 발급합니다. 키를 코드·문서·이슈에 붙여넣지 마세요.
    - 모델을 바꾸려면 `LLM_*_MODEL`만 바꾸면 됩니다. 단가표는 `src/lib/llm/cost.ts`에 있고, 표에 없는 모델은 Opus 5 단가로 계산합니다.
+   - 쓴 돈 확인: 보고서 하단(소유자에게만)에 건당 비용·토큰이 나오고, 누적은 `docker compose exec postgres psql -U ggai -d ggai -c "SELECT round(sum(cost_usd)::numeric, 2) AS usd, count(*) AS calls FROM llm_call_log;"` 로 봅니다. Console의 Usage 페이지가 정확한 기준입니다.
+   - 개인용(프로모션 크레딧)이라 긴 대화도 전부 읽게 하려면 `.env`에 `LLM_MAX_COST_USD=20`, `LLM_MAX_TOTAL_TOKENS=6000000`을 둡니다. 10만 메시지 전량 ≈ $10(Sonnet 읽기) 또는 ≈ $2.5(`LLM_CHUNK_MODEL=claude-haiku-5-5`).
 
 ## 환경 변수
 `.env.example` 참고. 핵심: `DATABASE_URL`, `APP_CRYPTO_KEY`(32바이트 base64), `LLM_PROVIDER`(anthropic|fake), `ANTHROPIC_API_KEY`, `LLM_SYNTHESIS_MODEL`(기본 claude-opus-5-5), `LLM_CHUNK_MODEL`(기본 claude-sonnet-5-5), `PERSONA_NAME`(기본 까비서), `RAW_RETENTION_DAYS`(기본 7).

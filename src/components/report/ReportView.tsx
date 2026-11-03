@@ -398,7 +398,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
         <p>{content.disclaimer}</p>
         {isOwner && (
           <p className="mt-1">
-            품질: {content.quality.mode === "SINGLE" ? "전체 읽음" : `청크 ${content.quality.chunks.succeeded}/${content.quality.chunks.total}`} · 근거 {content.quality.evidence.total - content.quality.evidence.dropped}/{content.quality.evidence.total} 검증 · 모델 {content.quality.models.synthesis} · {content.quality.durationSec}초
+            품질: {content.quality.mode === "SINGLE" ? "전체 읽음" : `청크 ${content.quality.chunks.succeeded}/${content.quality.chunks.total}`} · 근거 {content.quality.evidence.total - content.quality.evidence.dropped}/{content.quality.evidence.total} 검증 · 모델 {content.quality.models.synthesis} · {content.quality.durationSec}초 · 비용 ${content.quality.costUsd.toFixed(2)} · 토큰 입력 {content.quality.tokens.input.toLocaleString()} / 출력 {content.quality.tokens.output.toLocaleString()}
           </p>
         )}
       </footer>
