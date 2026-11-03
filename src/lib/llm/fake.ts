@@ -23,8 +23,17 @@ export class FakeLlmClient implements LlmClient {
     const bogus = this.scenario === "hallucinate_ids" ? ["m999999"] : [];
     const hanja = this.scenario === "hanja" ? " 推荐" : "";
     const forbidden = this.scenario === "forbidden" ? " 뚱뚱해서 그래" : "";
-    const value =
-      req.stage === "CHUNK" ? this.chunk(h, idAt, bogus) : req.stage === "SYNTHESIS" ? this.synthesis(h, idAt, bogus, hanja, forbidden, /\[업로더의 질문\] 「/.test(req.user)) : this.repair(req.user, idAt);
+    const hasQuestion = /\[업로더의 질문\] 「/.test(`${req.userCached ?? ""}${req.user}`);
+    let value: unknown;
+    if (req.stage === "CHUNK") value = this.chunk(h, idAt, bogus);
+    else if (req.stage === "SYNTHESIS") value = this.synthesis(h, idAt, bogus, hanja, forbidden, hasQuestion);
+    else if (req.stage === "SYNTHESIS_PERSONA") {
+      const full = this.synthesis(h, idAt, bogus, hanja, forbidden, hasQuestion);
+      value = { moments: full.moments, participants: full.participants };
+    } else if (req.stage === "SYNTHESIS_VERDICT") {
+      const { moments: _m, participants: _p, ...rest } = this.synthesis(h, idAt, bogus, hanja, forbidden, hasQuestion);
+      value = rest;
+    } else value = this.repair(req.user, idAt);
     const inputTokens = Math.ceil((req.system.length + req.user.length) / 1.6);
     return {
       value: value as unknown as T,

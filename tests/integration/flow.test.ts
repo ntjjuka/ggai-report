@@ -107,7 +107,10 @@ describe("end-to-end service flow", () => {
     expect(c.quality.costUsd).toBeGreaterThanOrEqual(0);
     expect(view.options.resolvedFocus).toBe("FRIEND_ONE");
     const logs = await getDb().select().from(schema.llmCallLog);
-    expect(logs.some((l) => l.stage === "SYNTHESIS" && l.status === "OK")).toBe(true);
+    // 종합은 기본 두 갈래(장면·인물 / 판정·나머지)로 동시에 — 둘 다 OK로 기록되고 체크포인트도 둘
+    expect(logs.filter((l) => l.stage.startsWith("SYNTHESIS") && l.status === "OK").map((l) => l.stage).sort()).toEqual(["SYNTHESIS_PERSONA", "SYNTHESIS_VERDICT"]);
+    const stages = await getDb().select().from(schema.reportStageResult);
+    expect(stages.filter((r) => r.stage.startsWith("SYNTHESIS")).length).toBe(2);
   });
 
   it("re-running a succeeded report is skipped (ownership)", async () => {

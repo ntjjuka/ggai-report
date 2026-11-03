@@ -2,12 +2,14 @@
 import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { BADGES } from "@/lib/tier0/badges";
-import { LlmError, actualCostUsd, buildChunkUserPrompt, buildRepairUserPrompt, buildSynthesisUserPrompt, buildSystemPrompt, type LlmClient, type StageRequest, type StageResponse } from "@/lib/llm";
+import { LlmError, actualCostUsd, buildChunkUserPrompt, buildRepairUserPrompt, buildSynthesisContext, buildSynthesisInstructions, buildSystemPrompt, type LlmClient, type StageRequest, type StageResponse } from "@/lib/llm";
 import {
   ChunkExtractionSchema,
+  PersonaDraftSchema,
   PlanError,
   RepairResponseSchema,
   ReportDraftSchema,
+  VerdictDraftSchema,
   applyPatches,
   assembleReport,
   buildEvidenceIndex,
@@ -21,8 +23,10 @@ import {
   type ChunkExtraction,
   type Focus,
   type Mood,
+  type PersonaDraft,
   type ReportDraft,
   type TranscriptMessage,
+  type VerdictDraft,
 } from "@/lib/report";
 import { allowedNumbers, computePriors, computeStats, factsToText, pickScoreSet, renderStatsFacts, toEffectiveMessages } from "@/lib/stats";
 import { getConfig } from "@/server/config";
@@ -217,8 +221,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       if (succeeded / total < 0.6) throw new LlmError("LLM_UNAVAILABLE", "INSUFFICIENT_COVERAGE", true);
     }
 
-    // [6] SYNTHESIS
-    await progress("SYNTH", 78, `${persona}가 생각을 정리하고 있어요. 이 단계는 보통 1~2분`);
+    // [6] SYNTHESIS — 기본은 두 갈래(장면·인물 / 판정·나머지)를 동시에: 스트림 하나가 짧아져 끊김 노출이 줄고 총 시간도 준다 (docs/19 §8)
     const mood: Mood = pickMood(reportId, safetyFlagged);
     // 청크가 많으면 종합 입력을 다이어트: 청크당 상위 항목만, 하이라이트 후보 총량 상한 (Opus 입력 토큰 절감)
     const okChunks = chunkResults.filter(Boolean);
@@ -231,7 +234,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
     const personaCandidates = personaMessages.size
       ? [...personaMessages.entries()].map(([pid, msgs]) => `${pid}=${participants.find((p) => p.id === pid)?.name ?? pid}:\n${msgs.map(renderLine).join("\n")}`).join("\n")
       : null;
-    const synthUser = buildSynthesisUserPrompt({
+    const synthArgs = {
       title: conv.title ?? "카카오톡 대화",
       period: `${stats.period.startedAt.slice(0, 10)} ~ ${stats.period.endedAt.slice(0, 10)}`,
       messageCount: stats.total.messages,
@@ -248,23 +251,44 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       highlightCandidates: highlightMessages.length ? highlightMessages.map(renderLine).join("\n") : null,
       personaCandidates,
       badgeCatalog: BADGE_CATALOG,
-    });
+    };
+    const synthContext = buildSynthesisContext(synthArgs);
     const synthIds = plan.mode === "SINGLE" ? plan.chunks[0].messages : dedupeMessages([...highlightMessages, ...[...personaMessages.values()].flat()]);
-    const synthKey = sha256(`${reportId}|SYNTHESIS|${systemHash}|${sha256(synthUser)}|${cfg.LLM_SYNTHESIS_MODEL}`);
-    const synth = await callLlm<ReportDraft>(
-      {
-        stage: "SYNTHESIS",
-        model: cfg.LLM_SYNTHESIS_MODEL,
-        user: synthUser,
-        schema: ReportDraftSchema,
-        maxTokens: 64000, // 종합: 사고 토큰 + 초안 JSON 8~12k
-        effort: cfg.LLM_SYNTHESIS_EFFORT, // 기본 medium: high는 사고 토큰으로 1~3분 더 걸린다
-        speed: cfg.LLM_FAST_MODE === "synthesis" ? ("fast" as const) : undefined,
-        requestKey: synthKey,
-        hints: { ...hintsBase, messageIds: synthIds.map((m) => m.id), speakerOf: Object.fromEntries(synthIds.map((m) => [m.id, m.pid])) },
-      },
-      -1,
-    );
+    const synthHints = { ...hintsBase, messageIds: synthIds.map((m) => m.id), speakerOf: Object.fromEntries(synthIds.map((m) => [m.id, m.pid])) };
+    const synthCall = <T>(stage: "SYNTHESIS" | "SYNTHESIS_PERSONA" | "SYNTHESIS_VERDICT", schema: StageRequest<T>["schema"], instructions: string, chunkIndex: number) =>
+      callLlm<T>(
+        {
+          stage,
+          model: cfg.LLM_SYNTHESIS_MODEL,
+          user: instructions,
+          userCached: synthContext, // 공유 문맥은 캐시 경계 뒤에 — 두 번째 갈래가 입력을 10% 단가로 읽는다
+          schema,
+          maxTokens: 64000, // 종합: 사고 토큰 + 초안 JSON
+          effort: cfg.LLM_SYNTHESIS_EFFORT, // 기본 medium: high는 사고 토큰으로 1~3분 더 걸린다
+          speed: cfg.LLM_FAST_MODE === "synthesis" ? ("fast" as const) : undefined,
+          requestKey: sha256(`${reportId}|${stage}|${systemHash}|${sha256(synthContext + instructions)}|${cfg.LLM_SYNTHESIS_MODEL}`),
+          hints: synthHints,
+        },
+        chunkIndex,
+      );
+    let synthDraft: ReportDraft;
+    let synthModel = cfg.LLM_SYNTHESIS_MODEL;
+    if (cfg.LLM_SYNTH_SPLIT === "on") {
+      await progress("SYNTH", 78, `${persona}가 장면·인물과 판정을 두 갈래로 나눠 동시에 쓰고 있어요. 이 단계는 보통 1~3분`);
+      const personaP = synthCall<PersonaDraft>("SYNTHESIS_PERSONA", PersonaDraftSchema, buildSynthesisInstructions(synthArgs, "PERSONA"), -1);
+      personaP.catch(() => undefined); // 스태거 대기 중 거절돼도 unhandledRejection이 되지 않게 (아래 Promise.all이 실제 처리)
+      // 두 번째 갈래는 첫 갈래가 프롬프트 캐시를 쓴 뒤에 보낸다(첫 응답 시작 시 캐시 열림). 첫 갈래가 캐시 히트로 바로 끝나면 기다리지 않는다
+      await Promise.race([personaP.catch(() => undefined), sleepMs(cfg.LLM_SYNTH_STAGGER_MS)]);
+      const verdictP = synthCall<VerdictDraft>("SYNTHESIS_VERDICT", VerdictDraftSchema, buildSynthesisInstructions(synthArgs, "VERDICT"), -3);
+      const [personaRes, verdictRes] = await Promise.all([personaP, verdictP]);
+      synthDraft = { ...verdictRes.value, moments: personaRes.value.moments, participants: personaRes.value.participants };
+      synthModel = verdictRes.model;
+    } else {
+      await progress("SYNTH", 78, `${persona}가 생각을 정리하고 있어요. 이 단계는 보통 2~4분`);
+      const synth = await synthCall<ReportDraft>("SYNTHESIS", ReportDraftSchema, buildSynthesisInstructions(synthArgs, "ALL"), -1);
+      synthDraft = synth.value;
+      synthModel = synth.model;
+    }
 
     // [7] VALIDATE (+ REPAIR 1회)
     await progress("VALIDATE", 92, "근거를 대조하고 있어요");
@@ -277,7 +301,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       scoresEnabled: cfg.scoresEnabled,
       allowedNumbers: allowedNumbers(facts),
     };
-    let validation = validateDraft(synth.value, vctx);
+    let validation = validateDraft(synthDraft, vctx);
     let repaired = false;
     const needsRepair = validation.violations.filter((v) => v.reason !== "MISSING" || v.path.startsWith("participants") || v.path === "whatIWouldDo");
     if (needsRepair.length > 0) {
@@ -318,7 +342,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       evidence,
       plan: { mode: plan.mode, coveragePct: plan.coveragePct, chunksTotal: plan.chunks.length, chunksSucceeded: plan.chunks.length - chunkFailures },
       metrics: { ...finalCheck.metrics, evidenceTotal: validation.metrics.evidenceTotal, evidenceDropped: validation.metrics.evidenceDropped, repaired },
-      usage: { input: usage.input, output: usage.output, cacheRead: usage.cacheRead, costUsd: usage.costUsd, durationSec: Math.round((now() - started) / 1000), chunkModel: plan.mode === "CHUNKED" ? chunkModel : null, synthesisModel: cfg.LLM_SYNTHESIS_MODEL },
+      usage: { input: usage.input, output: usage.output, cacheRead: usage.cacheRead, costUsd: usage.costUsd, durationSec: Math.round((now() - started) / 1000), chunkModel: plan.mode === "CHUNKED" ? chunkModel : null, synthesisModel: synthModel },
       generatedAt: new Date(now()).toISOString(),
     });
     await markSucceeded(reportId, attempt, content);
@@ -395,6 +419,10 @@ export function collectPersonaCandidates(chunks: ChunkExtraction[], participantI
     out.set(pid, picked);
   }
   return out;
+}
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, Math.max(0, ms)));
 }
 
 function dedupeMessages(msgs: TranscriptMessage[]): TranscriptMessage[] {

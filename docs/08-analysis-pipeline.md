@@ -7,7 +7,7 @@ claim → [1] LOAD      원문 복호화·재파싱·참여자 스냅샷 적용(
       → [3] RENDER    전사(transcript) 렌더: 메시지 ID 부여, 미디어/시스템 축약, 토큰 측정
       → [4] PLAN      단일 패스 vs 청크 모드 결정, 비용 추정, 샘플링 계획
       → [5] CHUNK×n   (청크 모드) 청크별 추출 호출 → ChunkExtraction JSON (체크포인트)
-      → [6] SYNTH     종합 호출 → ReportDraft JSON (체크포인트)
+      → [6] SYNTH     종합 호출 ×2 동시(장면·인물 / 판정·나머지, 공유 문맥 캐시) → 합쳐서 ReportDraft JSON (갈래별 체크포인트)
       → [7] VALIDATE  접지·언어·안전·범위 검증, 필요 시 REPAIR 호출 1회
       → [8] ASSEMBLE  ReportContent(07) 조립: 인용 텍스트 채우기, 통계 비주얼 데이터 결합, 품질 메타
       → succeed (CAS)
@@ -76,6 +76,7 @@ else:                           mode=CHUNKED
 - 청크 실패(재시도 소진)는 **건너뛰고 계속**; 성공 청크 비율 < 60% → FAILED `INSUFFICIENT_COVERAGE`. 성공률은 quality에 기록.
 
 ## 7. [6] SYNTH 호출
+> 2026-11-03 **두 갈래 동시 종합**(`LLM_SYNTH_SPLIT=on` 기본): 같은 문맥(대화 정보·통계·전사 또는 청크 JSON·후보)을 공유하는 두 호출을 띄운다 — `SYNTHESIS_PERSONA`(장면 `moments` + 인물 `participants`, 출력이 가장 긴 쪽)와 `SYNTHESIS_VERDICT`(판정·역학·바뀐 주·누가 먼저·둘만의 언어·발견·제안·상·점수·캡션·답·공유 카드). 공유 문맥은 사용자 메시지의 첫 블록에 `cache_control: ephemeral`을 걸어 두 번째 호출이 입력을 10% 단가로 읽고(5분 TTL), 두 번째 호출은 `LLM_SYNTH_STAGGER_MS`(15초) 뒤에 보낸다(캐시는 첫 응답이 시작되면 열린다; 첫 갈래가 캐시 히트로 즉시 끝나면 기다리지 않는다). 서버가 두 결과를 합쳐 `ReportDraft`로 검증한다. 효과: 스트림 하나가 절반으로 짧아져 중간 끊김 노출이 줄고, 총 시간은 max(두 갈래) ≈ 종전의 60%. 각 갈래는 별도 체크포인트(`report_stage_result`)라 한쪽만 실패해도 재시도 때 다른 쪽은 캐시로 재사용된다. `off`면 종전처럼 `SYNTHESIS` 한 호출.
 - 모델 `synthesis-model`, 구조화 출력 `ReportDraft`(07 §4.2), `maxTokens 16000`, effort HIGH.
 - 입력 구성: 시스템(페르소나·규칙·스키마 지침, 캐시) + 사용자 메시지:
   1. 대화 메타 + 참여자 목록(업로더 표시) + 초점·톤·질문

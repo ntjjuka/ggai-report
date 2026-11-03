@@ -124,7 +124,7 @@ pnpm smoke
    - 키가 새면 Console에서 즉시 폐기(Disable)하고 새로 발급합니다. 키를 코드·문서·이슈에 붙여넣지 마세요.
    - 모델을 바꾸려면 `LLM_*_MODEL`만 바꾸면 됩니다. 단가표는 `src/lib/llm/cost.ts`에 있고, 표에 없는 모델은 Opus 5 단가로 계산합니다.
    - 쓴 돈 확인: 보고서 하단(소유자에게만)에 건당 비용·토큰이 나오고, 누적은 `docker compose exec postgres psql -U ggai -d ggai -c "SELECT round(sum(cost_usd)::numeric, 2) AS usd, count(*) AS calls FROM llm_call_log;"` 로 봅니다. Console의 Usage 페이지가 정확한 기준입니다.
-   - 걸리는 시간: 1만 메시지 ≈ 2분, 5만 ≈ 4분, 10만+ ≈ 5~6분 (청크 병렬 8, 종합 effort medium 기준). 더 빠르게 하려면 `.env`에 `LLM_FAST_MODE=synthesis`(Opus 출력 2.5배 빠름, 종합 단가 2배, 분당 한도 초과 시 자동으로 표준 속도) 또는 `WORKER_CHUNK_CONCURRENCY=12`(429가 잦으면 낮추기). 더 좋은 글을 원하면 `LLM_SYNTHESIS_EFFORT=high`(1~3분 추가).
+   - 걸리는 시간(2026-11-03 두 갈래 동시 종합 기준, 미실측): 1만 메시지 ≈ 1.5분, 5만 ≈ 3분, 10만+ ≈ 4분 (청크 병렬 8, 종합 effort medium). 종합은 장면·인물 / 판정 두 호출을 동시에 돌리고(`LLM_SYNTH_SPLIT=on`), 끊기면 20초 뒤 자동으로 다시 써요. 더 빠르게 하려면 `.env`에 `LLM_FAST_MODE=synthesis`(Opus 출력 2.5배 빠름, 종합 단가 2배, 분당 한도 초과 시 자동으로 표준 속도) 또는 `WORKER_CHUNK_CONCURRENCY=12`(429가 잦으면 낮추기). 더 좋은 글을 원하면 `LLM_SYNTHESIS_EFFORT=high`(1~3분 추가).
    - 토큰 절감은 기본 내장: 압축 전사(22~45%), 긴 대화(전사 100만 토큰 초과)는 Haiku로 읽고 Opus로 쓰기, 같은 대화의 두 번째 보고서부터는 청크 읽기 비용 0(7일 캐시). 효과 확인: `pnpm tsx scripts/transcript-savings.ts 내보내기.txt`
    - 개인용(프로모션 크레딧)이라 긴 대화도 전부 읽게 하려면 `.env`에 `LLM_MAX_COST_USD=20`, `LLM_MAX_TOTAL_TOKENS=6000000`을 둡니다. 10만 메시지 전량 ≈ $10(Sonnet 읽기) 또는 ≈ $2.5(`LLM_CHUNK_MODEL=claude-haiku-5-5`).
 

@@ -141,7 +141,7 @@ export function buildChunkUserPrompt(args: {
   ].join("\n");
 }
 
-export function buildSynthesisUserPrompt(args: {
+export interface SynthesisArgs {
   title: string;
   period: string;
   messageCount: number;
@@ -159,9 +159,13 @@ export function buildSynthesisUserPrompt(args: {
   /** CHUNKED: 인물별 인용 후보(그 사람 메시지 원문) — participants[].paragraphs[].quoteIds는 이 목록과 하이라이트 후보 안에서 */
   personaCandidates?: string | null;
   badgeCatalog: string;
-}): string {
-  const group = args.participants.length > 2;
-  const many = args.participants.length > 8;
+}
+
+/** 종합 갈래: ALL(한 호출) · PERSONA(장면·인물) · VERDICT(판정·나머지). 두 갈래는 같은 문맥(buildSynthesisContext)을 공유한다 */
+export type SynthesisPart = "ALL" | "PERSONA" | "VERDICT";
+
+/** 종합 호출의 공유 문맥 — 대화 정보·통계·전사(또는 청크 JSON·후보). 갈래와 무관하게 바이트 동일 → 프롬프트 캐시 경계 */
+export function buildSynthesisContext(args: SynthesisArgs): string {
   const uploader = args.participants.find((p) => p.isUploader);
   const lines = [
     `[대화 정보] ${args.title} · ${args.period} · 메시지 ${args.messageCount}개 · 참여자: ${participantsLine(args.participants)} · 업로더: ${uploader ? `${uploader.id}(${uploader.name})` : "미지정"} · 대화 유형: ${FOCUS_LABEL[args.focus]}`,
@@ -189,9 +193,14 @@ export function buildSynthesisUserPrompt(args: {
     lines.push(`[구간별 하이라이트 후보 원문 — 인용 ID는 반드시 이 목록과 아래 인물별 후보 안에서]`, args.highlightCandidates ?? "(없음)");
     lines.push(`[인물별 인용 후보 원문 — participants[].paragraphs[].quoteIds는 그 사람 줄에서만]`, args.personaCandidates ?? "(없음)");
   }
-  lines.push(
-    `[작성 순서] 책 한 권을 다 읽은 뒤: ① moments(재밌게 읽은 장면)부터 고르고 ② 그 장면을 사람별로 다시 정리해 participants를 쓰고 ③ verdict에서 명쾌한 결론을 낸다. JSON 키도 이 순서로 쓴다.`,
-    `[작성 지침 — 화법]`,
+  return lines.join("\n");
+}
+
+/** 종합 호출의 작성 지침 — 갈래별로 다르다 (문맥 뒤에 붙는다) */
+export function buildSynthesisInstructions(args: Pick<SynthesisArgs, "participants">, part: SynthesisPart = "ALL"): string {
+  const group = args.participants.length > 2;
+  const many = args.participants.length > 8;
+  const persona = [
     `- moments: 전체에서 가장 재밌게 읽은 장면 ${many ? "5개" : "5~7개"}. kind 다양하게(funny·awkward·banter·clash·flutter·touching). title은 장면 제목 조어(≤30자), summary는 왜 재밌었는지 2~3문장(등장인물이 한 말을 그대로 되돌려주는 로스트 화법, 나중에 꺼내면 부끄러운 지점 우선), participantIds는 등장인물, messageIds 1~3개. 이 장면들이 인물 페르소나의 재료이므로 사람별로 최소 하나씩은 걸리게 고른다.`,
     `- participants (메인 코너, 가장 공들여 쓴다): 모든 참여자 ID 각 1개 항목. 위 장면들을 사람별로 다시 정리한 결과여야 한다 — 문단마다 장면 하나 이상이 녹아 있고, 그 사람이 가장 숨기고 싶었을 발언을 최소 한 번 quoteIds로 소환한다.`,
     `  · 먼저 그 사람이 주로 무슨 얘기를 했는지 topics 2~4개를 구체 명사로 뽑는다(상품·장소·취미·불평거리·자랑거리). "일상", "근황"처럼 뭉개지 않는다.`,
@@ -201,6 +210,8 @@ export function buildSynthesisUserPrompt(args: {
     `  · quoteIds: 문단 내용을 뒷받침하는 그 사람 메시지 0~2개(서버가 문단 아래 말풍선으로 붙인다). 산문 속 인라인 ID와 중복돼도 된다. 그 사람이 보낸 메시지가 아니면 서버가 버린다.`,
     `  · oneLiner: 이 사람을 끝내는 명쾌한 한 줄 결론 15~40자, "결론:"으로 시작(예: "결론: 기획은 수빈, 실행은 외주").`,
     `  · badgeIds 0~2개(카탈로그 id, 근거 필수). 업로더 항목도 같은 강도로, 단 자기 인식형으로.`,
+  ];
+  const verdict = [
     `- verdict.reportTitle: 「○○ 보고서: 부제」 꼴 20~40자. ○○는 이 방에서 반복된 명사(음식·말버릇·사건), 부제는 판정 한 줄. verdict.headline: 40자 이내, 이모지 0, 숫자 1개 이하, 「주어+판정」 한 문장.`,
     `- verdict.body: 3문단. ① 결론 한 문장 + 가장 센 숫자 ② "그런데 m####를 봐"로 메시지 하나로 꺾는다 ③ 진짜였던 것 / 바뀐 것 + 애정 한 절. 마지막 문단은 명쾌하게 끝낸다 — "결론: …" 한 줄 또는 "세 줄 요약: 1. 2. 3." 형식.`,
     `- dynamic.paragraphs: 2문단 선언문("○는 묻고 △는 답한다. 역은 7번 중 1번."). ${group ? "단톡방이므로 groupRoles에 판을 들고 있는 사람 / 사라지는 사람 / 판을 쥔 사람을 participantId로 지정하고 본문에 각 1문장 근거." : "1:1이므로 groupRoles는 모두 null."}`,
@@ -212,9 +223,23 @@ export function buildSynthesisUserPrompt(args: {
     `- awards: 3개. 이름은 행동 기반으로 웃기게("내일부터 장인상", "링크 한 방상"), 수상자 1명 + 사유 1문장 + 근거 ID. "올해의 한 줄상"은 메시지 하나를 수상자로(participantId null, evidenceIds에 그 ID).`,
     `- visualCaptions: 월별/히트맵/답장/선톡 그래프 밑 한 줄씩. 숫자 사실에서만.`,
     `- shareCard: headline은 verdict.headline과 같거나 더 짧게, subline은 어워드 1개 또는 점수 2개 요약(30자 이내).`,
-    `- 전체: 같은 비유 체계 2회 이상 금지. 떡볶이 최대 1회. 대화 속 밈·말버릇 콜백 1회 이상(재료가 있을 때만). 모든 텍스트는 한국어, 반말.`,
-  );
-  return lines.join("\n");
+  ];
+  const order =
+    part === "PERSONA"
+      ? `[작성 순서] 책 한 권을 다 읽은 뒤: ① moments(재밌게 읽은 장면)부터 고르고 ② 그 장면을 사람별로 다시 정리해 participants를 쓴다. 판정·역학 등 나머지 섹션은 다른 호출이 쓰므로 여기서는 쓰지 않는다. JSON 키도 이 순서로.`
+      : part === "VERDICT"
+        ? `[작성 순서] 책 한 권을 다 읽은 뒤 명쾌한 결론을 낸다: verdict → dynamic → firstMove → privateLanguage → weekChanged → findings → whatIWouldDo → awards → scores → visualCaptions → answer → shareCard. 장면(moments)과 인물 페르소나(participants)는 다른 호출이 쓰므로 여기서는 쓰지 않는다 — 대신 판정은 사람들의 행동을 이름 붙여 부르며 그 페르소나와 어긋나지 않게 팩트에만 기댄다.`
+        : `[작성 순서] 책 한 권을 다 읽은 뒤: ① moments(재밌게 읽은 장면)부터 고르고 ② 그 장면을 사람별로 다시 정리해 participants를 쓰고 ③ verdict에서 명쾌한 결론을 낸다. JSON 키도 이 순서로 쓴다.`;
+  const common = [
+    `- 전체: 같은 비유 체계 2회 이상 금지. ${part === "VERDICT" ? "떡볶이는 이 호출에서 0회(인물 쪽에서 쓴다)." : "떡볶이 최대 1회."} 대화 속 밈·말버릇 콜백 1회 이상(재료가 있을 때만). 모든 텍스트는 한국어, 반말.`,
+  ];
+  const body = part === "PERSONA" ? persona : part === "VERDICT" ? verdict : [...persona, ...verdict];
+  return [order, `[작성 지침 — 화법]`, ...body, ...common].join("\n");
+}
+
+/** 한 호출 종합(단일 패스·eval·LLM_SYNTH_SPLIT=off): 문맥 + 전체 지침 */
+export function buildSynthesisUserPrompt(args: SynthesisArgs): string {
+  return `${buildSynthesisContext(args)}\n${buildSynthesisInstructions(args, "ALL")}`;
 }
 
 export function buildRepairUserPrompt(args: { draftJson: string; violations: { path: string; reason: string; detail?: string }[]; allowedEvidence: string }): string {

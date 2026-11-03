@@ -25,6 +25,10 @@ const EnvSchema = z.object({
   LLM_MAX_TOTAL_TOKENS: z.coerce.number().default(1_500_000),
   LLM_MAX_COST_USD: z.coerce.number().default(5),
   LLM_CALL_TIMEOUT_MS: z.coerce.number().default(600_000),
+  /** 종합을 장면·인물 / 판정·나머지 두 호출로 나눠 동시에: 스트림 하나가 절반으로 짧아지고 총 시간도 준다. 입력은 프롬프트 캐시로 두 번째가 10% 단가 */
+  LLM_SYNTH_SPLIT: z.enum(["on", "off"]).default("on"),
+  /** 두 번째 호출을 이만큼 늦게 보내 첫 호출이 쓴 프롬프트 캐시를 맞힌다 (캐시는 첫 응답이 시작되면 열린다) */
+  LLM_SYNTH_STAGGER_MS: z.coerce.number().default(15_000),
   UPLOAD_MAX_BYTES: z.coerce.number().default(50 * 1024 * 1024),
   UPLOAD_MAX_MESSAGES: z.coerce.number().default(300_000),
   UPLOAD_MIN_MESSAGES: z.coerce.number().default(30),

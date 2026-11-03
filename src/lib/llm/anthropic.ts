@@ -97,10 +97,13 @@ export class AnthropicLlmClient implements LlmClient {
     const format = zodOutputFormat(req.schema);
     const schemaJson = JSON.stringify(format.schema);
     const system = [{ type: "text" as const, text: req.system, cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }];
+    // 공유 문맥(userCached)은 별도 블록 + 캐시 경계: 같은 문맥으로 두 번째 호출이 오면 입력 단가의 10%만 낸다 (5분 TTL)
+    const userContent = (text: string): string | Anthropic.TextBlockParam[] =>
+      req.userCached ? [{ type: "text", text: req.userCached, cache_control: { type: "ephemeral" } }, { type: "text", text }] : text;
 
     while (true) {
       attempts += 1;
-      const jsonMode = jsonModeStages.has(req.stage);
+      const jsonMode = jsonModeStages.has(req.stage) || req.stage.startsWith("SYNTHESIS");
       const fast = req.speed === "fast" && !fastDisabled && jsonMode && /opus-5|opus-4-8/.test(model);
       try {
         // 항상 스트리밍(finalMessage로 수집): max_tokens가 커도 요청 타임아웃에 걸리지 않는다
@@ -112,7 +115,7 @@ export class AnthropicLlmClient implements LlmClient {
               model,
               max_tokens: maxTokens,
               system,
-              messages: [{ role: "user", content: req.user + jsonModeSuffix(schemaJson, lastFailure) }],
+              messages: [{ role: "user", content: userContent(req.user + jsonModeSuffix(schemaJson, lastFailure)) }],
               output_config: { effort: req.effort },
               speed: "fast",
               betas: ["fast-mode-2026-02-01"],
@@ -125,7 +128,7 @@ export class AnthropicLlmClient implements LlmClient {
               model,
               max_tokens: maxTokens,
               system,
-              messages: [{ role: "user", content: req.user + jsonModeSuffix(schemaJson, lastFailure) }],
+              messages: [{ role: "user", content: userContent(req.user + jsonModeSuffix(schemaJson, lastFailure)) }],
               output_config: { effort: req.effort },
             }),
           );
@@ -135,7 +138,7 @@ export class AnthropicLlmClient implements LlmClient {
               model,
               max_tokens: maxTokens,
               system,
-              messages: [{ role: "user", content: req.user }],
+              messages: [{ role: "user", content: userContent(req.user) }],
               output_config: { format, effort: req.effort },
             }),
           );

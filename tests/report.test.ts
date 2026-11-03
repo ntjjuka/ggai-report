@@ -18,7 +18,7 @@ import {
   ReportDraftSchema,
   type ReportDraft,
 } from "@/lib/report";
-import { FakeLlmClient, buildSystemPrompt, buildSynthesisUserPrompt } from "@/lib/llm";
+import { FakeLlmClient, buildSynthesisContext, buildSynthesisInstructions, buildSystemPrompt, buildSynthesisUserPrompt } from "@/lib/llm";
 
 const LIMITS = { maxMessages: 300_000, minMessages: 1, maxParticipants: 60 };
 const PLAN_CFG = { singlePassMaxTokens: 150_000, chunkMaxTokens: 60_000, maxTotalTokens: 1_500_000, maxCostUsd: 5, chunkModel: "claude-sonnet-5-5", synthesisModel: "claude-opus-5-5" };
@@ -353,5 +353,25 @@ describe("prompts", () => {
     expect(p).toContain("participants (메인 코너");
     const chunked = buildSynthesisUserPrompt({ title: "t", period: "p", messageCount: 1, participants: s.parts, focus: "AUTO", mood: "DRY", question: null, statsFacts: "", scorePriors: [], scoresEnabled: false, mode: "CHUNKED", transcript: null, chunkJson: "[]", highlightCandidates: "m1 10:00 a: x", personaCandidates: "p1=a:\nm1 10:00 a: x", badgeCatalog: "" });
     expect(chunked).toContain("[인물별 인용 후보 원문");
+  });
+
+  it("splits synthesis into a shared context plus per-branch instructions", () => {
+    const s = setup();
+    const facts = renderStatsFacts(s.stats, s.chat.messages, s.priors);
+    const args = { title: "t", period: "p", messageCount: 14, participants: s.parts, focus: "AUTO" as const, mood: "DIRECT" as const, question: null, statsFacts: facts.map((f) => `- ${f.text}`).join("\n"), scorePriors: s.priors, scoresEnabled: true, mode: "SINGLE" as const, transcript: renderTranscript(s.transcript), chunkJson: null, highlightCandidates: null, badgeCatalog: "first_texter 선톡왕" };
+    const ctx = buildSynthesisContext(args);
+    expect(ctx).toContain("<transcript>");
+    expect(ctx).not.toContain("[작성 지침");
+    const persona = buildSynthesisInstructions(args, "PERSONA");
+    const verdict = buildSynthesisInstructions(args, "VERDICT");
+    const all = buildSynthesisInstructions(args, "ALL");
+    expect(persona).toContain("participants (메인 코너");
+    expect(persona).not.toContain("verdict.body");
+    expect(verdict).toContain("verdict.body");
+    expect(verdict).not.toContain("participants (메인 코너");
+    expect(verdict).toContain("떡볶이는 이 호출에서 0회");
+    expect(all).toContain("participants (메인 코너");
+    expect(all).toContain("verdict.body");
+    expect(buildSynthesisUserPrompt(args)).toBe(`${ctx}\n${all}`);
   });
 });

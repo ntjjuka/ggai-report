@@ -16,6 +16,8 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
   const isGroup = content.meta.participants.length > 2;
   const refs = content.inlineEvidence;
   const T = ({ s }: { s: string }) => <Prose text={s} refs={refs} colorOf={colorOf} />;
+  // 멤버가 많으면 페르소나 본문은 접어 두고 「자세히 보기」로 펼친다 (칭호·유형·주제·한 줄 결론은 항상 보임)
+  const collapsePersona = content.meta.participants.length > 4;
 
   return (
     <article className="space-y-8">
@@ -147,28 +149,34 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
                     ))}
                   </div>
                 )}
-                <div className="mt-4 space-y-4">
-                  {paragraphs.map((par, i) => (
-                    <div key={i}>
-                      <p className="leading-relaxed">
-                        <T s={par.text} />
-                      </p>
-                      {par.quotes.length > 0 && (
-                        <div className="mt-2 flex flex-col items-start gap-2 pl-3 sm:pl-6">
-                          {par.quotes.map((e) => (
-                            <div key={e.messageId} className="bubble text-[14px]" title={e.at.replace("T", " ")}>
-                              <div className="text-xs font-bold" style={{ color: colorOf(e.participantName) }}>
-                                {e.participantName} · {e.at.slice(0, 10)}
+                {p.oneLiner && <p className="mt-3 rounded-2xl bg-ink px-4 py-2 text-sm font-extrabold text-white">{p.oneLiner}</p>}
+                <details className="disclosure mt-3" open={!collapsePersona}>
+                  <summary className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-line px-3 py-1 text-xs font-bold text-muted select-none">
+                    <span className="when-closed">자세히 보기 · 문단 {paragraphs.length}개 · 말풍선 {paragraphs.reduce((a, par) => a + par.quotes.length, 0)}개 ▾</span>
+                    <span className="when-open">접기 ▴</span>
+                  </summary>
+                  <div className="mt-3 space-y-4">
+                    {paragraphs.map((par, i) => (
+                      <div key={i}>
+                        <p className="leading-relaxed">
+                          <T s={par.text} />
+                        </p>
+                        {par.quotes.length > 0 && (
+                          <div className="mt-2 flex flex-col items-start gap-2 pl-3 sm:pl-6">
+                            {par.quotes.map((e) => (
+                              <div key={e.messageId} className="bubble text-[14px]" title={e.at.replace("T", " ")}>
+                                <div className="text-xs font-bold" style={{ color: colorOf(e.participantName) }}>
+                                  {e.participantName} · {e.at.slice(0, 10)}
+                                </div>
+                                {e.text}
                               </div>
-                              {e.text}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {p.oneLiner && <p className="mt-4 rounded-2xl bg-ink px-4 py-2 text-sm font-extrabold text-white">{p.oneLiner}</p>}
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </details>
                 {(p.badges.length > 0 || p.awardNames.length > 0) && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {p.badges.map((b) => (
@@ -366,7 +374,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
 
       {/* 8 점수 */}
       {content.scores.length > 0 && (
-        <Section title="점수">
+        <Section title="점수" collapsible>
           <div className="grid gap-3 sm:grid-cols-2">
             {content.scores.map((s) => (
               <div key={s.key} className="rounded-3xl border border-line p-4">
@@ -389,7 +397,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
       )}
 
       {/* 10 숫자로 보는 우리 */}
-      <Section title="숫자로 보는 우리">
+      <Section title="숫자로 보는 우리" collapsible>
         <div className="space-y-4">
           <PastelCard tone="lavender" title="월별 메시지">
             <Monthly monthly={content.visuals.monthly} participants={content.meta.participants} colorOf={colorOf} />
@@ -493,7 +501,25 @@ function Prose({ text, refs, colorOf }: { text: string; refs: Record<string, Evi
   );
 }
 
-function Section({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
+function Section({ title, sub, children, collapsible = false }: { title: string; sub?: string; children: ReactNode; collapsible?: boolean }) {
+  if (collapsible) {
+    // 부가 섹션은 접어 두고 「자세히 보기」로 연다 (JS 없이 동작하는 details)
+    return (
+      <section>
+        <details className="disclosure">
+          <summary className="flex cursor-pointer items-center justify-between gap-2 select-none">
+            <h3 className="text-xl font-extrabold">{title}</h3>
+            <span className="rounded-full border border-line px-3 py-1 text-xs font-bold text-muted">
+              <span className="when-closed">자세히 보기 ▾</span>
+              <span className="when-open">접기 ▴</span>
+            </span>
+          </summary>
+          {sub && <p className="mb-2 text-sm text-muted">{sub}</p>}
+          <div className="mt-3">{children}</div>
+        </details>
+      </section>
+    );
+  }
   return (
     <section>
       <h3 className="text-xl font-extrabold">{title}</h3>

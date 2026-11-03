@@ -1,6 +1,7 @@
 import type { ZodType } from "zod";
 
-export type Stage = "CHUNK" | "SYNTHESIS" | "REPAIR";
+/** SYNTHESIS_PERSONA(장면·인물)·SYNTHESIS_VERDICT(판정·나머지)는 종합을 두 갈래로 나눠 동시에 돌릴 때의 단계명 (DB stage 컬럼 20자 이내) */
+export type Stage = "CHUNK" | "SYNTHESIS" | "SYNTHESIS_PERSONA" | "SYNTHESIS_VERDICT" | "REPAIR";
 export type Effort = "low" | "medium" | "high" | "xhigh";
 
 export interface StageRequest<T> {
@@ -8,6 +9,8 @@ export interface StageRequest<T> {
   model: string;
   system: string;
   user: string;
+  /** 사용자 메시지 앞에 붙는 공유 문맥(전사·청크 JSON 등). 프롬프트 캐시 경계를 걸어 두 갈래 종합 호출이 입력을 한 번만 산다 */
+  userCached?: string;
   schema: ZodType<T>;
   maxTokens: number;
   effort: Effort;

@@ -213,6 +213,7 @@ LLM은 prior를 보고 최종 값을 정하되 **±25 이상 벗어나면 `oneLi
 ```
 
 ### 5.3 종합 사용자 메시지
+> 2026-11-03 구현(`prompts.ts`): `buildSynthesisContext(args)`(공유 문맥: 대화 정보·유형 지침·업로더·기분·질문·통계·점수 세트·뱃지 카탈로그·전사 또는 청크 JSON·하이라이트/인물별 후보)와 `buildSynthesisInstructions(args, part)`(갈래별 작성 지침: `PERSONA` = 장면·인물, `VERDICT` = 판정·나머지, `ALL` = 둘 다)로 나뉜다. 기본은 두 갈래 동시 호출(08 §7)이고, `buildSynthesisUserPrompt` = 문맥 + ALL 지침은 단일 호출(`LLM_SYNTH_SPLIT=off`)·eval용. 스키마도 `PersonaDraftSchema`(`moments`, `participants`) / `VerdictDraftSchema`(나머지)로 나뉘어 JSON 모드 접미에 붙는다.
 ```
 [대화 정보] {{title}} · {{period}} · 메시지 {{count}}개 · 참여자: {{participants}} (업로더 {{uploader}}는 "(나)"로 표시) · 초점: {{focus}} · 톤: {{tone}}
 {{#question}}[업로더의 질문] 「{{question}}」 — answer 필드에서 근거와 함께 답한다. 모르면 모른다고 한다.{{/question}}

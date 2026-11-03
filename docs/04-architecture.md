@@ -112,7 +112,7 @@ db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scri
 - 호출: `client.messages.parse({ model, max_tokens, system: [{type:"text", text, cache_control:{type:"ephemeral", ttl:"1h"}}], messages:[user], output_config: { format: zodOutputFormat(schema), effort } })`. 시스템 프롬프트는 바이트 고정(테스트로 보장)이라 캐시가 맞는다. `temperature` 등 샘플링 파라미터는 보내지 않는다.
 - **토큰 절감(2026-11-03 추가, docs/19 1단계)**: ① 압축 전사(08 §4) ② 전사가 `LLM_CHUNK_LARGE_TOKENS`(기본 100만)를 넘으면 청크 추출 모델을 `LLM_CHUNK_MODEL_LARGE`(기본 Haiku 5.5, Sonnet의 1/20 단가)로 ③ 청크 추출·수리는 effort `low`, 종합만 `high` ④ 청크 결과 캐시 키를 **대화 단위**(`conversationId|CHUNK|systemHash|focus|participants|sha(text)|model`)로 바꿔 같은 대화의 다음 보고서는 청크 추출 비용이 0 — `report_stage_result`의 CHUNK 행은 `RAW_RETENTION_DAYS` 동안 보관 ⑤ 청크가 24개를 넘으면 종합 입력을 다이어트(`trimChunkForSynthesis`: 청크당 사건 4·하이라이트 4·키워드 6·로스트 3·갈등 2·계획 2, 요약 300자, 하이라이트 후보 총 160줄) ⑥ 모든 호출은 스트리밍 수신, 출력 한도 청크 32k·종합 64k.
 - **JSON 모드(2026-11-03 추가)**: 구조화 출력은 서버가 JSON Schema를 문법으로 컴파일하는데, 종합 초안(ReportDraft) 스키마는 400 `The compiled grammar is too large`로 거부된다(실 배포에서 확인). 그래서 `SYNTHESIS`는 `output_config.format` 없이 `messages.create`로 보내고 스키마 JSON을 사용자 프롬프트 끝에 붙인 뒤 응답 텍스트의 JSON을 zod로 검증한다(실패 시 1회 재요청 후 `LLM_BAD_OUTPUT`). 다른 단계는 구조화 출력을 쓰다가 같은 400을 만나면 그 단계를 JSON 모드로 전환해 프로세스 안에서 기억한다. 환경변수 `LLM_JSON_MODE_STAGES`(기본 `SYNTHESIS`)로 처음부터 JSON 모드로 돌릴 단계를 지정한다.
-- 재시도: SDK `maxRetries: 0`, 타임아웃 `LLM_CALL_TIMEOUT_MS`(600,000ms). 우리 재시도는 429/5xx/연결 오류에 **최대 3회 시도**, 대기 2s → 4s → 8s. 소진 시 `LLM_UNAVAILABLE`(retryable). 400/401/403 → `LLM_BAD_REQUEST`(비재시도).
+- 재시도: SDK `maxRetries: 0`, 타임아웃 `LLM_CALL_TIMEOUT_MS`(600,000ms). 우리 재시도는 429/5xx/연결 오류·**스트림 수신 중 끊김(undici `terminated` 등 네트워크 계열)**에 **최대 3회 시도**, 대기 2s → 4s → 8s. 소진 시 `LLM_UNAVAILABLE`(retryable) → 파이프라인이 20초 뒤 자동 재큐잉(08 §10). 400/401/403 → `LLM_BAD_REQUEST`(비재시도).
 - `stop_reason`: `refusal` → `LLM_FALLBACK_MODEL`로 1회 재호출(같은 모델이면 생략), 재차 refusal → `LLM_REFUSED`. `max_tokens` → `max_tokens × 1.5`(상한 32,000) 1회 → 재차 → `LLM_MAX_TOKENS`. `parsed_output`이 null → 1회 재호출 → `LLM_BAD_OUTPUT`.
 - 멱등 체크포인트: `request_key = sha256("{reportId}|CHUNK|{chunkIndex}|{systemHash16}|{sha256(user)}|{model}")`(종합·수리는 `|SYNTHESIS|`·`|REPAIR|`, chunkIndex 없음). 호출 전 `report_stage_result`에 같은 키가 있으면 재사용하고 `llm_call_log.status='CACHED'`로 남긴다 → 재시도·재기동 시 비용 0.
 - 상한: 보고서 전체 데드라인 `WORKER_PIPELINE_TIMEOUT_MINUTES`(25분)를 **각 호출 직전**에 검사 → `PIPELINE_TIMEOUT`. 비용 가드는 PLAN 단계에서 `estimateCostUsd`(단가표 `src/lib/llm/cost.ts`)로 추정 → `LLM_MAX_COST_USD` 초과 시 비율 샘플링(최소 10%) → 그래도 초과면 `COST_LIMIT_EXCEEDED`. 토큰 수는 **추정식**(`ceil(chars/1.6)+1`)을 쓴다 — `countTokens` API는 클라이언트에 구현돼 있으나 파이프라인이 호출하지 않는다(08 §4 서술과 다름, 비용 0 절약 목적의 설계 차이).
@@ -139,6 +139,8 @@ db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scri
 | `LLM_SINGLE_PASS_MAX_TOKENS` / `LLM_CHUNK_MAX_TOKENS` / `LLM_MAX_TOTAL_TOKENS` | 150000 / 60000 / 1500000 | - | PLAN |
 | `LLM_MAX_COST_USD` | 5 | ✓ | 비용 상한 |
 | `LLM_CALL_TIMEOUT_MS` | 600000 | - | 호출당 타임아웃 |
+| `LLM_SYNTH_SPLIT` | `on` | - | 종합을 장면·인물 / 판정·나머지 두 호출로 나눠 동시에(08 §7). `off`면 한 호출 |
+| `LLM_SYNTH_STAGGER_MS` | 15000 | - | 두 번째 종합 호출 지연 — 첫 호출이 쓴 프롬프트 캐시(공유 문맥) 적중용 |
 | `UPLOAD_MAX_BYTES` / `UPLOAD_MAX_MESSAGES` / `UPLOAD_MIN_MESSAGES` / `UPLOAD_MAX_PARTICIPANTS` | 52428800 / 300000 / 30 / 60 | ✓ / - / ✓ / - | 03 §1.1 한도 |
 | `RAW_RETENTION_DAYS` | 7 | ✓ | `expires_at` |
 | `STAGE_RESULT_RETENTION_HOURS` | 24 | - | 체크포인트 보존 |

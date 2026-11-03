@@ -133,3 +133,20 @@ body {
 .glow-card {
   background: linear-gradient(135deg, #ff4d6d 0%, #ff8a3d 45%, #ffd23f 100%);
 }
+
+/* 「자세히 보기」 접기/펼치기 (details). 요약 줄의 기본 마커는 숨기고 열림 상태에 따라 문구를 바꾼다 */
+.disclosure > summary {
+  list-style: none;
+}
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.disclosure > summary .when-open {
+  display: none;
+}
+.disclosure[open] > summary .when-open {
+  display: inline;
+}
+.disclosure[open] > summary .when-closed {
+  display: none;
+}

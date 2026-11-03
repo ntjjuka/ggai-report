@@ -132,6 +132,11 @@ export const ReportDraftSchema = z.object({
   safetyFlags: z.array(z.string()),
 });
 export type ReportDraft = z.infer<typeof ReportDraftSchema>;
+/** 종합 두 갈래: ① 장면·인물(출력이 가장 긴 쪽) ② 판정·나머지. 서버가 합쳐 ReportDraft로 검증한다 */
+export const PersonaDraftSchema = ReportDraftSchema.pick({ moments: true, participants: true });
+export type PersonaDraft = z.infer<typeof PersonaDraftSchema>;
+export const VerdictDraftSchema = ReportDraftSchema.omit({ moments: true, participants: true });
+export type VerdictDraft = z.infer<typeof VerdictDraftSchema>;
 
 // 수리: 위반 경로별 교체 값(JSON 문자열)
 export const RepairResponseSchema = z.object({

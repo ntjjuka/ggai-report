@@ -21,11 +21,12 @@ function fakeMessage(text: string, stop = "end_turn") {
 /** parseImpl = 구조화 출력(format 있음) 호출, createImpl = JSON 모드(format 없음) 호출 — 둘 다 stream().finalMessage() 경로 */
 function stubbed(parseImpl: () => Promise<unknown>, createImpl: () => Promise<unknown>) {
   const c = new AnthropicLlmClient({ apiKey: "test-key", sleep: async () => {} });
-  const calls = { parse: 0, create: 0, maxTokens: [] as number[] };
+  const calls = { parse: 0, create: 0, maxTokens: [] as number[], messages: [] as unknown[] };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inner = (c as any).client as { messages: { stream: unknown } };
-  inner.messages.stream = (params: { max_tokens: number; output_config?: { format?: unknown } }) => {
+  inner.messages.stream = (params: { max_tokens: number; output_config?: { format?: unknown }; messages: unknown[] }) => {
     calls.maxTokens.push(params.max_tokens);
+    calls.messages.push(params.messages);
     const structured = !!params.output_config?.format;
     if (structured) calls.parse += 1;
     else calls.create += 1;
@@ -142,5 +143,29 @@ describe("anthropic client — mid-stream network termination", () => {
     const { c, calls } = stubbed(async () => { throw new Error("x"); }, async () => { throw new TypeError("terminated"); });
     await expect(c.generateJson(req("SYNTHESIS"))).rejects.toMatchObject({ code: "LLM_UNAVAILABLE", retryable: true });
     expect(calls.create).toBe(3);
+  });
+});
+
+describe("anthropic client — split synthesis", () => {
+  it("puts the shared context in a cached block ahead of the instructions, and treats SYNTHESIS_* stages as JSON mode", async () => {
+    const { c, calls } = stubbed(async () => { throw new Error("parse must not be called"); }, async () => fakeMessage('{"headline":"h","n":1}'));
+    const res = await c.generateJson({ ...req("SYNTHESIS"), stage: "SYNTHESIS_PERSONA", user: "[작성 지침] 인물", userCached: "<transcript>…</transcript>" });
+    expect(res.value).toEqual({ headline: "h", n: 1 });
+    expect(calls.parse).toBe(0);
+    const msg = (calls.messages[0] as { content: unknown }[])[0];
+    const blocks = msg.content as { type: string; text: string; cache_control?: { type: string } }[];
+    expect(Array.isArray(blocks)).toBe(true);
+    expect(blocks[0].text).toBe("<transcript>…</transcript>");
+    expect(blocks[0].cache_control).toEqual({ type: "ephemeral" });
+    expect(blocks[1].text.startsWith("[작성 지침] 인물")).toBe(true);
+    expect(blocks[1].text).toContain("[출력 형식]");
+    expect(blocks[1].cache_control).toBeUndefined();
+  });
+
+  it("sends a plain string when there is no cached context", async () => {
+    const { c, calls } = stubbed(async () => { throw new Error("x"); }, async () => fakeMessage('{"headline":"h","n":1}'));
+    await c.generateJson(req("SYNTHESIS"));
+    const msg = (calls.messages[0] as { content: unknown }[])[0];
+    expect(typeof msg.content).toBe("string");
   });
 });
