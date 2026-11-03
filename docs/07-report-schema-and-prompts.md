@@ -275,7 +275,7 @@ REPAIR 호출은 종합 모델로 **1회**(`maxTokens 8000`, `effort medium`), �
 | 종합 | `claude-opus-5-5` | 16,000 | HIGH | 비스트리밍(SDK 타임아웃 10분 내), thinking 기본(adaptive) |
 | 수리 | 종합 모델 | 8,000 | MEDIUM | 1회 |
 | refusal 폴백 | `claude-opus-4-8` | 동일 | 동일 | 1회 |
-- 구조화 출력: Java SDK `MessageCreateParams.builder().outputConfig(ReportDraft.class)` → 타입드 응답. `temperature` 등 샘플링 파라미터는 보내지 않는다(현행 모델에서 400).
+- 구조화 출력: TS SDK `client.messages.parse({ output_config: { format: zodOutputFormat(schema), effort } })` → `parsed_output`. 단, **종합 초안 스키마는 문법 컴파일 한도를 넘어 400(`The compiled grammar is too large`)** 이 나므로 SYNTHESIS는 JSON 모드(스키마를 프롬프트에 첨부, 응답 JSON을 zod로 검증)로 보낸다 — 04 §4.3. `temperature` 등 샘플링 파라미터는 보내지 않는다(현행 모델에서 400).
 - 프롬프트 캐시: `systemOfTextBlockParams` + `CacheControlEphemeral(TTL_1H)`. 시스템 프롬프트는 바이트 단위로 고정(타임스탬프 금지).
 - `stop_reason` 처리: `max_tokens` → maxTokens×1.5 재호출 1회, `refusal` → 폴백 모델 1회, 그 외 오류는 08 §10.
 

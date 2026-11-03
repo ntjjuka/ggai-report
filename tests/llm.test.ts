@@ -1,0 +1,71 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import { AnthropicLlmClient, extractJsonObject, isGrammarTooLargeError } from "@/lib/llm";
+
+const Schema = z.object({ headline: z.string(), n: z.number() });
+
+function grammarError() {
+  return new Anthropic.BadRequestError(
+    400,
+    { type: "error", error: { type: "invalid_request_error", message: "The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools." } },
+    "400 The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools.",
+    new Headers(),
+  );
+}
+
+function fakeMessage(text: string, stop = "end_turn") {
+  return { id: "msg", type: "message", role: "assistant", model: "claude-opus-5-5", stop_reason: stop, stop_sequence: null, content: [{ type: "thinking", thinking: "", signature: "" }, { type: "text", text, citations: null }], usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } };
+}
+
+function stubbed(parseImpl: () => Promise<unknown>, createImpl: () => Promise<unknown>) {
+  const c = new AnthropicLlmClient({ apiKey: "test-key", sleep: async () => {} });
+  const calls = { parse: 0, create: 0 };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inner = (c as any).client as { messages: { parse: unknown; create: unknown } };
+  inner.messages.parse = async () => { calls.parse += 1; return parseImpl(); };
+  inner.messages.create = async () => { calls.create += 1; return createImpl(); };
+  return { c, calls };
+}
+
+const req = (stage: "CHUNK" | "SYNTHESIS" | "REPAIR") => ({ stage, model: "claude-opus-5-5", system: "sys", user: "user", schema: Schema, maxTokens: 1000, effort: "medium" as const, requestKey: "k" });
+
+describe("anthropic client — JSON mode fallback", () => {
+  it("extracts a JSON object from fenced or prefixed text", () => {
+    expect(extractJsonObject('```json\n{"a":1}\n```')).toEqual({ a: 1 });
+    expect(extractJsonObject('보고서: {"a":{"b":[1,2]}} 끝')).toEqual({ a: { b: [1, 2] } });
+    expect(() => extractJsonObject("no json here")).toThrow();
+    expect(isGrammarTooLargeError(grammarError())).toBe(true);
+    expect(isGrammarTooLargeError(new Error("x"))).toBe(false);
+  });
+
+  it("SYNTHESIS uses JSON mode directly and validates with zod", async () => {
+    const { c, calls } = stubbed(async () => { throw new Error("parse must not be called"); }, async () => fakeMessage('```json\n{"headline":"둘 중 한 명만 연애 중이다","n":3}\n```'));
+    const res = await c.generateJson(req("SYNTHESIS"));
+    expect(res.value).toEqual({ headline: "둘 중 한 명만 연애 중이다", n: 3 });
+    expect(calls).toEqual({ parse: 0, create: 1 });
+  });
+
+  it("switches a stage to JSON mode after a grammar-too-large 400 and remembers it", async () => {
+    const { c, calls } = stubbed(async () => { throw grammarError(); }, async () => fakeMessage('{"headline":"h","n":1}'));
+    const first = await c.generateJson(req("CHUNK"));
+    expect(first.value).toEqual({ headline: "h", n: 1 });
+    expect(calls.parse).toBe(1);
+    expect(calls.create).toBe(1);
+    await c.generateJson(req("CHUNK"));
+    expect(calls.parse).toBe(1); // 두 번째부터는 바로 JSON 모드
+    expect(calls.create).toBe(2);
+  });
+
+  it("retries once on invalid JSON, then fails with LLM_BAD_OUTPUT", async () => {
+    let i = 0;
+    const { c } = stubbed(async () => { throw new Error("unused"); }, async () => fakeMessage(i++ === 0 ? "not json" : '{"headline":"h"}'));
+    await expect(c.generateJson(req("SYNTHESIS"))).rejects.toMatchObject({ code: "LLM_BAD_OUTPUT" });
+    expect(i).toBe(2);
+  });
+
+  it("other 400s stay LLM_BAD_REQUEST", async () => {
+    const { c } = stubbed(async () => { throw new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "model: not found" } }, "400 model: not found", new Headers()); }, async () => fakeMessage("{}"));
+    await expect(c.generateJson(req("REPAIR"))).rejects.toMatchObject({ code: "LLM_BAD_REQUEST" });
+  });
+});

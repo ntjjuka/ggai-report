@@ -15,6 +15,38 @@ export interface AnthropicClientOptions {
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
 const MAX_OUTPUT_TOKENS = 32000;
 
+/**
+ * 구조화 출력(output_config.format)은 서버가 JSON Schema를 문법으로 컴파일한다. 종합 초안(ReportDraft)처럼 큰 스키마는
+ * 400 "The compiled grammar is too large"로 거부되므로, 그런 단계는 **JSON 모드**로 돌린다: 스키마를 프롬프트에 넣고
+ * 응답 텍스트의 JSON을 zod로 검증한다. SYNTHESIS는 처음부터 JSON 모드, 다른 단계는 같은 400을 만나면 전환해 기억한다.
+ */
+const jsonModeStages = new Set<string>((process.env.LLM_JSON_MODE_STAGES ?? "SYNTHESIS").split(",").map((s) => s.trim()).filter(Boolean));
+const GRAMMAR_TOO_LARGE = /compiled grammar is too large|reduce the number of strict tools/i;
+
+export function isGrammarTooLargeError(e: unknown): boolean {
+  return e instanceof Anthropic.APIError && e.status === 400 && GRAMMAR_TOO_LARGE.test(e.message);
+}
+
+/** 모델 응답 텍스트에서 JSON 객체 하나를 꺼낸다 (코드펜스·서문 허용) */
+export function extractJsonObject(text: string): unknown {
+  let t = text.trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) t = fence[1].trim();
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("응답에 JSON 객체가 없음");
+  return JSON.parse(t.slice(start, end + 1));
+}
+
+function jsonModeSuffix(schemaJson: string, previousFailure: string | null): string {
+  return [
+    "",
+    "[출력 형식] 아래 JSON Schema를 만족하는 JSON 객체 하나만 출력한다. 설명·서문·마크다운 코드펜스 금지. required 키는 전부 채우고, 없는 값은 null 또는 빈 배열로 둔다.",
+    schemaJson,
+    previousFailure ? `[주의] 직전 출력이 검증에 실패했다: ${previousFailure}. 스키마를 다시 확인해 고친다.` : "",
+  ].join("\n");
+}
+
 export class AnthropicLlmClient implements LlmClient {
   readonly provider = "anthropic" as const;
   private readonly client: Anthropic;
@@ -47,17 +79,33 @@ export class AnthropicLlmClient implements LlmClient {
     let usedFallback = false;
     let bumpedTokens = false;
     let badOutputRetried = false;
+    let lastFailure: string | null = null;
+    const format = zodOutputFormat(req.schema);
+    const schemaJson = JSON.stringify(format.schema);
+    const system = [{ type: "text" as const, text: req.system, cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }];
 
     while (true) {
       attempts += 1;
+      const jsonMode = jsonModeStages.has(req.stage);
       try {
-        const res = await this.client.messages.parse({
-          model,
-          max_tokens: maxTokens,
-          system: [{ type: "text", text: req.system, cache_control: { type: "ephemeral", ttl: "1h" } }],
-          messages: [{ role: "user", content: req.user }],
-          output_config: { format: zodOutputFormat(req.schema), effort: req.effort },
-        });
+        let res: Anthropic.Message & { parsed_output?: unknown };
+        if (jsonMode) {
+          res = await this.client.messages.create({
+            model,
+            max_tokens: maxTokens,
+            system,
+            messages: [{ role: "user", content: req.user + jsonModeSuffix(schemaJson, lastFailure) }],
+            output_config: { effort: req.effort },
+          });
+        } else {
+          res = await this.client.messages.parse({
+            model,
+            max_tokens: maxTokens,
+            system,
+            messages: [{ role: "user", content: req.user }],
+            output_config: { format, effort: req.effort },
+          });
+        }
         const usage = {
           input: res.usage.input_tokens,
           output: res.usage.output_tokens,
@@ -80,16 +128,39 @@ export class AnthropicLlmClient implements LlmClient {
           }
           throw new LlmError("LLM_MAX_TOKENS", "output truncated twice", false);
         }
-        if (res.parsed_output === null || res.parsed_output === undefined) {
+        let value: T | null = null;
+        if (jsonMode) {
+          const text = res.content
+            .filter((b): b is Anthropic.TextBlock => b.type === "text")
+            .map((b) => b.text)
+            .join("");
+          try {
+            const obj = extractJsonObject(text);
+            const checked = req.schema.safeParse(obj);
+            if (checked.success) value = checked.data;
+            else lastFailure = checked.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+          } catch (e) {
+            lastFailure = e instanceof Error ? e.message : String(e);
+          }
+        } else if (res.parsed_output !== null && res.parsed_output !== undefined) {
+          value = res.parsed_output as T;
+        }
+        if (value === null) {
           if (!badOutputRetried) {
             badOutputRetried = true;
             continue;
           }
-          throw new LlmError("LLM_BAD_OUTPUT", "parsed_output null", false);
+          throw new LlmError("LLM_BAD_OUTPUT", jsonMode ? `JSON 검증 실패: ${lastFailure ?? "unknown"}` : "parsed_output null", false);
         }
-        return { value: res.parsed_output as T, usage, model: res.model ?? model, latencyMs: Date.now() - started, attempts };
+        return { value, usage, model: res.model ?? model, latencyMs: Date.now() - started, attempts };
       } catch (e) {
         if (e instanceof LlmError) throw e;
+        if (!jsonMode && isGrammarTooLargeError(e)) {
+          // 스키마 문법이 너무 큼 → 이 단계는 앞으로 JSON 모드. 같은 요청을 즉시 다시 보낸다 (재시도 예산 소모 없음)
+          console.warn(`[llm] ${req.stage}: 구조화 출력 문법이 너무 커서 JSON 모드로 전환합니다`);
+          jsonModeStages.add(req.stage);
+          continue;
+        }
         const retryable = isRetryable(e);
         if (retryable && attempts < this.maxAttempts) {
           await this.sleep(RETRY_DELAYS_MS[Math.min(attempts - 1, RETRY_DELAYS_MS.length - 1)]);

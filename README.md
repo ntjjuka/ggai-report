@@ -57,6 +57,9 @@ docker compose up --build
 | Git Bash에서 `scripts/smoke.sh` 가 `\r` 오류 | CRLF로 체크아웃 | `.gitattributes`로 LF 고정됨. 이전 클론이면 `git add --renormalize .` 후 다시 체크아웃 |
 | 첫 접속에서 500 | 마이그레이션 전에 web이 뜸 | 수정됨: web은 worker healthcheck(준비 파일)가 통과한 뒤 시작 |
 | `corepack` 다운로드 프롬프트에서 멈춤 | pnpm 버전 내려받기 확인 | 수정됨: `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` |
+| 보고서가 `LLM_BAD_REQUEST`로 실패, 워커 로그에 `The compiled grammar is too large` | 종합 단계의 구조화 출력 스키마가 API 문법 한도를 넘음 | 수정됨: 종합 단계는 JSON 모드(스키마를 프롬프트에 첨부, 서버에서 zod 검증)로 호출 |
+| 보고서가 `LLM_BAD_REQUEST`로 실패, 로그에 `401` / `authentication_error` | `ANTHROPIC_API_KEY`가 틀리거나 비어 있음 | `.env`의 키 확인 후 `docker compose up -d --force-recreate worker` |
+| 보고서가 `LLM_BAD_REQUEST`로 실패, 로그에 `credit balance is too low` | Console 크레딧 부족 | console.anthropic.com → Billing 에서 충전 |
 
 E2E 확인(선택, Git Bash): 서버가 떠 있는 상태에서 `BASE_URL=http://localhost:3000 bash scripts/smoke.sh`. 기본 픽스처는 메시지 304개짜리라 기본 한도(최소 30개)에서도 통과합니다.
 
