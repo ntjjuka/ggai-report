@@ -147,16 +147,41 @@ export function ShareControls({ reportId, conversationId, seq, initialEnabled }:
   const [enabled, setEnabled] = useState(initialEnabled);
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"ok" | "manual" | null>(null);
   async function enable() {
     setBusy(true);
     try {
       const r = await api<{ url: string }>(`/api/v1/reports/${reportId}/share/enable`, { method: "POST" });
-      setUrl(r.url);
+      // 서버가 준 주소의 origin이 지금 보고 있는 주소와 다르면(설정이 localhost 등) 브라우저 주소 기준으로 바꾼다
+      let next = r.url;
+      try {
+        const u = new URL(r.url, window.location.origin);
+        next = `${window.location.origin}${u.pathname}${u.search}`;
+      } catch {
+        /* 그대로 */
+      }
+      setUrl(next);
       setEnabled(true);
     } finally {
       setBusy(false);
     }
+  }
+  async function copy(text: string) {
+    // http://<LAN IP> 처럼 보안 컨텍스트가 아니면 navigator.clipboard가 없다 → 선택 + execCommand 폴백, 그것도 안 되면 길게 눌러 복사 안내
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        setCopied("ok");
+      } else {
+        const el = document.getElementById(`share-url-${reportId}`) as HTMLInputElement | null;
+        el?.focus();
+        el?.select();
+        setCopied(document.execCommand?.("copy") ? "ok" : "manual");
+      }
+    } catch {
+      setCopied("manual");
+    }
+    setTimeout(() => setCopied(null), 2500);
   }
   async function disable() {
     setBusy(true);
@@ -173,17 +198,15 @@ export function ShareControls({ reportId, conversationId, seq, initialEnabled }:
       {enabled ? (
         <>
           {url ? (
-            <button
-              type="button"
-              className="btn-secondary text-sm"
-              onClick={async () => {
-                await navigator.clipboard.writeText(url);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              }}
-            >
-              {copied ? "복사됨 ✓" : "공유 링크 복사"}
-            </button>
+            <span className="flex flex-wrap items-center gap-2">
+              <input id={`share-url-${reportId}`} readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="w-64 max-w-full rounded-full border border-line px-3 py-1 text-xs" aria-label="공유 링크" />
+              <button type="button" className="btn-secondary text-sm" onClick={() => copy(url)}>
+                {copied === "ok" ? "복사됨 ✓" : copied === "manual" ? "길게 눌러 복사하세요" : "공유 링크 복사"}
+              </button>
+              <a className="text-xs text-muted underline" href={url} target="_blank" rel="noreferrer">
+                열어 보기
+              </a>
+            </span>
           ) : (
             <button type="button" className="btn-secondary text-sm" disabled={busy} onClick={enable}>
               새 공유 링크 만들기

@@ -61,6 +61,7 @@ docker compose up --build
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 워커 로그에 `The compiled grammar is too large` | 종합 단계의 구조화 출력 스키마가 API 문법 한도를 넘음 | 수정됨: 종합 단계는 JSON 모드(스키마를 프롬프트에 첨부, 서버에서 zod 검증)로 호출 |
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 로그에 `401` / `authentication_error` | `ANTHROPIC_API_KEY`가 틀리거나 비어 있음 | `.env`의 키 확인 후 `docker compose up -d --force-recreate worker` |
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 로그에 `credit balance is too low` | Console 크레딧 부족 | console.anthropic.com → Billing 에서 충전 |
+| 공유 링크가 `http://localhost:3000/r/…`로 복사돼 휴대폰에서 안 열림 | `APP_BASE_URL` 기본값이 localhost | 수정됨(2026-11-03): 공유 링크는 브라우저가 접속한 주소(예: `http://124.55.163.59:3000`) 기준으로 만들어진다. 고정 도메인이 있으면 `APP_BASE_URL`에 적으면 쿠키 Secure 판단에도 쓰인다 |
 | 보고서가 `LLM_UNAVAILABLE`(까비서가 잠깐 자리를 비웠어요)로 실패, 워커 로그에 `terminated` | 몇 분짜리 종합 스트림을 받는 도중 TCP 연결이 끊김(Node undici `terminated`). 2026-11-03 실측: 종합 5~7분째에 발생 | 수정됨: 네트워크 끊김을 재시도 대상으로 분류(호출당 3회) + 재시도 가능한 실패는 20초 뒤 **자동 재큐잉**(보고서당 `WORKER_MAX_ATTEMPTS`=3회, 청크 결과는 캐시 재사용). 노출을 줄이려면 `LLM_FAST_MODE=synthesis`(종합 2.5배 빠름) |
 | 보고서가 `LLM_MAX_TOKENS`(보고서가 너무 길어져서 멈췄어요)로 실패 | 모델의 사고(thinking) 토큰이 출력 한도(16k)를 먹어 JSON이 잘림 | 수정됨: 스트리밍 수신 + 출력 한도 상향(청크 32k·종합 64k·수리 24k). 실패한 보고서는 "다시 시도" |
 | 새 보고서를 만들면 `이미 만들고 있는 보고서(No.N)가 있어요` | 워커 재시작·배포 중에 만들던 보고서가 QUEUED/RUNNING으로 남음 | 수정됨: 워커 기동 시 자동 복구 + 새 보고서 요청 시 죽은 보고서(하트비트 10분 끊김)는 web이 직접 정리. 그래도 나오면 실제로 진행 중인 것이니 대화 페이지 배너 → "진행 상황 보기" → "너무 오래 걸리면 취소하기". 배포 뒤에는 **web과 worker를 모두** 다시 빌드할 것(`docker compose up -d --build`) |

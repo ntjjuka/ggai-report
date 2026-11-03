@@ -189,5 +189,14 @@ describe("focus words (interest hints)", () => {
     expect(seo.focusWords[0]?.total).toBe(10);
     const facts = renderStatsFacts(stats, [...chat.messages, ...extra], computePriors(stats, "GROUP"));
     expect(facts.some((f) => f.text.includes("집중 단어(본인/방 전체) 테슬라(10/10)"))).toBe(true);
+    // 통계 스토리 "자주 쓰는 말" 카드: 사람마다 2글자 이상 집중 단어 (ㅋ·ㅎ 같은 한 글자 웃음은 제외)
+    const t0 = buildTier0(stats, [...chat.messages, ...extra], "seed");
+    const card = t0.story.find((c) => c.key === "frequent_words");
+    expect(card?.key).toBe("frequent_words");
+    if (card?.key === "frequent_words") {
+      const seoRow = card.personWords?.find((pw) => pw.name === "이서연");
+      expect(seoRow?.words[0]).toEqual({ word: "테슬라", count: 10 });
+      expect(card.personWords!.every((pw) => pw.words.every((w) => [...w.word].length >= 2 && !/[ㄱ-ㅎㅏ-ㅣ]/.test(w.word)))).toBe(true);
+    }
   });
 });

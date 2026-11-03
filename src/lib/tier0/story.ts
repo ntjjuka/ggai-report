@@ -69,6 +69,8 @@ export type StoryCard =
   | {
       key: "frequent_words";
       title: "자주 쓰는 말";
+      /** 사람마다 유난히 많이 쓰는 말(2글자 이상, 본인 3회↑, 방 전체 대비 집중도순). 2026-11-03 이전 저장분에는 없다 */
+      personWords?: { id: string; name: string; words: { word: string; count: number }[] }[];
       laughRanking: { id: string; name: string; count: number }[];
       longestLaughRun: { name: string; len: number } | null;
       verbalTics: { word: string; count: number; ratio: number }[];
@@ -148,6 +150,10 @@ export function buildStory(stats: ChatStats, messages: Message[]): StoryCard[] {
     {
       key: "frequent_words",
       title: "자주 쓰는 말",
+      personWords: sortedPeople
+        .filter((p) => p.focusWords.length > 0)
+        .slice(0, 8)
+        .map((p) => ({ id: p.id, name: p.name, words: p.focusWords.slice(0, 3).map((w) => ({ word: w.word, count: w.count })) })),
       laughRanking: ff.laughRanking.slice(0, 4).map((r) => ({ id: r.id, name: name(r.id), count: r.count })),
       longestLaughRun: ff.longestLaughRun && ff.longestLaughRun.len >= 5 ? { name: name(ff.longestLaughRun.id), len: ff.longestLaughRun.len } : null,
       verbalTics: ff.verbalTics,

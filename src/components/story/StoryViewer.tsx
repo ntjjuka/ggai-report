@@ -196,8 +196,26 @@ function render(card: StoryCard, colorOfName: (n: string) => string) {
     case "frequent_words":
       return (
         <>
+            {(card.personWords?.length ?? 0) > 0 && (
+              <PastelCard tone="lavender" title="사람마다 자주 쓰는 말" className="sm:col-span-2">
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {card.personWords!.map((pw) => (
+                    <li key={pw.id} className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="inline-block h-3 w-3 rounded-full" style={{ background: colorOfName(pw.name) }} />
+                      <b>{pw.name}</b>
+                      {pw.words.map((w) => (
+                        <span key={w.word} className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold">
+                          {w.word} <span className="opacity-60">×{w.count}</span>
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-2 text-sm opacity-70">두 글자 이상 단어 중 그 사람이 방 전체보다 유난히 많이 쓴 말. ㅋ·ㅎ 같은 웃음은 아래 따로.</div>
+              </PastelCard>
+            )}
           {card.laughRanking.length > 0 && (
-            <PastelCard tone="pink" title="웃음 지문">
+            <PastelCard tone="pink" title="ㅋ 개수 순위">
               <ul className="space-y-1 text-sm">
                 {card.laughRanking.map((r, i) => (
                   <li key={r.id} className="flex items-center justify-between">
