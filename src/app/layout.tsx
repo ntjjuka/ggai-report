@@ -23,6 +23,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               {PERSONA}
             </Link>
             <nav className="flex items-center gap-4 text-sm text-muted">
+              <Link href="/my" className="hover:text-ink">
+                내 보고서
+              </Link>
               <Link href="/guide/export" className="hover:text-ink">
                 내보내기 방법
               </Link>

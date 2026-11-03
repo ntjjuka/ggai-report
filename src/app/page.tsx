@@ -30,7 +30,12 @@ export default function HomePage() {
             카톡 내보내기 방법
           </Link>
         </div>
-        <p className="mt-3 text-xs text-muted">통계 보고서는 즉시·무료. 올린 대화는 암호화되고 7일 뒤 자동 삭제돼요.</p>
+        <p className="mt-3 text-xs text-muted">
+          통계 보고서는 즉시·무료. 올린 대화는 암호화되고 7일 뒤 자동 삭제돼요.{" "}
+          <Link href="/my" className="underline">
+            전에 만든 보고서 보기
+          </Link>
+        </p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">

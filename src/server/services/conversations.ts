@@ -279,6 +279,44 @@ export async function getStats(id: string, ownerHash: string): Promise<ChatStats
   return rows[0].statsJson;
 }
 
+export interface OwnedConversationSummary {
+  conversationId: string;
+  title: string | null;
+  messageCount: number;
+  participantCount: number;
+  startedAt: string;
+  endedAt: string;
+  status: string;
+  rawAvailable: boolean;
+  rawExpiresAt: string;
+  signalLabel: string | null;
+  createdAt: string;
+  reports: ReportSummary[];
+}
+
+/** 이 브라우저(소유자 쿠키)로 올린 대화 전부 + 보고서 목록. "내 보고서" 페이지용 (최신 50건) */
+export async function listOwnedConversations(ownerHash: string): Promise<OwnedConversationSummary[]> {
+  const rows = await getDb().select().from(schema.conversation).where(eq(schema.conversation.ownerTokenHash, ownerHash)).orderBy(desc(schema.conversation.createdAt)).limit(50);
+  const out: OwnedConversationSummary[] = [];
+  for (const row of rows) {
+    out.push({
+      conversationId: row.id,
+      title: row.title,
+      messageCount: row.messageCount,
+      participantCount: row.participantCount,
+      startedAt: row.startedAt.replace(" ", "T").slice(0, 10),
+      endedAt: row.endedAt.replace(" ", "T").slice(0, 10),
+      status: row.status,
+      rawAvailable: row.rawCipher !== null && row.status !== "RAW_EXPIRED",
+      rawExpiresAt: row.expiresAt.toISOString(),
+      signalLabel: row.tier0Json?.signalLabel ?? null,
+      createdAt: row.createdAt.toISOString(),
+      reports: await listReportSummaries(row.id),
+    });
+  }
+  return out;
+}
+
 export async function deleteConversation(id: string, ownerHash: string): Promise<void> {
   await findOwnedConversation(id, ownerHash);
   const db = getDb();

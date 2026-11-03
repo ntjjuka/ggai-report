@@ -2,11 +2,19 @@ import { z } from "zod";
 import { FOCUS } from "@/lib/report/schema";
 import { clientIpHash, jsonWithOwner, ownerForUpload, withApi } from "@/server/http";
 import { ApiError } from "@/server/errors";
-import { uploadConversation } from "@/server/services/conversations";
+import { listOwnedConversations, uploadConversation } from "@/server/services/conversations";
+import { readOwner } from "@/server/owner";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
 const FocusSchema = z.enum(FOCUS);
+
+/** GET /api/v1/conversations — 이 브라우저(소유자 쿠키)의 대화·보고서 목록. 쿠키가 없으면 빈 목록 */
+export const GET = withApi(async () => {
+  const owner = await readOwner();
+  return NextResponse.json({ conversations: owner ? await listOwnedConversations(owner.hash) : [] });
+});
 
 /** POST /api/v1/conversations — multipart(files[], title?, focus?) → 201 대화 상세 (재업로드면 200 reused) */
 export const POST = withApi(async (req) => {

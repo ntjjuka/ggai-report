@@ -7,7 +7,7 @@ import { FakeLlmClient } from "@/lib/llm";
 import { closeDb, getDb, schema } from "@/server/db";
 import { runMigrations } from "@/server/migrate";
 import { REPORT_QUEUE, getBoss, stopBoss } from "@/server/queue";
-import { confirmParticipants, deleteConversation, expireRawConversations, getConversationDetail, uploadConversation } from "@/server/services/conversations";
+import { confirmParticipants, deleteConversation, expireRawConversations, getConversationDetail, listOwnedConversations, uploadConversation } from "@/server/services/conversations";
 import { cancelReport, claimReport, createReport, deleteReport, disableShare, enableShare, getReportBySeq, getSharedReport, markFailed, recoverStaleReports, retryReport } from "@/server/services/reports";
 import { runReport } from "@/worker/pipeline";
 
@@ -64,6 +64,10 @@ describe("end-to-end service flow", () => {
 
   it("hides conversations from other owners", async () => {
     await expect(getConversationDetail(conversationId, OTHER_OWNER)).rejects.toMatchObject({ status: 404 });
+    const mine = await listOwnedConversations(OWNER);
+    expect(mine.map((c) => c.conversationId)).toEqual([conversationId]);
+    expect(mine[0].reports).toEqual([]);
+    expect((await listOwnedConversations(OTHER_OWNER)).map((c) => c.conversationId)).not.toContain(conversationId); // 다른 소유자 목록에는 없다
   });
 
   it("confirms participants (uploader, exclude, rename) and recomputes stats", async () => {

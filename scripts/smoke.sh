@@ -71,7 +71,10 @@ code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" "$BASE/api/v1/conversati
 echo "   ok"
 
 echo "6) pages"
-for p in "/" "/setup" "/guide/export" "/c/$CID" "/c/$CID/story" "/c/$CID/reports/$SEQ"; do
+code=$(curl -s -o "$OUT/list.json" -w "%{http_code}" -b "$JAR" "$BASE/api/v1/conversations")
+[ "$code" = "200" ] || { echo "list failed: $code"; exit 1; }
+[ "$(j "$OUT/list.json" "['conversations'][0]['conversationId']")" = "$CID" ] || { echo "list missing conversation"; exit 1; }
+for p in "/" "/my" "/setup" "/guide/export" "/c/$CID" "/c/$CID/story" "/c/$CID/reports/$SEQ"; do
   code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" "$BASE$p")
   [ "$code" = "200" ] || { echo "page $p failed: $code"; exit 1; }
 done

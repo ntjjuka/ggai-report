@@ -66,6 +66,9 @@
 - `warnings`는 `parse_warnings`를 코드 문자열로 바꾼 것(0인 항목은 생략).
 - 오류: 03 §6 코드, `VALIDATION_FAILED`(파일 수·multipart), `RATE_LIMITED`.
 
+### GET `/api/v1/conversations` → `200` `{ conversations: OwnedConversationSummary[] }` (신규, "내 보고서")
+소유자 쿠키로 올린 대화 전부(최신 50건)와 각 대화의 `reports: ReportSummary[]`. 쿠키가 없으면 빈 배열(404 아님). 필드: `conversationId, title, messageCount, participantCount, startedAt, endedAt, status, rawAvailable, rawExpiresAt, signalLabel, createdAt, reports`.
+
 ### GET `/api/v1/conversations/{id}` → `200` `ConversationDetail`(`reused` 없음)
 
 ### POST `/api/v1/conversations/{id}/participants/confirm` — JSON
