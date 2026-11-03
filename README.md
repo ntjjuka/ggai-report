@@ -28,7 +28,14 @@ Copy-Item .env.example .env
   [Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Maximum 256) }))
   ```
   (Node가 있으면 `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
-- `ANTHROPIC_API_KEY`: 아래 "LLM(Claude) 키 등록" 참고. 키 없이 먼저 흐름만 보려면 `LLM_PROVIDER=fake`로 두면 가짜 보고서가 나옵니다.
+- `ANTHROPIC_API_KEY`: 아래 "LLM(Claude) 키 등록" 참고. 예시 파일은 `LLM_PROVIDER=fake`(가짜 보고서)로 시작하므로 키 없이도 흐름을 볼 수 있습니다.
+
+완성된 `.env`의 핵심 줄은 이렇게 생겨야 합니다. `=` 뒤에 값만 두고, 같은 줄에 주석이나 따옴표를 넣지 마세요(Compose가 값으로 읽습니다).
+```
+APP_CRYPTO_KEY=vsLohOjkLgMEeRBrMgtXBTWFdt799og6DmjQcY2Lpfk=
+LLM_PROVIDER=fake
+ANTHROPIC_API_KEY=
+```
 
 ```powershell
 docker compose up --build
@@ -43,7 +50,7 @@ docker compose up --build
 | 증상 | 원인 | 조치 |
 |---|---|---|
 | `env file .env not found` | `.env`를 만들지 않음 | `Copy-Item .env.example .env` 후 값 채우기 |
-| worker/web이 `APP_CRYPTO_KEY` 오류로 재시작 반복 | 키가 비었거나 32바이트 base64가 아님 | 위 명령으로 만든 값을 따옴표 없이 붙여넣기 |
+| `worker-1 … [worker] fatal: Error: APP_CRYPTO_KEY 는 base64로 인코딩된 32바이트 키여야 합니다` 뒤에 `dependency failed to start: container ggai-report-worker-1 is unhealthy` | `.env`의 `APP_CRYPTO_KEY=` 뒤가 비어 있거나(옛 예시 파일은 같은 줄의 주석이 값으로 읽혔음) 32바이트 base64가 아님 | `.env`에서 그 줄을 `APP_CRYPTO_KEY=<생성한 키>` 한 줄로만 두고(주석·따옴표 없이) `docker compose up` 다시 실행. 재빌드 불필요 |
 | `Bind for 0.0.0.0:3000 failed: port is already allocated` | 3000번을 다른 프로그램이 사용 | `.env`에 `WEB_PORT=3100` 과 `APP_BASE_URL=http://localhost:3100` 추가 |
 | 빌드 중 `exit code 137` / `Killed` | 메모리 부족 | Docker Desktop → Settings → Resources 메모리 4GB 이상 |
 | 업로드는 되는데 다음 화면이 404 | 쿠키가 버려짐 | 수정됨: `APP_BASE_URL`이 `https://`일 때만 Secure 쿠키. LAN IP(http://192.168…)로 열어도 됩니다 |

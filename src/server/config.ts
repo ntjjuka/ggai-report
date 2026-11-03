@@ -38,16 +38,39 @@ export type AppConfig = z.infer<typeof EnvSchema> & { scoresEnabled: boolean; cr
 
 let cached: AppConfig | null = null;
 
+const KEY_HELP = 'README "로컬 실행" 참고: PowerShell [Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Maximum 256) })) 또는 node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'base64\'))" 로 만든 값을 .env의 APP_CRYPTO_KEY= 뒤에 붙여넣고, 그 줄에 다른 글자(주석·따옴표)는 두지 않는다';
+
+/**
+ * .env 값 정리. Docker Compose는 `KEY=   # 주석`처럼 값이 비어 있으면 주석을 값으로 넘기고,
+ * 사용자가 따옴표나 앞뒤 공백을 붙여 넣는 경우도 흔하다 → 다듬은 뒤 비어 있으면 미설정으로 본다.
+ */
+function sanitizedEnv(): Record<string, string | undefined> {
+  const out: Record<string, string | undefined> = { ...process.env };
+  for (const k of Object.keys(EnvSchema.shape)) {
+    const v = out[k];
+    if (typeof v !== "string") continue;
+    let t = v.trim();
+    if (t.length >= 2 && ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'")))) t = t.slice(1, -1).trim();
+    if (t === "" || t.startsWith("#")) delete out[k];
+    else out[k] = t;
+  }
+  return out;
+}
+
 export function getConfig(): AppConfig {
   if (cached) return cached;
-  const parsed = EnvSchema.safeParse(process.env);
+  const raw = sanitizedEnv();
+  if (!raw.APP_CRYPTO_KEY) throw new Error(`APP_CRYPTO_KEY 가 비어 있습니다. ${KEY_HELP}`);
+  const parsed = EnvSchema.safeParse(raw);
   if (!parsed.success) {
     const missing = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ");
     throw new Error(`환경 변수 설정 오류: ${missing}`);
   }
   const env = parsed.data;
   const key = Buffer.from(env.APP_CRYPTO_KEY, "base64");
-  if (key.length !== 32) throw new Error("APP_CRYPTO_KEY 는 base64로 인코딩된 32바이트 키여야 합니다");
+  if (key.length !== 32 || !/^[A-Za-z0-9+/]+=*$/.test(env.APP_CRYPTO_KEY)) {
+    throw new Error(`APP_CRYPTO_KEY 는 base64로 인코딩된 32바이트 키여야 합니다 (현재 ${key.length}바이트). ${KEY_HELP}`);
+  }
   if (env.LLM_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
     // 키가 없으면 SDK가 다른 자격증명(ant auth 프로필)을 시도할 수 있으므로 경고만
     console.warn("[config] ANTHROPIC_API_KEY 가 없습니다. SDK 기본 자격증명 탐색에 의존합니다. 로컬 실행은 LLM_PROVIDER=fake 를 권장합니다.");
