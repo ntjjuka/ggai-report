@@ -379,10 +379,12 @@ describe("prompts", () => {
     expect(p).toContain("<transcript>");
     expect(p).toContain("participation_balance");
     expect(p).toContain("participants (메인 코너");
-    const chunked = buildSynthesisUserPrompt({ title: "t", period: "p", messageCount: 1, participants: s.parts, focus: "AUTO", mood: "DRY", question: null, statsFacts: "", scorePriors: [], scoresEnabled: false, mode: "CHUNKED", transcript: null, chunkJson: "[]", highlightCandidates: "m1 10:00 a: x", personaCandidates: "p1=a:\nm1 10:00 a: x", interestDigest: "p1=a: 집착 낚시(3)", badgeCatalog: "" });
+    const chunked = buildSynthesisUserPrompt({ title: "t", period: "p", messageCount: 1, participants: s.parts, focus: "AUTO", mood: "DRY", question: null, statsFacts: "", scorePriors: [], scoresEnabled: false, mode: "CHUNKED", transcript: null, chunkJson: "[]", highlightCandidates: "m1 10:00 a: x", personaCandidates: "p1=a:\nm1 10:00 a: x", interestDigest: "p1=a: 집착 낚시(3)", factLedger: "p1=a:\n  선호 · 2025-03-01 · 해산물 싫어함 (m1)", badgeCatalog: "" });
     expect(chunked).toContain("[인물별 인용 후보 원문");
     expect(chunked).toContain("[사람별 관심사 집계");
     expect(chunked).toContain("p1=a: 집착 낚시(3)");
+    expect(chunked).toContain("[인물 팩트 장부");
+    expect(chunked).toContain("해산물 싫어함 (m1)");
   });
 
   it("splits synthesis into a shared context plus per-branch instructions", () => {
@@ -397,6 +399,8 @@ describe("prompts", () => {
     const all = buildSynthesisInstructions(args, "ALL");
     expect(persona).toContain("participants (메인 코너");
     expect(persona).toContain("[관심사가 뼈대]");
+    expect(persona).toContain("[팩트 장부 활용]");
+    expect(persona).toContain("결합 라벨");
     expect(persona).toContain("[숫자]");
     expect(persona).toContain("[인용 규칙]");
     expect(persona).toContain("[전설 소환]");

@@ -226,11 +226,20 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
     // 청크가 많으면 종합 입력을 다이어트: 청크당 상위 항목만, 하이라이트 후보 총량 상한 (Opus 입력 토큰 절감)
     const okChunks = chunkResults.filter(Boolean);
     const dense = okChunks.length > 24;
-    const chunkJson = plan.mode === "CHUNKED" ? JSON.stringify(okChunks.map((c) => ({ label: c.label, ...(dense ? trimChunkForSynthesis(c.value) : c.value) }))) : null;
+    // facts는 별도 장부로 넘기므로 청크 JSON에서는 뺀다 (중복 입력 방지)
+    const chunkJson = plan.mode === "CHUNKED" ? JSON.stringify(okChunks.map((c) => ({ label: c.label, ...stripFacts(dense ? trimChunkForSynthesis(c.value) : c.value) }))) : null;
     const perChunkHighlights = okChunks.length ? Math.max(2, Math.floor(160 / okChunks.length)) : 25;
     const highlightMessages = plan.mode === "CHUNKED" ? okChunks.flatMap((c) => c.highlights.slice(0, perChunkHighlights)) : [];
-    // 인물별 인용 후보: 청크 signals/roastMaterial이 가리킨 그 사람의 실제 메시지 (페르소나 문단 말풍선 재료, 사람당 상한)
+    // 인물 팩트 장부: 청크 facts를 사람별·시간순으로. 말 많은 상위 8명은 30개, 나머지 10개 (뒤집힘·결합·선언 vs 결과의 재료)
+    const byText = [...stats.perPerson].sort((a, b) => b.textMessages - a.textMessages).map((p) => p.id);
+    const ledger = plan.mode === "CHUNKED" ? buildFactLedger(okChunks.map((c) => c.value), participants, evidence, { topIds: byText.slice(0, 8) }) : { text: null, messages: [] };
+    // 인물별 인용 후보: 청크 signals/roastMaterial이 가리킨 그 사람의 실제 메시지 + 장부 메시지 (페르소나 문단 말풍선 재료, 사람당 상한)
     const personaMessages = plan.mode === "CHUNKED" ? collectPersonaCandidates(okChunks.map((c) => c.value), participants.map((p) => p.id), evidence) : new Map<string, TranscriptMessage[]>();
+    for (const m of ledger.messages) {
+      const arr = personaMessages.get(m.pid) ?? [];
+      if (!arr.some((x) => x.id === m.id)) arr.push(m);
+      personaMessages.set(m.pid, arr);
+    }
     const personaCandidates = personaMessages.size
       ? [...personaMessages.entries()].map(([pid, msgs]) => `${pid}=${participants.find((p) => p.id === pid)?.name ?? pid}:\n${msgs.map(renderLine).join("\n")}`).join("\n")
       : null;
@@ -252,6 +261,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       highlightCandidates: highlightMessages.length ? highlightMessages.map(renderLine).join("\n") : null,
       personaCandidates,
       interestDigest,
+      factLedger: ledger.text,
       badgeCatalog: BADGE_CATALOG,
     };
     const synthContext = buildSynthesisContext(synthArgs);
@@ -378,6 +388,7 @@ export function trimChunkForSynthesis(v: ChunkExtraction): ChunkExtraction {
   const seenSignal = new Set<string>();
   return {
     summary: v.summary.slice(0, 300),
+    facts: v.facts ?? [], // 장부로 따로 넘기므로 여기선 그대로(stripFacts가 종합 입력에서 뺀다)
     events: v.events.slice(0, 4),
     signals: v.signals.filter((s) => !seenSignal.has(s.participantId) && seenSignal.add(s.participantId)).map((s) => ({ ...s, topics: (s.topics ?? []).slice(0, 2), details: (s.details ?? []).slice(0, 2), callbacks: (s.callbacks ?? []).slice(0, 2), evidenceIds: s.evidenceIds.slice(0, 1) })),
     highlights: v.highlights.slice(0, 4),
@@ -422,6 +433,63 @@ export function collectPersonaCandidates(chunks: ChunkExtraction[], participantI
     out.set(pid, picked);
   }
   return out;
+}
+
+const FACT_KIND_LABEL: Record<string, string> = { health: "건강", preference: "선호", possession: "소유", habit: "습관", declaration: "선언", event: "사건", money: "돈", work: "직장", relationship: "관계", other: "기타" };
+
+/** 종합 입력용: facts는 장부로 따로 넘기므로 청크 JSON에서 제거 */
+export function stripFacts(v: ChunkExtraction): Omit<ChunkExtraction, "facts"> {
+  const { facts: _facts, ...rest } = v;
+  return rest;
+}
+
+/**
+ * 인물 팩트 장부: 청크 facts를 사람별로 모아 시간순 정렬·중복 제거. 상위 인물(topIds)은 perTop개, 나머지는 perRest개 — 시간 전체에 고르게.
+ * 근거 메시지가 그 사람 것이어야 하고, 전사에 있어야 한다. 반환 messages는 말풍선 후보로 쓴다.
+ */
+export function buildFactLedger(
+  chunks: ChunkExtraction[],
+  participants: { id: string; name: string }[],
+  evidence: Map<string, TranscriptMessage>,
+  opts: { topIds: string[]; perTop?: number; perRest?: number } = { topIds: [] },
+): { text: string | null; messages: TranscriptMessage[] } {
+  const perTop = opts.perTop ?? 30;
+  const perRest = opts.perRest ?? 10;
+  const byPid = new Map<string, { kind: string; claim: string; when: string; m: TranscriptMessage }[]>();
+  const seen = new Set<string>();
+  for (const c of chunks) {
+    for (const f of c.facts ?? []) {
+      const m = evidence.get(f.messageId);
+      if (!m || m.pid !== f.participantId) continue;
+      const claim = f.claim.replace(/\s+/g, " ").trim().slice(0, 60);
+      if (!claim) continue;
+      const key = `${f.participantId}|${claim.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const when = /^\d{4}-\d{2}-\d{2}$/.test(f.when) ? f.when : m.at.slice(0, 10);
+      const arr = byPid.get(f.participantId) ?? [];
+      arr.push({ kind: f.kind, claim, when, m });
+      byPid.set(f.participantId, arr);
+    }
+  }
+  const lines: string[] = [];
+  const messages: TranscriptMessage[] = [];
+  for (const p of participants) {
+    const all = (byPid.get(p.id) ?? []).sort((a, b) => a.when.localeCompare(b.when) || a.m.index - b.m.index);
+    if (all.length === 0) continue;
+    const cap = opts.topIds.includes(p.id) ? perTop : perRest;
+    let picked = all;
+    if (all.length > cap) {
+      const step = all.length / cap;
+      picked = Array.from({ length: cap }, (_, i) => all[Math.floor(i * step)]);
+    }
+    lines.push(`${p.id}=${p.name}:`);
+    for (const f of picked) {
+      lines.push(`  ${FACT_KIND_LABEL[f.kind] ?? f.kind} · ${f.when} · ${f.claim} (${f.m.id})`);
+      messages.push(f.m);
+    }
+  }
+  return { text: lines.length ? lines.join("\n") : null, messages };
 }
 
 /** 청크 signals의 topics(구간 수)·callbacks(별명)를 사람별로 집계 — 인물 로스트의 뼈대인 "관심사"를 결정적으로 뽑아 종합에 넘긴다 */

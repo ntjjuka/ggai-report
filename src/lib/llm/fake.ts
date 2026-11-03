@@ -49,6 +49,14 @@ export class FakeLlmClient implements LlmClient {
     const ownOf = (p: string) => h.messageIds.filter((id) => h.speakerOf[id] === p);
     return {
       summary: "이 구간은 한쪽이 묻고 한쪽이 답하는 구조다. 계획은 나왔고 날짜는 안 나왔다.",
+      facts: ps.slice(0, 2).flatMap((p, i) => {
+        const own = ownOf(p);
+        if (!own.length) return [];
+        return [
+          { participantId: p, kind: i === 0 ? ("declaration" as const) : ("preference" as const), claim: i === 0 ? "이번 주말엔 꼭 카페 간다고 선언" : "ㅇㅇ로 답하는 게 편하다고 함", when: "2026-09-25", messageId: own[0] },
+          ...(own.length > 1 ? [{ participantId: p, kind: "habit" as const, claim: "수업 끝나면 바로 집에 간다고 함", when: "2026-09-26", messageId: own[own.length - 1] }] : []),
+        ];
+      }),
       events: [{ date: "2025-01-01", title: "계획이 처음 나온 날", summary: "누군가 '보자'고 했고 아무도 날짜를 안 박았다.", evidenceIds: [idAt(1), ...bogus] }],
       signals: ps.map((p, i) => {
         const own = ownOf(p);

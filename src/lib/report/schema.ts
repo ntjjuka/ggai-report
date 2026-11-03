@@ -18,8 +18,22 @@ const Conf = z.enum(CONFIDENCE);
 const Ids = z.array(z.string()).describe("근거 메시지 ID 목록 (m123 형식). 텍스트 인용 금지");
 
 // ── 청크 추출 (docs/07 §4.1) ───────────────────────────────────────────
+export const FACT_KINDS = ["health", "preference", "possession", "habit", "declaration", "event", "money", "work", "relationship", "other"] as const;
+export type FactKind = (typeof FACT_KINDS)[number];
+
 export const ChunkExtractionSchema = z.object({
   summary: z.string().describe("이 구간의 흐름 2~3문장"),
+  facts: z
+    .array(
+      z.object({
+        participantId: z.string(),
+        kind: z.enum(FACT_KINDS).describe("health 건강 | preference 선호(좋아함·싫어함) | possession 소유(차·집·물건) | habit 습관(AI 사용·술·운동) | declaration 선언(다이어트·금연·연애 안 함) | event 사건(이직·연애 시작·구매·여행) | money 돈 | work 직장 | relationship 관계 | other"),
+        claim: z.string().describe("그 사람이 자기 입으로 말한 사실 한 줄 ≤40자, 추측 금지 (예: '해산물 냄새만 맡아도 헛구역질')"),
+        when: z.string().describe("YYYY-MM-DD"),
+        messageId: z.string().describe("근거 메시지 m123"),
+      }),
+    )
+    .describe("사람별 지속적 사실(팩트 장부 재료) — 구간에서 말한 참여자당 ≤4개. 나중에 뒤집히거나 결합될 수 있는 사실 우선"),
   events: z.array(z.object({ date: z.string().describe("YYYY-MM-DD"), title: z.string(), summary: z.string(), evidenceIds: Ids })),
   signals: z.array(
     z.object({
