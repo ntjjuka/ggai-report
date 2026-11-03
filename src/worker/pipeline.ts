@@ -264,7 +264,8 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
           userCached: synthContext, // 공유 문맥은 캐시 경계 뒤에 — 두 번째 갈래가 입력을 10% 단가로 읽는다
           schema,
           maxTokens: 64000, // 종합: 사고 토큰 + 초안 JSON
-          effort: cfg.LLM_SYNTHESIS_EFFORT, // 기본 medium: high는 사고 토큰으로 1~3분 더 걸린다
+          // 인물 갈래(메인 코너)는 기본 high: 농담의 설계가 사고 시간에 비례한다. 판정 갈래는 medium
+          effort: stage === "SYNTHESIS_PERSONA" ? cfg.LLM_PERSONA_EFFORT : cfg.LLM_SYNTHESIS_EFFORT,
           speed: cfg.LLM_FAST_MODE === "synthesis" ? ("fast" as const) : undefined,
           requestKey: sha256(`${reportId}|${stage}|${systemHash}|${sha256(synthContext + instructions)}|${cfg.LLM_SYNTHESIS_MODEL}`),
           hints: synthHints,
@@ -376,7 +377,7 @@ export function trimChunkForSynthesis(v: ChunkExtraction): ChunkExtraction {
   return {
     summary: v.summary.slice(0, 300),
     events: v.events.slice(0, 4),
-    signals: v.signals.filter((s) => !seenSignal.has(s.participantId) && seenSignal.add(s.participantId)).map((s) => ({ ...s, topics: (s.topics ?? []).slice(0, 2), details: (s.details ?? []).slice(0, 2), evidenceIds: s.evidenceIds.slice(0, 1) })),
+    signals: v.signals.filter((s) => !seenSignal.has(s.participantId) && seenSignal.add(s.participantId)).map((s) => ({ ...s, topics: (s.topics ?? []).slice(0, 2), details: (s.details ?? []).slice(0, 2), callbacks: (s.callbacks ?? []).slice(0, 2), evidenceIds: s.evidenceIds.slice(0, 1) })),
     highlights: v.highlights.slice(0, 4),
     keywords: v.keywords.slice(0, 6),
     roastMaterial: v.roastMaterial.slice(0, 3),

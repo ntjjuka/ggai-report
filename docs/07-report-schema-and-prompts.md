@@ -55,8 +55,9 @@
 | 0 | 헤더: 보고서 No.·제목·기간·메시지 수·참여자(나)·"{페르소나}가 N% 읽었어요"·**오늘 기분**·안전 안내 | `meta`, `mood`, `safety` | - | 서버 | 항상 | ✓ |
 | 0b | **보고서 제목(조어)** 「○○ 보고서: 부제」 — 헤더 h1 | `verdict.reportTitle` | 1 | LLM | 있을 때 | ✓ |
 | 1 | **결론 보고(판정)** headline(≤40자) + body 3문단(결론·반전 "그런데 m####를 봐"·진짜였던/바뀐+애정 한 절, 마지막 문단 "세 줄 요약" 허용) + 관계 유형 칩 + confidence | `verdict` | 1, 2 | LLM | 항상 | ✓ |
-| 1a | **{페르소나}가 재밌게 읽은 장면** 5~7개 — 책 한 권 읽듯 끝까지 읽고 고른 에피소드(kind 아이콘 · 제목 조어 · 2~3문장 서술 · 등장인물 칩 · 실제 메시지 말풍선 1~3). 페르소나의 재료 | `moments` | - | LLM 선택, 서버 텍스트 | 1개 이상 | ✗ |
-| 1b | **멤버 페르소나 · 전원 해부**(1:1은 "두 사람 페르소나") — **메인 코너**. 카드마다 유형 칩 · `{emoji} {이름}: {칭호}` · 유형 설명 · "주로 떠든 얘기" #주제 칩 · 로스트 문단 2~3개(각 문단 아래 그 사람의 실제 메시지 말풍선 0~2) · **한 줄 결론**("결론: …", 검정 띠) · 뱃지(0~2)·어워드 칩 | `participants` | 5 | LLM(+규칙 뱃지 보완) | 항상 | ✗(첫 1명만 ✓) |
+| 1a | **{페르소나}가 읽은 이 방의 코미디** — 장(章) 3~5개(제목 "제N장: '조어' — 부제" · 2~3문단 본문 · 등장인물 칩 · 사건의 메시지 말풍선 2~4). 페르소나의 재료 | `moments` | - | LLM 선택, 서버 텍스트 | 1개 이상 | ✗ |
+| 1b | **멤버 페르소나 · 전원 해부**(1:1은 "두 사람 페르소나") — **메인 코너**. 상단에 목차(`이모지 이름 — epithet`, 앵커). 카드마다 유형 칩 · `{emoji} {이름}: {칭호}` · 유형 설명 · "주로 떠든 얘기" #주제 칩 · 로스트 문단 2~3개(각 문단 아래 그 사람의 실제 메시지 말풍선 0~2) · **한 줄 결론**("결론: …", 검정 띠) · 뱃지(0~2)·어워드 칩 | `participants` | 5 | LLM(+규칙 뱃지 보완) | 항상 | ✗(첫 1명만 ✓) |
+| 1c | **총평 및 미래 예측 · 너희의 다음 행보** "이름: 예언" 3~6줄 | `verdict.predictions` | - | LLM | 1줄 이상 | ✗ |
 | 2 | **진짜 역학** 2문단 선언문(단톡: 판을 들고 있는 / 사라지는 / 쥔 사람 3칸) | `dynamic` | 3 | LLM | 항상 | ✓ |
 | 3 | **변동 보고 · 바뀐 주** "바뀐 주는 YYYY년 M월 N번째 주다" + 그 전/그 뒤 + 결정적 한 줄(pivot) + confidence; `exists=false`면 "바뀐 주가 없다" 문장 | `weekChanged` | 4 | LLM | 항상 | ✗ |
 | 4 | **누가 먼저 치고, 누가 아닌 척하는지** 먼저 치는 사람·아닌 척하는 사람 칩 + 2~3문장(숫자 1 + 근거 ID 1) | `firstMove` | 3(선언문) | LLM | `body` 있을 때 | ✓ |
@@ -159,14 +160,14 @@ LLM은 prior를 보고 최종 값을 정하되 **±25 이상 벗어나면 `oneLi
 §3의 `ReportContent`에서 서버가 채우는 것을 제외한 전부. 필드:
 | 필드 | 타입 / 제약(프롬프트·검증기 기준) |
 |---|---|
-| `verdict` | `{ reportTitle(「○○ 보고서: 부제」 20~40자), headline(≤40자·이모지 0·숫자 ≤1), body: string[](3문단), relationType{ code(영문 4~8자), label, description }, confidence }` |
+| `verdict` | `{ reportTitle(「○○ 보고서: 부제」 20~40자), headline(≤40자·이모지 0·숫자 ≤1), body: string[](첫마디 독백 — 단톡 4문단: 인사·"너희가 처음이다"+집착 목록 / 방 이름 로스트+새 이름 2개 / 지분율 농담+"9할은 …" / "낱낱이 해부해 줄게"; 1:1 3문단), relationType{ code(영문 4~8자), label, description }, confidence, predictions: string[]("이름: 다음 행보" 3~6줄) }` |
 | `dynamic` | `{ paragraphs: string[](2~3), groupRoles{ holdsTogether, goesQuiet, runsTheShow: participantId\|null — 단톡만, 1:1은 전부 null }, evidenceIds }` |
 | `firstMove` | `{ initiatorId: id\|null, pretenderId: id\|null, body(2~3문장: 선톡·질문·답장 속도 숫자 1 + 근거 ID 1), evidenceIds }` |
 | `privateLanguage` | `{ phrases: { phrase, meaning, evidenceIds }[](0~5), runningJokes: { title, summary, evidenceIds }[](0~4) }` — 실제 반복된 것만, 없으면 빈 배열(지어내지 않는다) |
 | `weekChanged` | `{ exists: boolean, weekLabel("2025년 6월 둘째 주"), weekStart(그 주 월요일 YYYY-MM-DD), before, after, pivotMessageId: id\|null, evidenceIds, confidence }` — 뚜렷한 변화가 없으면 `exists=false` + "바뀐 주가 없다" |
-| `moments[]` | `{ kind, title(≤30자 조어), summary(2~3문장 서술), participantIds(1~4), messageIds(1~3) }`(5~7) — **스키마 첫 키**: 책 한 권을 다 읽고 재밌게 읽은 장면부터 고른 뒤 사람별로 정리한다 |
-| `participants[]` | `{ participantId, emoji(1개), title(「수식절 + '별명'」 20~45자), nickname, type{ label(…형/…파/…족), description(1문장) }, topics: string[](2~4, 구체 명사), paragraphs: { text(150~450자), quoteIds(그 사람 메시지 0~2) }[](2~3; 9명 이상이면 상위 8명만 2~3, 나머지 1), oneLiner("결론:"으로 시작하는 한 줄 15~40자), badgeIds: string[](0~2) }` — 모든 참여자 ID 각 1개. **메인 코너**, 스키마 둘째 키 |
-| `findings[]` | `{ title, observed, interpretation, evidenceIds(1~3), confidence, tags: string[] }`(3~5, 서로 다른 주제) |
+| `moments[]` | `{ kind, title("제N장: '조어' — 부제" ≤40자), summary(장 본문 2~3문단, 문단 사이 빈 줄, 2인칭 "너희", 조어는 **굵게**), participantIds(1~4), messageIds(사건의 메시지 2~4) }`(3~5장) — **스키마 첫 키**: 방을 관통하는 기믹·사건을 장(章)으로 묶은 뒤 사람별로 정리한다(14 §9.5) |
+| `participants[]` | `{ participantId, emoji(1개), title(「수식절 + '별명'」 20~45자), nickname, epithet(목차용 8~18자 명사구), type{ label(…형/…파/…족), description(1문장) }, topics: string[](2~4, 구체 명사), paragraphs: { text(150~450자), quoteIds(그 사람 메시지 0~2) }[](2~3; 9명 이상이면 상위 8명만 2~3, 나머지 1), oneLiner("결론:"으로 시작하는 한 줄 15~40자), badgeIds: string[](0~2) }` — 모든 참여자 ID 각 1개. **메인 코너**, 스키마 둘째 키 |
+| `findings[]` | `{ title(기현상 이름 조어), observed(장면), interpretation(왜 이 방에서만), evidenceIds(1~3), confidence, tags: string[] }`(3~4) — UI 제목 "이 방만의 기현상" |
 | `whatIWouldDo[]` | `{ title, body("내가 너라면 …"으로 시작, 조건·시한 포함), deadline }`(정확히 3) |
 | `awards[]` | `{ name(행동 기반), participantId: id\|null("올해의 한 줄상"은 null), reason, evidenceIds }`(3) |
 | `scores[]` | `{ key, value(0~100), oneLiner(숫자나 ID 1개 이상), confidence }`(세트 5개 전부, off면 `[]`) |

@@ -15,6 +15,8 @@ const EnvSchema = z.object({
   LLM_CHUNK_LARGE_TOKENS: z.coerce.number().default(1_000_000),
   /** 사고 토큰은 시간·비용 둘 다 먹는다. 종합은 medium이 속도·품질 균형, 청크 추출은 low */
   LLM_SYNTHESIS_EFFORT: z.enum(["low", "medium", "high", "xhigh"]).default("medium"),
+  /** 인물 페르소나 갈래(메인 코너)의 사고 수준. 두 갈래 동시 호출이라 high여도 전체 시간은 종전 한 호출 medium과 비슷 */
+  LLM_PERSONA_EFFORT: z.enum(["low", "medium", "high", "xhigh"]).default("high"),
   LLM_CHUNK_EFFORT: z.enum(["low", "medium", "high"]).default("low"),
   /** "synthesis": 종합(Opus) 호출을 fast mode(출력 2.5배 빠름, 단가 2배)로 — 개인용 속도 우선일 때 */
   LLM_FAST_MODE: z.enum(["off", "synthesis"]).default("off"),

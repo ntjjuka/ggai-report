@@ -57,7 +57,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
 
       {/* 1 판정 */}
       <section className="card p-6">
-        <div className="text-xs font-bold text-muted">결론 보고</div>
+        <div className="text-xs font-bold text-muted">{persona}의 첫마디</div>
         <h2 className="mt-2 text-3xl font-extrabold leading-tight">{content.verdict.headline}</h2>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-white">
@@ -77,20 +77,24 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
         )}
       </section>
 
-      {/* 1a 재밌게 읽은 장면 — 페르소나의 재료 */}
+      {/* 1a 장(章) — 이 방을 관통하는 코미디. 페르소나의 재료 */}
       {content.moments.length > 0 && (
-        <Section title={`${persona}가 재밌게 읽은 장면`} sub="책 한 권 읽듯 끝까지 읽고 고른 장면이야. 이 장면들이 아래 페르소나의 재료고, 말풍선은 실제 메시지.">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <Section title={`${persona}가 읽은 이 방의 코미디`} sub="끝까지 읽고 묶은 장(章)이야. 이 장면들이 아래 페르소나의 재료고, 말풍선은 실제 메시지.">
+          <div className="space-y-4">
             {content.moments.map((m, i) => (
-              <div key={i} className="rounded-3xl bg-pastel-beige p-4">
-                <div className="text-sm font-extrabold">
+              <div key={i} className="rounded-3xl bg-pastel-beige p-5">
+                <h4 className="text-lg font-extrabold leading-snug">
                   {MOMENT_ICON[m.kind] ?? "💬"} {m.title || m.caption}
-                </div>
-                {m.summary && (
-                  <p className="mt-1 text-sm leading-relaxed">
-                    <T s={m.summary} />
-                  </p>
-                )}
+                </h4>
+                {m.summary &&
+                  m.summary
+                    .split(/\n\s*\n/)
+                    .filter((par) => par.trim())
+                    .map((par, j) => (
+                      <p key={j} className="mt-3 leading-relaxed">
+                        <T s={par.trim()} />
+                      </p>
+                    ))}
                 {m.participants?.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {m.participants.map((p) => (
@@ -116,11 +120,27 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
 
       {/* 1b 인물 페르소나 — 메인 코너 */}
       <Section title={isGroup ? "멤버 페르소나 · 전원 해부" : "두 사람 페르소나"} sub={`${persona}가 대화 속 팩트로만 깎았어. 말풍선은 그 사람이 실제로 보낸 메시지야.`}>
+        {content.participants.length > 2 && (
+          <ol className="mb-5 divide-y divide-line rounded-3xl border border-line bg-white">
+            {content.participants.map((p) => (
+              <li key={p.participantId}>
+                <a href={`#persona-${p.participantId}`} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-pastel-beige/50">
+                  <span>{p.emoji}</span>
+                  <span className="font-extrabold" style={{ color: colorOf(p.name) }}>
+                    {p.name}
+                  </span>
+                  <span className="text-muted">—</span>
+                  <span className="font-semibold">{p.epithet || p.nickname}</span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        )}
         <div className="space-y-5">
           {content.participants.map((p) => {
             const paragraphs = personaParagraphs(p);
             return (
-              <article key={p.participantId} className="rounded-3xl border border-line bg-white p-5 sm:p-6" style={{ borderTopColor: colorOf(p.name), borderTopWidth: 5 }}>
+              <article key={p.participantId} id={`persona-${p.participantId}`} className="scroll-mt-20 rounded-3xl border border-line bg-white p-5 sm:p-6" style={{ borderTopColor: colorOf(p.name), borderTopWidth: 5 }}>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="rounded-full bg-ink px-2 py-0.5 font-bold text-white">{p.type?.label || "미분류"}</span>
                   <span className="text-muted">
@@ -196,6 +216,22 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
           })}
         </div>
       </Section>
+
+      {/* 1c 총평 및 미래 예측 */}
+      {(content.verdict.predictions?.length ?? 0) > 0 && (
+        <Section title="총평 및 미래 예측 · 너희의 다음 행보" sub="지금까지의 드라마를 그대로 이어 가면 이렇게 된다.">
+          <ul className="space-y-2">
+            {content.verdict.predictions.map((line, i) => (
+              <li key={i} className="flex gap-2 rounded-2xl bg-pastel-lavender px-4 py-3 text-[#3c2a7a]">
+                <span>🔮</span>
+                <span className="leading-relaxed">
+                  <T s={line} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
       {/* 2 진짜 역학 */}
       <Section title="진짜 역학" sub={isGroup ? "판을 들고 있는 사람 / 사라지는 사람 / 판을 쥔 사람" : undefined}>
@@ -304,7 +340,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
 
       {/* 5 발견 */}
       {content.findings.length > 0 && (
-        <Section title="발견">
+        <Section title="이 방만의 기현상" sub="다른 방에선 안 벌어지는 일">
           <div className="space-y-4">
             {content.findings.map((f) => (
               <div key={f.id} className="rounded-3xl bg-pastel-beige/60 p-5">
@@ -481,10 +517,11 @@ function personaParagraphs(p: ReportContent["participants"][number]): { text: st
 
 /** 산문 속 m123 참조를 「발신자 「인용」」 칩으로. 근거 표에 없는 토큰은 숨긴다 (검증기가 이미 제거했어야 함). */
 function Prose({ text, refs, colorOf }: { text: string; refs: Record<string, EvidenceItem> | undefined; colorOf: (n: string) => string }) {
-  const parts = text.split(/(\bm\d+\b)/g);
+  const parts = text.split(/(\bm\d+\b|\*\*[^*\n]{1,60}\*\*)/g);
   return (
     <>
       {parts.map((part, i) => {
+        if (/^\*\*[^*\n]{1,60}\*\*$/.test(part)) return <strong key={i}>{part.slice(2, -2)}</strong>; // 핵심 조어 강조 (마크다운 ** 만 허용)
         if (!/^m\d+$/.test(part)) return <span key={i}>{part}</span>;
         const e = refs?.[part];
         if (!e) return null;

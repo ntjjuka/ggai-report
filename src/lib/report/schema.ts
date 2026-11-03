@@ -29,7 +29,8 @@ export const ChunkExtractionSchema = z.object({
       toneLabel: z.string(),
       reason: z.string(),
       topics: z.array(z.string()).describe("이 구간에서 이 사람이 주로 떠든 주제 1~3개, 구체 명사(상품·장소·사람·취미·불평거리)"),
-      details: z.array(z.string()).describe("본인이 직접 말한 구체 디테일 1~3개(소비·습관·사건·자랑·변명·말 vs 행동), 각 40자 이내, 끝에 메시지 ID 1개"),
+      details: z.array(z.string()).describe("본인이 직접 말한 구체 디테일 1~3개(연애·돈·직장·건강·소비·여행·가족 사실, 선언·번복·허세·고백), 각 40자 이내, 끝에 메시지 ID 1개"),
+      callbacks: z.array(z.string()).describe("이 구간에서 그 사람에게 붙은 별명·놀림거리·테스트 결과·말버릇 0~2개, 대화 속 표현 그대로"),
       evidenceIds: Ids.describe("이 사람 메시지 중 캐릭터가 가장 드러나는 것 1~2개 (m123 형식)"),
     }),
   ),
@@ -49,19 +50,20 @@ export const ReportDraftSchema = z.object({
     .array(
       z.object({
         kind: z.enum(MOMENT_KINDS),
-        title: z.string().describe("장면 제목 조어 ≤30자"),
-        summary: z.string().describe("그 장면이 왜 재밌었는지 2~3문장 서술(로스트 화법, 등장인물의 말 그대로 되돌려주기)"),
+        title: z.string().describe("장 제목: \"제N장: '조어' — 부제\" ≤40자"),
+        summary: z.string().describe("장 본문 2~3문단(각 100~250자, 문단 사이 빈 줄): 기믹 선언·증상 → 대표 사건 재구성 → 황당한 결론. 2인칭 '너희', 조어는 **굵게**"),
         participantIds: z.array(z.string()).describe("등장인물 participantId 1~4"),
-        messageIds: Ids.describe("그 장면의 실제 메시지 1~3개"),
+        messageIds: Ids.describe("그 사건의 실제 메시지 2~4개, 주고받은 순서대로"),
       }),
     )
-    .describe("전체를 다 읽고 가장 재밌게 읽은 장면 5~7개 — 책 한 권을 읽고 인상적인 에피소드를 고르듯. 이 장면들이 인물 페르소나의 재료다"),
+    .describe("이 방을 관통하는 가장 큰 코미디를 3~5개의 장(章)으로 — 반복되는 기믹·사건 하나가 한 장. 이 장면들이 인물 페르소나의 재료다"),
   participants: z.array(
     z.object({
       participantId: z.string(),
       emoji: z.string().describe("이 사람 캐릭터를 요약하는 이모지 1개"),
       title: z.string().describe("칭호 20~45자: 「수식절 + '별명'」 꼴. 예: 회식 자리마다 다음 회식을 예약하는 '2차 사장'"),
       nickname: z.string().describe("title 속 따옴표 별명만"),
+      epithet: z.string().describe("목차용 한 줄 별칭 8~18자 명사구, 그 사람의 드라마를 한 방에"),
       type: z.object({
         label: z.string().describe("이 방에서 이 사람의 유형 라벨 4~12자(…형/…파/…족), 예: 프로 불참러형"),
         description: z.string().describe("그 유형이 이 대화에서 어떻게 드러나는지 한 문장"),
@@ -83,6 +85,7 @@ export const ReportDraftSchema = z.object({
     body: z.array(z.string()).describe("3~4문단: 결론+숫자 / '그런데 m####를 봐' 반전 / 진짜였던 것·바뀐 것 / 애정 한 줄"),
     relationType: z.object({ code: z.string().describe("영문 4~8자"), label: z.string().describe("한국어 라벨"), description: z.string() }),
     confidence: Conf,
+    predictions: z.array(z.string()).describe("총평 및 미래 예측: '이름: 다음 행보 한 줄' 3~6줄, 그 사람의 드라마를 이어받은 황당하지만 근거 있는 예언"),
   }),
   dynamic: z.object({
     paragraphs: z.array(z.string()).describe("2~3문단 선언문"),
@@ -180,6 +183,8 @@ export interface ReportContent {
     emoji: string;
     title: string;
     nickname: string;
+    /** 목차용 한 줄 별칭. 구버전 보고서에는 없다 */
+    epithet?: string;
     type: { label: string; description: string };
     topics: string[];
     paragraphs: { text: string; quotes: Evidence[] }[];

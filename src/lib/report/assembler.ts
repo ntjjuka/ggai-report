@@ -60,6 +60,7 @@ export function assembleReport(input: ReportDraft, ctx: AssembleContext): Report
         emoji: d?.emoji || "🫥",
         title: d?.title || `아직 캐릭터를 못 잡은 '${p.name}'`,
         nickname: d?.nickname || p.name,
+        epithet: d?.epithet || "",
         type: { label: d?.type?.label || "미분류", description: d?.type?.description ?? "" },
         topics: d?.topics ?? [],
         paragraphs: paragraphs.length ? paragraphs : [{ text: `${ctx.personaName}가 이 사람은 판단을 보류했어. 텍스트 메시지가 ${ctx.stats.perPerson.find((x) => x.id === p.id)?.textMessages ?? 0}개라 캐릭터를 잡기엔 재료가 모자라. 숫자만 남긴다.`, quotes: [] }],

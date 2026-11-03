@@ -191,6 +191,8 @@ describe("validator + assembler", () => {
     expect(content.participants.some((p) => p.paragraphs.some((par) => par.quotes.length > 0))).toBe(true);
     expect(content.participants.every((p) => (p.oneLiner ?? "").startsWith("결론:"))).toBe(true);
     expect(content.verdict.reportTitle).toContain("보고서");
+    expect(content.verdict.predictions.length).toBeGreaterThanOrEqual(1);
+    for (const p of s.parts) expect(content.verdict.predictions.join("\n").includes(p.id)).toBe(false); // ID는 이름으로 치환
     // 재밌게 읽은 장면: 제목·서술·등장인물(스냅샷에 있는 사람만)·실제 메시지
     expect(content.moments.length).toBeGreaterThanOrEqual(3);
     for (const m of content.moments) {
@@ -346,6 +348,9 @@ describe("prompts", () => {
     expect(a).toContain("숫자 규칙");
     expect(a).toContain("폭로자");
     expect(a).toContain("분석가 말투 ✗");
+    expect(a).toContain("소재 선택");
+    expect(a).toContain("명사형 종결");
+    expect(a).toContain("방의 전설");
   });
 
   it("synthesis prompt carries facts, priors, mood and question", () => {
@@ -388,8 +393,12 @@ describe("prompts", () => {
     const verdict = buildSynthesisInstructions(args, "VERDICT");
     const all = buildSynthesisInstructions(args, "ALL");
     expect(persona).toContain("participants (메인 코너");
-    expect(persona).toContain("[숫자 금지]");
+    expect(persona).toContain("[소재]");
+    expect(persona).toContain("[숫자]");
     expect(persona).toContain("[인용 규칙]");
+    expect(persona).toContain("[전설 소환]");
+    expect(verdict).toContain("verdict.predictions");
+    expect(verdict).toContain("기현상");
     expect(persona).not.toContain("verdict.body");
     expect(verdict).toContain("verdict.body");
     expect(verdict).not.toContain("participants (메인 코너");

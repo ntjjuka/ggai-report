@@ -69,6 +69,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
   // verdict
   if ([...draft.verdict.headline].length > HEADLINE_MAX) violations.push({ path: "verdict.headline", reason: "TOO_LONG", detail: `${HEADLINE_MAX}자 이내` });
   draft.verdict.body = draft.verdict.body.filter((p) => p.trim().length > 0).slice(0, 5);
+  draft.verdict.predictions = (draft.verdict.predictions ?? []).map((p) => clip(p, 120)).filter(Boolean).slice(0, 6);
   if (draft.verdict.body.length < 2) violations.push({ path: "verdict.body", reason: "MISSING", detail: "3~4문단" });
 
   // dynamic
@@ -110,6 +111,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
       emoji: firstGrapheme(p.emoji),
       title: clip(p.title, TITLE_MAX),
       nickname: p.nickname.trim(),
+      epithet: clip(p.epithet ?? "", 30),
       type: { label: clip(p.type?.label ?? "", 20), description: clip(p.type?.description ?? "", 160) },
       topics: [...new Set((p.topics ?? []).map((t) => clip(t, 30)).filter(Boolean))].slice(0, TOPIC_MAX),
       paragraphs: (p.paragraphs ?? [])
@@ -185,7 +187,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
 
   // moments — 재밌게 읽은 장면: 실제 메시지가 붙는 것만, 등장인물은 스냅샷에 있는 사람만
   draft.moments = draft.moments
-    .map((m) => ({ ...m, title: clip(m.title ?? "", 40), summary: (m.summary ?? "").trim(), participantIds: [...new Set((m.participantIds ?? []).filter((id) => pidSet.has(id)))].slice(0, 4), messageIds: keepIds(m.messageIds) }))
+    .map((m) => ({ ...m, title: clip(m.title ?? "", 60), summary: (m.summary ?? "").trim(), participantIds: [...new Set((m.participantIds ?? []).filter((id) => pidSet.has(id)))].slice(0, 4), messageIds: keepIds(m.messageIds) }))
     .filter((m) => m.messageIds.length > 0)
     .slice(0, 8);
 
@@ -353,8 +355,10 @@ export function enforceFinal(draft: ReportDraft, violations: Violation[]): Repor
         if (m[2] === "type") p.type = { label: "", description: "" };
         if (m[2] === "emoji") p.emoji = "🙂";
         if (m[2] === "oneLiner") p.oneLiner = "";
+        if (m[2] === "epithet") p.epithet = "";
       }
-    } else if (v.path === "verdict.reportTitle") out.verdict.reportTitle = ""; else if (v.path === "verdict.headline") out.verdict.headline = [...out.verdict.headline].slice(0, HEADLINE_MAX - 1).join("") + "…";
+    } else if (v.path === "verdict.reportTitle") out.verdict.reportTitle = "";
+    else if ((m = v.path.match(/^verdict\.predictions\[(\d+)\]/))) out.verdict.predictions[Number(m[1])] = ""; else if (v.path === "verdict.headline") out.verdict.headline = [...out.verdict.headline].slice(0, HEADLINE_MAX - 1).join("") + "…";
     else if ((m = v.path.match(/^whatIWouldDo\[(\d+)\]/))) out.whatIWouldDo[Number(m[1])] = { title: "보류", body: "내가 너라면 이 항목은 다음 보고서로 넘긴다.", deadline: "다음 보고서" };
     else if (v.path.startsWith("shareCard")) out.shareCard = { headline: out.verdict.headline, subline: "" };
     else if (v.path.startsWith("answer") && out.answer) out.answer = { ...out.answer, body: "질문에 대한 답은 검토 중 제외됐어. 다시 생성해 봐." };
@@ -371,6 +375,7 @@ export function enforceFinal(draft: ReportDraft, violations: Violation[]): Repor
   out.moments = out.moments.filter((_, i) => !removeMoment.has(i));
   out.awards = out.awards.filter((_, i) => !removeAward.has(i));
   out.verdict.body = out.verdict.body.filter((p) => p.length > 0);
+  out.verdict.predictions = (out.verdict.predictions ?? []).filter((p) => p.length > 0);
   out.dynamic.paragraphs = out.dynamic.paragraphs.filter((p) => p.length > 0);
   for (const p of out.participants) {
     p.paragraphs = p.paragraphs.filter((par) => par.text.length > 0);

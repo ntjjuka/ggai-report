@@ -7,7 +7,7 @@ describe("trimChunkForSynthesis", () => {
     const v = {
       summary: "가".repeat(500),
       events: many(10).map((i) => ({ date: "2026-01-01", title: `e${i}`, summary: "", evidenceIds: ["m1"] })),
-      signals: ["p1", "p1", "p2", "p2", "p3"].map((pid, i) => ({ participantId: pid, interest: i, effort: i, toneLabel: "", reason: "", topics: ["a", "b", "c"], details: ["d1", "d2", "d3"], evidenceIds: ["m1", "m2"] })),
+      signals: ["p1", "p1", "p2", "p2", "p3"].map((pid, i) => ({ participantId: pid, interest: i, effort: i, toneLabel: "", reason: "", topics: ["a", "b", "c"], details: ["d1", "d2", "d3"], callbacks: ["c1", "c2", "c3"], evidenceIds: ["m1", "m2"] })),
       highlights: many(9).map((i) => ({ messageId: `m${i}`, kind: "funny" as const, caption: "" })),
       keywords: many(12).map(String),
       roastMaterial: many(6).map((i) => ({ participantId: "p1", observation: `o${i}`, evidenceIds: [], device: "" })),
@@ -21,6 +21,7 @@ describe("trimChunkForSynthesis", () => {
     expect(t.signals.map((s) => s.participantId)).toEqual(["p1", "p2", "p3"]);
     expect(t.signals[0].topics).toEqual(["a", "b"]);
     expect(t.signals[0].details).toEqual(["d1", "d2"]);
+    expect(t.signals[0].callbacks).toEqual(["c1", "c2"]);
     expect(t.signals[0].evidenceIds).toEqual(["m1"]);
     expect(t.highlights.length).toBe(4);
     expect(t.keywords.length).toBe(6);
@@ -39,7 +40,7 @@ describe("collectPersonaCandidates", () => {
     for (let i = 0; i < 60; i++) evidence.set(`m${i}`, mk(i, i % 2 === 0 ? "p1" : "p2"));
     const chunk = (ids: string[], pid: string) => ({
       summary: "", events: [], highlights: [], keywords: [], conflicts: [], plans: [], safetyFlags: [],
-      signals: [{ participantId: pid, interest: 0, effort: 0, toneLabel: "", reason: "", topics: [], details: [], evidenceIds: ids }],
+      signals: [{ participantId: pid, interest: 0, effort: 0, toneLabel: "", reason: "", topics: [], details: [], callbacks: [], evidenceIds: ids }],
       roastMaterial: [{ participantId: pid, observation: "", evidenceIds: ids, device: "" }],
     });
     const chunks = [chunk(["m0", "m1", "m2", "m4", "m999"], "p1"), chunk(["m6", "m8", "m10", "m12", "m14", "m16", "m18", "m20", "m22", "m24", "m26"], "p1"), chunk(["m1", "m3"], "p2")];

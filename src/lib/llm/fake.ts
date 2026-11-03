@@ -60,6 +60,7 @@ export class FakeLlmClient implements LlmClient {
           reason: "선톡과 질문 빈도",
           topics: i === 0 ? ["주말 약속", "카페"] : ["ㅇㅇ", "나중에"],
           details: own.length ? [`'보자'를 먼저 꺼내고 날짜는 안 냄(${own[0]})`] : [],
+          callbacks: i === 0 ? ["전원 버튼"] : [],
           evidenceIds: own.length ? [own[0]] : [idAt(2 + i)],
         };
       }),
@@ -86,6 +87,7 @@ export class FakeLlmClient implements LlmClient {
         emoji: i === 0 ? "🔌" : i === 1 ? "🛋️" : "👻",
         title: i === 0 ? "질문은 던지고 답은 기다리는 '전원 버튼 담당'" : i === 1 ? "'좋지'는 즉답이고 날짜는 무응답인 '좋지 머신'" : `접속은 하고 글은 안 쓰는 '눈팅 ${i + 1}호'`,
         nickname: i === 0 ? "전원 버튼 담당" : i === 1 ? "좋지 머신" : `눈팅 ${i + 1}호`,
+        epithet: i === 0 ? "답 오기 전에 다음 질문 던지는 갤주" : i === 1 ? "좋지만 치고 사라지는 보류 장인" : "생존 신고만 하는 눈팅족",
         type: { label: i === 0 ? "떡밥 투척 갤주형" : i === 1 ? "프로 보류러형" : "눈팅족형", description: i === 0 ? "방이 조용하면 제일 먼저 질문을 던지고 답이 없으면 또 던진다." : "제안엔 1초 만에 '좋지'를 치고 날짜 얘기가 나오면 사라진다." },
         topics: i === 0 ? ["주말 약속", "카페 투어", "수업 끝나고 뭐 하기"] : i === 1 ? ["ㅇㅇ", "나중에", "다음에 보자"] : ["생존 신고"],
         paragraphs: [
@@ -115,6 +117,7 @@ export class FakeLlmClient implements LlmClient {
         ],
         relationType: { code: "ONE-WAY", label: "한쪽만 달리는 사이", description: "선톡·질문·답장 속도가 한쪽으로 기울어 있다." },
         confidence: "HIGH",
+        predictions: ps.slice(0, 3).map((p, i) => `${p}: ${i === 0 ? "다음 주에도 먼저 질문을 던지고, 답이 오기 전에 두 번째 질문을 던진다." : i === 1 ? "다음 제안에도 '좋지'를 1초 만에 치고 날짜 얘기가 나오면 잠수한다." : "4년 뒤 월드컵 때 한 줄 남기고 다시 사라진다."}`),
       },
       dynamic: {
         paragraphs: ["한쪽은 질문하고 한쪽은 평가한다. 역은 드물다.", "계획은 한쪽이 내고 다른 쪽은 '좋지'로 받는다."],
@@ -160,7 +163,7 @@ export class FakeLlmClient implements LlmClient {
       ],
       scores,
       moments: [
-        { kind: "funny", title: "둘 다 웃은 날", summary: "한쪽이 농담을 던지고 다른 쪽이 받았다. 이 방에서 드문 일이라 기록해 둔다.", participantIds: ps.slice(0, 2), messageIds: [idAt(17)] },
+        { kind: "funny", title: "제1장: '좋지 머신'과 날짜 외주의 법칙", summary: "너희를 관통하는 가장 큰 코미디는 **날짜 외주** 기믹이다. 제안이 오면 1초 만에 '좋지'를 치는데, 날짜 얘기가 나오면 전원이 잠수한다.\n\n대표 사건은 카페 가자는 제안이었다. 한쪽이 던지고, 다른 쪽이 '좋지'로 받고, 아무도 날짜를 안 냈다. 결국 둘 다 웃고 끝났다.\n\n너희는 전생에 달력이 없는 나라에서 살았을 게 분명하다.", participantIds: ps.slice(0, 2), messageIds: [idAt(17)] },
         { kind: "awkward", title: "하루 늦은 답", summary: "질문이 올라오고 답은 다음 날 왔다. 그 사이 아무도 재촉하지 않았다는 게 더 어색하다.", participantIds: ps.slice(0, 1), messageIds: [idAt(18)] },
         { kind: "banter", title: "티키타카 3분", summary: "짧은 메시지가 연달아 오갔다. 이 방의 최고 속도 구간이다.", participantIds: ps.slice(0, 2), messageIds: [idAt(19), idAt(20)] },
         { kind: "touching", title: "먼저 사과한 사람", summary: "다툼 뒤 먼저 손을 내민 쪽이 정해져 있다. 늘 같은 사람이다.", participantIds: ps.slice(1, 2), messageIds: [idAt(21)] },
