@@ -80,7 +80,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
 
     // [2] STATS
     await progress("STATS", 10, `${persona}가 숫자를 세고 있어요 · ${messages.length.toLocaleString()}개 메시지`);
-    const stats = computeStats(messages, map, uploaderId ?? (participants.length === 2 ? participants[0].id : null));
+    const stats = computeStats(messages, map, uploaderId);
     const scoreSet = pickScoreSet(participants.length, focus);
     const priors = computePriors(stats, scoreSet);
     const facts = renderStatsFacts(stats, messages, priors);
@@ -186,7 +186,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     }
 
     // [6] SYNTHESIS
-    await progress("SYNTH", 78, `${persona}가 생각을 정리하고 있어요. 보통 1~2분`);
+    await progress("SYNTH", 78, `${persona}가 생각을 정리하고 있어요. 이 단계는 보통 1~2분`);
     const mood: Mood = pickMood(reportId, safetyFlagged);
     const chunkJson = plan.mode === "CHUNKED" ? JSON.stringify(chunkResults.filter(Boolean).map((c) => ({ label: c.label, ...c.value }))) : null;
     const highlightMessages = plan.mode === "CHUNKED" ? chunkResults.filter(Boolean).flatMap((c) => c.highlights) : [];

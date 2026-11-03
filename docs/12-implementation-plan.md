@@ -1,90 +1,100 @@
-# 12. 구현 계획 (한 번에 끝내기 위한 순서)
+# 12. 구현 계획 → 진척 현황
 
-> 각 스텝은 **산출물 → 검증 명령 → 완료 기준(DoD)** 을 가진다. 앞 스텝의 테스트가 녹색이 아니면 다음 스텝으로 가지 않는다. 총 8스텝.
+> 2026-11-03 Node 구현 기준으로 갱신 (docs/18 P0-9). 원래 8스텝(Spring 기준) 계획을 **완료 상태 진척 표**로 바꿨다. 산출물 열은 실제 파일 경로다. 남은 일은 §11(백로그, docs/18 §12 참조)과 §12(문서 동기화 규칙)로 옮겼다.
 
-## 0. 저장소·빌드 스캐폴드
-**산출물**
-```
-ggai-report/
-├─ build.gradle.kts  settings.gradle.kts  gradle/libs.versions.toml
-├─ docker-compose.yml (postgres:16, 포트 5432, DB ggai)
-├─ .env.example (APP_CRYPTO_KEY, ANTHROPIC_API_KEY, DB_URL, DB_USER, DB_PASSWORD)
-├─ src/main/java/com/example/ggai/… (04 §3 패키지 골격 + GgaiApplication)
-├─ src/main/resources/application.yml (04 §4.5 키), application-local.yml, db/migration/V1__init.sql (05 §3)
-├─ src/main/resources/templates/, static/
-└─ src/test/… (Testcontainers 베이스 클래스 AbstractIntegrationTest)
-```
-의존성(libs.versions.toml, 구현 시 최신 패치 확인): spring-boot 3.5.x, java 21, postgresql, flyway-core + flyway-database-postgresql, hibernate 6(Boot 관리), hypersistence-utils-hibernate-63(JSONB), com.anthropic:anthropic-java 3.2.x, thymeleaf, spring-boot-starter-validation, spring-boot-starter-actuator, micrometer-registry-prometheus, logstash-logback-encoder, testcontainers(postgresql, junit-jupiter), wiremock-standalone 3.x, archunit-junit5, commons-compress(zip 안전 검사 보조) 또는 JDK `ZipInputStream`.
-**검증** `./gradlew build` 성공, `docker compose up -d` 후 앱 기동 시 Flyway V1 적용, `/actuator/health` UP.
-**DoD** 빈 앱 + 스키마 + 테스트 인프라.
+## 0~7. 스텝별 진척 표
+| 스텝 | 산출물(실제 파일) | 검증 | 상태 |
+|---|---|---|---|
+| **0 저장소·빌드 스캐폴드** | `package.json`(pnpm 10.28, 스크립트 `dev/build/start/lint/typecheck/test/test:watch/db:migrate/worker/smoke/eval`), `tsconfig.json`(strict, `@/*`), `next.config.ts`(standalone, `serverExternalPackages`, robots·캐시 헤더), `eslint.config.mjs`, `vitest.config.mts`, `.env.example`, `docker-compose.yml`(postgres·worker·web), `Dockerfile`(web/worker 타깃), `.dockerignore`, `db/migrations/0001_init.sql`, `src/server/migrate.ts`, `src/server/config.ts`(zod 환경변수) | `pnpm install`, `pnpm typecheck`, `docker compose up --build` 후 워커가 마이그레이션 적용 | 완료 |
+| **1 파서** | `src/lib/parser/{types,patterns,kakaoParser,csv,encoding,zip,index}.ts` — 포맷 5종 상태 머신, 12시간제, 멀티라인, 시스템/미디어 분류, 봇 발신자(`isBotSender`), CP949·UTF-16 폴백, zip 안전 규칙, 분할 파일 병합·중복 제거, 한도·에러 코드 | `tests/parser.test.ts`(골든 12종 + 규칙 6) | 완료 |
+| **2 통계 · Tier 0** | `src/lib/stats/{types,computeStats,priors,facts,time,index}.ts`(ChatStats v1, 세션·답장·히트맵·월별·fun facts·칼답률·호칭·말버릇·균형, 점수 prior 3세트, 숫자 사실 문장), `src/lib/tier0/{story,buildTier0,badges,awards,templates,index}.ts`(스토리 7장·신호 등급·뱃지 20·어워드·템플릿) | `tests/stats.test.ts`(5) | 완료 |
+| **3 DB·서비스·업로드 API** | `src/server/{schema,db,crypto,owner,http,errors,ratelimit}.ts`, `src/server/services/{conversations,participants}.ts`, `src/app/api/v1/conversations/**/route.ts`(업로드·상세·확인·통계·삭제) | 통합 #1~#3, 스모크 1~2 | 완료 |
+| **4 보고서 도메인·워커 (Fake LLM)** | `src/server/services/reports.ts`(상태 머신 CAS, 공유, 보고서 삭제, 체크포인트, stale 복구, 정리), `src/server/queue.ts`(pg-boss), `src/worker/{index,pipeline}.ts`, `src/lib/report/{schema,transcript,planner,validator,assembler,moods}.ts`, `src/lib/llm/fake.ts`, `src/app/api/v1/reports/**/route.ts`, `shared/[token]/route.ts` | 통합 #4~#13, `tests/report.test.ts` | 완료 |
+| **5 LLM 통합 (Anthropic)** | `src/lib/llm/{client,anthropic,cost,prompts,index}.ts`(zod 구조화 출력, 캐시 1h, 재시도·폴백·max_tokens 처리, 단가표, 시스템/청크/종합/수리 프롬프트 + `FOCUS_GUIDE`), `src/server/llm.ts` | `tests/report.test.ts prompts`; 실모델 확인은 `LLM_PROVIDER=anthropic pnpm eval` 또는 `pnpm smoke`(수동) | 완료(코드). 계약 테스트는 미구현(11 §4), 품질 평가는 `pnpm eval`(11 §5) |
+| **6 웹 UI** | `src/app/{layout,page,not-found}.tsx`, `setup/page.tsx` + `components/setup/Wizard.tsx`(7단계), `guide/export`, `privacy`, `terms`, `c/[id]/page.tsx`, `c/[id]/story/page.tsx` + `components/story/StoryViewer.tsx`, `c/[id]/reports/[seq]/page.tsx` + `components/report/{ReportView,ReportStatus}.tsx`, `r/[token]/page.tsx`, `r/[token]/card.png/route.tsx`, `components/{api,ui}.tsx`, `globals.css`, `public/fonts/*` | 스모크 6(페이지 200), `scripts/screenshots.cjs` | 완료(다크 모드·Lighthouse 미실시) |
+| **7 운영·마무리** | `Dockerfile`(non-root)·`docker-compose.yml`, `README.md`(실행·환경변수·구조), `scripts/smoke.sh`(보고서 단위 삭제 5b 포함), `scripts/eval.ts`(품질 평가, 11 §5), 워커 유지보수 타이머(stale 60s · 원문 만료 10m · 체크포인트 정리 1h) | `docker compose up` → `pnpm smoke`, `pnpm eval` | 완료. **미완**: 구조화 로그(JSON)·메트릭·헬스체크 엔드포인트 |
 
-## 1. 파서 모듈 (`parser/`)
-**산출물** `EncodingDetector`, `ZipTextExtractor`, `KakaoLinePatterns`(03 정규식 상수), `KakaoExportParser`(상태 머신), `CsvKakaoParser`, `SplitFileMerger`, 모델 record들, `ParseException(code)`.
-픽스처: `docs/fixtures/*` → `src/test/resources/fixtures/` 복사 + 03 §7 나머지 픽스처 작성 + `*.expected.json` 생성(첫 실행 결과를 사람이 검토 후 커밋).
-**검증** `./gradlew test --tests "com.example.ggai.parser.*"`; 결정성 테스트; 퍼징 테스트.
-**DoD** 03 §7 전 픽스처 통과, 영문 포맷 포함, 커버리지 ≥90%(parser 패키지).
+구현 순서는 계획과 달리 UI·Docker가 스텝 3~5와 병행됐지만(18 §11-24), 2026-11-03 기준 전 스텝의 DoD 중 테스트 가능한 항목은 모두 녹색이다. 02 §6 수용 기준 대비 상태는 02 §6 참조.
 
-## 2. 통계 모듈 (`stats/`)
-**산출물** `ChatStatsCalculator`(08 §3), `SessionSplitter`, `FunFactsCalculator`, `ScorePriorCalculator`(07 §3.1 prior), `StatsFactsRenderer`(08 §7.1 문장형 사실).
-**검증** 경계값 테스트, 픽스처별 통계 골든 JSON.
-**DoD** 30만 메시지 합성 입력 3초 이내.
+## 8. 핵심 시그니처 (실제 TypeScript, 구현자가 참조할 진입점)
+```ts
+// src/lib/parser
+parseUploads(files: NamedBytes[], limits?: ParseLimits): ParsedChat          // 업로드 진입점(디코딩+파싱)
+decodeUploads(files: NamedBytes[]): { texts: NamedText[]; encodingFallback }  // 원문 정본(암호화 대상)
+parseTexts(files: NamedText[], limits?, encodingFallback?): ParsedChat        // 재파싱(결정적 index)
+isBotSender(name: string): boolean
 
-## 3. 도메인·업로드 API
-**산출물** 엔티티(`Conversation`, `Participant`, `ConversationStats`, `Report`, `ReportStageResult`, `LlmCallLog`, `AuditEvent`) + 리포지토리, `CryptoService`(AES-GCM), `OwnerTokenService`(발급·해시·쿠키), `ConversationService`(upload/confirm/delete/expire), `RateLimiter`(IP·소유자, Caffeine 또는 DB 카운터), `api/ConversationController`, `GlobalExceptionHandler`(ErrorResponse), DTO records, `MergeSuggester`(toksai 알고리즘 이식).
-**검증** 통합 테스트 §3-1,3,10,11,13,14,15(FakeLlmClient 아직 미사용 부분), ArchUnit 의존 규칙.
-**DoD** 업로드→확인→통계 조회→삭제가 API로 동작, 에러 포맷 표준.
+// src/lib/stats
+computeStats(messages: Message[], map: ParticipantMap, uploaderId: string | null): ChatStats
+pickScoreSet(participantCount: number, focus: string): "PAIR" | "GROUP" | "WORK"
+computePriors(stats, set): ScorePrior[]            renderStatsFacts(stats, messages, priors): StatsFact[]
 
-## 4. 보고서 도메인·워커(LLM은 Fake)
-**산출물** `Report` 상태 머신, `ReportService`(create: 대화 행 비관적 락 + seq 채번, cancel, retry, share), `ReportWorker`(폴러·클레임 쿼리·풀), `ReportPipeline`(08 단계 골격, `LlmClient` 인터페이스로 호출), `StaleJobRecoverer`, `RawExpirer`, `StageResultRepository`(멱등 체크포인트), `FakeLlmClient`(테스트 프로파일; 시나리오 스위치), `ReportController`, 진행률 갱신.
-**검증** 통합 테스트 §3-1,2,4,5,6,7,8,12. 동시성 테스트(seq 유니크, 활성 1개).
-**DoD** Fake로 끝까지 SUCCEEDED, 재기동 복구, 취소, 재시도 동작.
+// src/lib/tier0
+buildTier0(stats, messages, seedKey): Tier0Report  signalInfo(stats): { grade, label, reasons }
 
-## 5. LLM 통합 (Anthropic)
-**산출물** `AnthropicLlmClient`(SDK 클라이언트 빈, `maxRetries(0)`, 타임아웃 10m), `PromptBuilder`(07 §5, 시스템 프롬프트 상수 파일 `prompts/system.txt` 등 리소스), `TranscriptRenderer`, `TokenCounter`(countTokens + 폴백), `Planner`(단일/청크/샘플링/비용), `ChunkExtractor`, `Synthesizer`, `Repairer`, `OutputValidator`(접지·숫자·언어·안전·클램프), `ReportAssembler`, `CostTable`, `LlmCallLogger`.
-구조화 출력 record(`ChunkExtraction`, `ReportDraft`, `RepairResponse`)에 `@JsonPropertyDescription`·`@ArraySchema` 부착. `refusal`/`max_tokens` 처리. 프롬프트 캐시(`systemOfTextBlockParams` + `CacheControlEphemeral` TTL 1h).
-**검증** WireMock 계약 테스트(11 §4), 프롬프트 스냅샷, 검증기 단위. `-Panthropic=true`로 실제 API 스모크 1회(픽스처 ios → 보고서 생성, 비용 로그 확인).
-**DoD** 실제 모델로 보고서 1건 생성, `usage.cacheReadInputTokens > 0`(두 번째 청크부터), 미접지 근거 0 노출.
-**주의** SDK 버전별 빌더 메서드명 차이는 컴파일 에러로 확인(README 패키지 표 참고). `fallbacks` 베타 파라미터 빌더가 없으면 클라이언트 측 폴백만 구현.
+// src/lib/report
+buildTranscript(eff: EffectiveMessage[], participants): TranscriptMessage[]   buildEvidenceIndex(transcript)
+makePlan(transcript, cfg: PlanConfig): Plan                                   // SINGLE | CHUNKED, 비용·커버리지
+validateDraft(draft: ReportDraft, ctx: ValidationContext): ValidationResult  applyPatches(draft, patches)  enforceFinal(draft, violations)
+assembleReport(draft, ctx: AssembleContext): ReportContent
 
-## 6. 웹 UI
-**산출물** Thymeleaf 레이아웃(`layout.html`), 페이지 7종(09 §2), 프래그먼트(참여자 폼, 진행 카드, 보고서 섹션 11종, 공유 카드), 서버 SVG 차트 템플릿(월별·히트맵·답장·선톡·도넛), HTMX 폴링, CSRF 헤더, Tailwind 빌드(`npm` 없이 `tailwindcss` standalone CLI 바이너리 Gradle task), Pretendard 서브셋 폰트, 다크 모드.
-**검증** MockMvc 뷰 테스트(상태 200·핵심 텍스트), 수동 모바일 확인, Lighthouse 접근성 ≥90.
-**DoD** 업로드부터 공유까지 브라우저만으로 완료 가능.
+// src/lib/llm
+interface LlmClient { provider; generateJson<T>(req: StageRequest<T>): Promise<StageResponse<T>>; countTokens(model, system, user) }
+buildSystemPrompt({ name, tone })   buildChunkUserPrompt(args)   buildSynthesisUserPrompt(args)   buildRepairUserPrompt(args)
 
-## 7. 운영·마무리
-**산출물** 구조화 로그(PII 금지 검사 테스트), 메트릭(02 §3.5), `/actuator` 보호, Dockerfile(non-root, JRE 21), compose(web+worker+postgres), README(실행·환경변수·내보내기 가이드 링크), 스케줄러(stale 복구 60s, 원문 만료 10m, stage_result 정리 1h), eval 스크립트(11 §5).
-**검증** `docker compose up` 전체 기동 → E2E 스모크 스크립트(`scripts/smoke.sh`: 업로드→확인→생성→폴링→공유→삭제) 통과.
-**DoD** 02 §6 수용 기준 전부 충족.
+// src/server/services
+uploadConversation(input): Promise<{ detail: ConversationDetail; reused }>   confirmParticipants(id, ownerHash, cmd)   deleteConversation(id, ownerHash)
+createReport(conversationId, ownerHash, { focus, tone, focusQuestion }): Promise<ReportView>
+cancelReport / retryReport / enableShare / disableShare / deleteReport / getSharedReport
+claimReport / heartbeat / markSucceeded / markFailed / recoverStaleReports / cleanupStageResults   // 워커 전용
 
-## 8. 핵심 코드 스켈레톤 (구현자가 그대로 따라갈 시그니처)
-```java
-// parser
-public final class KakaoExportParser { public ParsedChat parse(List<NamedText> files, ParseLimits limits) }
-public record NamedText(String name, String text) {}
-public final class ZipTextExtractor { public List<NamedText> extract(byte[] zip, ZipLimits limits) }
-public final class EncodingDetector { public DecodedText decode(byte[] bytes) }   // charset, text, fallbackUsed
-
-// stats
-public final class ChatStatsCalculator { public ChatStats compute(List<Message> msgs, ParticipantMap map) }
-
-// application
-public interface LlmClient {
-  <T> StageResponse<T> generate(StageRequest req, Class<T> schema);   // StageRequest: stage, model, system, user, maxTokens, effort, requestKey
-  long countTokens(String model, String system, String user);
-}
-public final class ReportPipeline { public void run(UUID reportId, int attempt) }   // 08 단계, heartbeat 콜백 주입
-public final class OutputValidator { public ValidationResult validate(ReportDraft d, EvidenceIndex idx, StatsFacts facts, ScorePriors p) }
-
-// domain
-public class Report { void start(int attempt); void progress(Stage s, int pct); void succeed(ReportContent c, Quality q);
-                      void fail(String code, String msg); void cancel(); void requeueForRetry(); }
+// src/worker
+runReport(reportId: string, deps: { llm: LlmClient; now?: () => number }): Promise<"done" | "skipped" | "failed">
 ```
 
-## 9. 리스크와 대응
-| 리스크 | 대응 |
+## 9. 리스크와 대응 (갱신)
+| 리스크 | 대응(현재) |
 |---|---|
-| 실제 내보내기 포맷이 문서와 다른 변형 존재 | 상태 머신이 미매치 줄을 ORPHAN 경고로 남김 → 운영 초기에 경고율 모니터링, 패턴 추가는 03 갱신 + 픽스처 추가 |
-| SDK 빌더 API 차이 | 스텝 5에서 컴파일 루프로 해결, 타입 탐색은 `jar tf`/`javap` |
-| 보고서 재미 부족 | 스텝 7 eval 루브릭으로 프롬프트 반복(유머 장치 사용률·콜백 유무) |
-| 비용 폭주 | Planner 상한 + 일일 소유자 상한 + 비용 메트릭 알람 |
-| 긴 생성 시간 이탈 | 진행 단계 카피 + 링크 복귀 안내, 청크 동시 3 |
+| 실제 내보내기 포맷 변형 | 상태 머신이 미매치 줄을 `ORPHAN_LINES`·`UNKNOWN_SYSTEM_LINES` 경고로 남기고 API `warnings`로 노출. 패턴 추가 시 03 갱신 + 픽스처·`expected.json` 추가 |
+| SDK 버전 차이(`output_config`, `zodOutputFormat`) | `@anthropic-ai/sdk ^1.4.0` 고정 범위. 업그레이드는 `pnpm typecheck` + 실모델 스모크 1회 |
+| 보고서 재미 부족 | `pnpm eval`(결정적 지표 + 화법 수치, 11 §5)로 프롬프트 변경마다 측정. LLM 심사·가상 대화 6종 세트는 미구현이라 "재미" 자체는 사람이 `content`를 읽어 14 §6으로 채점 |
+| 비용 폭주 | PLAN 상한(`LLM_MAX_COST_USD`) + 소유자 일일 10건 + `llm_call_log.cost_usd`. 알람은 없음 |
+| 긴 생성 시간 이탈 | 생성 직후 Tier 0 스토리 7장을 대기 콘텐츠로(09 §5.5) + ETA 카피. 쿠키 분실 시 복귀 불가는 미해결(P0-1) |
+| 공유 URL이 다른 인스턴스에서 안 보임 | 토큰 원문이 프로세스 메모리 캐시(04 §5). 다중 web 배포 전 "enable 응답에서만 URL 제공" UX를 유지하거나 토큰을 암호화 저장으로 전환 |
+| 설정 중간 이탈 | 위저드 진행 상태 서버 저장 없음. `?c=`로 4단계 복귀만 가능 |
+
+## 10. 로컬 실행 절차 (README와 동일)
+```bash
+# Docker 전체(web + worker + postgres)
+cp .env.example .env            # APP_CRYPTO_KEY(아래 명령으로 생성)·ANTHROPIC_API_KEY 채움. LLM 없이: LLM_PROVIDER=fake
+node -e 'console.log(require("crypto").randomBytes(32).toString("base64"))'
+docker compose up --build       # 워커가 기동 시 마이그레이션 적용, http://localhost:3000
+
+# 개발 실행(Docker 없이, PostgreSQL 16이 떠 있어야 함)
+pnpm install
+pnpm db:migrate                 # .env의 DATABASE_URL
+pnpm dev                        # web
+pnpm worker                     # worker (tsx)
+
+# 테스트·스모크
+pnpm test                       # 단위 + 통합(.env.test: 127.0.0.1:5433/ggai_test, LLM_PROVIDER=fake)
+pnpm smoke                      # 서버·워커 기동 상태에서 E2E (BASE_URL, KEEP=1)
+pnpm eval [파일…]               # 품질 평가(기본 fake; LLM_PROVIDER=anthropic 이면 실제 호출·비용 발생, 결과 $TMPDIR/ggai-eval/*.json)
+node scripts/screenshots.cjs http://localhost:3000 <cookie-jar> <conversationId> <seq> ./shots   # Playwright 전역 설치 필요
+pnpm lint && pnpm typecheck
+```
+
+## 11. 남은 백로그 — docs/18 §12 참조 (여기서는 상태만)
+| 구분 | 항목 | 상태 |
+|---|---|---|
+| **P0 미결(사용자 결정 대기)** | 이메일 6자리 인증 + 완료/실패 메일 + 재인증 복귀("내 보고서") — docs/18 P0-1 | **미구현**. 13 ADR-08에서 결정 대기(00·13 문서는 별도 갱신) |
+| P0 완료 | 위저드(P0-2 일부: 이메일 단계 제외) · 유형 6종+AUTO·유형 지침(P0-3) · 업로더 선택(P0-4) · `signal`(P0-5) · 가이드 폰 경로(P0-6) · 신뢰 시트·`/privacy`(P0-7) · 보고서 단위 삭제(P0-8) · 문서 정합화 1차(P0-9, 이 문서 세트) | 완료 |
+| P1 | 보고서 체인(`parent_report_id`, "하나 더 묻기")·슬라이딩 원문 만료(P1-1) · 봇 탐지 휴리스틱(P1-2: 이름 규칙은 구현, 발화 패턴 기반은 미구현) · 이메일 인바운드(P1-3) · OG/공유 강화(P1-4: OG 이미지·`card.png`는 구현, "나도 이 방 올리기"·만료는 미구현) · 재진입 CTA·6항목 기본 노출(P1-5: 섹션은 구현, 부가 섹션 접힘·뱃지/어워드 통합은 미구현) · `/faq`·`/support`·완료 메일 문구(P1-6) · confirm `title`·`share%`(P1-7: 구현) · `report.language` 변수화(P1-8: 컬럼만) · 재생성 한도 재설계·메트릭(P1-9) · 14 §2 UI 보이스(P1-10: 반영) · 유형별 랜딩(P1-11) | 표기대로 |
+| P2 | 결제·`entitlement`·미리보기 게이팅(P2-1) · 영어 리포트(P2-2) · Personal read(P2-3) · 두 번째 페르소나(P2-4) · WhatsApp/LINE 파서(P2-5) · 크리에이터·후기·사칭 고지(P2-6) · Tier 0 포지셔닝(P2-7) | 미구현 |
+| 테스트·운영 | 계약 테스트(11 §4) · eval 확장(가상 대화 6종·LLM 심사·결과 누적, 11 §5) · 성능 테스트(11 §6) · 로그 PII 자동 검사 · 구조화 로그·메트릭·헬스체크 · 의존성 스캔 · 키 회전 재암호화 | 미구현 |
+
+## 12. 문서 동기화 규칙 (코드가 정본)
+- **코드 변경 PR은 같은 PR에서 문서를 갱신한다**: 요구사항·흐름이 바뀌면 `02`, API 형태·에러 코드가 바뀌면 `06`, 화면·카피·단계가 바뀌면 `09`. 세 문서는 코드와 함께 리뷰 대상이다(18 §11-24).
+- 추가 규칙: DDL·마이그레이션 → `05 §3`(SQL 그대로 복사) + `src/server/schema.ts`; 환경변수·큐·워커 루프 → `04 §4`; `ReportContent`/zod 스키마·섹션 순서 → `07 §2~§4` + `09 §3`; 검증 규칙 → `07 §6` + `08 §8`; 프롬프트 본문(`07 §5`)과 화법(`14`)은 담당자 관리 영역이라 코드(`prompts.ts`) 변경 시 해당 담당자에게 알린다.
+- 각 문서 머리의 `> YYYY-MM-DD … 기준으로 갱신` 줄을 갱신 날짜로 바꾼다. 수치(한도·기간·임계값·모델명)는 코드에서 복사하고, 확인하지 못한 것은 "미확인"으로 쓴다.
+- 미구현 기능은 "v2"라고 쓰지 않고 **미구현/미결**로 쓰고 docs/18 §12의 ID(P0-1 …)를 단다.

@@ -68,6 +68,7 @@ export interface FunFacts {
 }
 
 export interface Balance {
+  /** 기준 참여자: 업로더, 미지정 시 첫 참여자 */
   uploaderId: string;
   otherId: string;
   messageRatio: number; // 업로더 비율 0..1

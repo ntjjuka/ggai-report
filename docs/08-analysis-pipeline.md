@@ -13,6 +13,7 @@ claim → [1] LOAD      원문 복호화·재파싱·참여자 스냅샷 적용(
       → succeed (CAS)
 ```
 각 단계 전후 `heartbeat()`; 소유권 상실 시 `JobLostException`으로 조용히 종료. 진행률: LOAD 5 → STATS 10 → RENDER 15 → CHUNK 15~70(선형) → SYNTH 85 → VALIDATE 95 → 100.
+> 코드 기준 `progress_stage` enum(2026-11-03, `src/worker/pipeline.ts`·`services/reports.ts`): `QUEUED | LOAD | STATS | RENDER | CHUNK | SYNTH | VALIDATE | DONE | FAILED` — `PLAN`·`ASSEMBLE`은 별도 진행 값이 없고 `REPAIR`는 `llm_call_log.stage`로만 존재. 실제 pct는 LOAD 2→5 · STATS 10 · RENDER 15 · CHUNK 15~70 · SYNTH 78 · VALIDATE 92 · DONE 100 (05 §2, 09 §5).
 
 ## 2. [1] LOAD
 - `report.participant_snapshot`을 사용(생성 시점 매핑 고정). 병합: `merged_into`를 따라 대표 참여자로 치환. 제외/봇/시스템은 전사에서 제거하되, 단톡방에서 제외 참여자가 끼어든 구간은 `[다른 참여자 메시지 N개 생략]` 경계로 표시(답장 추정 오염 방지, toksai 방식).

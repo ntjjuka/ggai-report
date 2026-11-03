@@ -114,4 +114,20 @@ describe("computeStats", () => {
     expect(t0.relationLabel).toBe("한쪽만 달리는 사이");
     expect(t0.awards.some((a) => a.name === "읽씹 장인상")).toBe(true);
   });
+
+  it("computes pair balance without an uploader (reference = first participant, ADR-16)", () => {
+    const msgs = synth([
+      ["2025. 1. 1. 오후 1:00", "서연", "안녕"],
+      ["2025. 1. 1. 오후 1:05", "지훈", "응"],
+      ["2025. 1. 2. 오후 1:00", "서연", "뭐해?"],
+      ["2025. 1. 2. 오후 1:30", "지훈", "일"],
+    ]);
+    const map: ParticipantMap = new Map([
+      ["서연", { id: "a", name: "서연", rawNames: ["서연"], isUploader: false }],
+      ["지훈", { id: "b", name: "지훈", rawNames: ["지훈"], isUploader: false }],
+    ]);
+    expect(computeStats(msgs, map, null).balance?.uploaderId).toBe("a");
+    expect(computeStats(msgs, map, "b").balance?.uploaderId).toBe("b");
+    expect(computeStats(msgs, map, "zzz").balance?.uploaderId).toBe("a"); // 모르는 ID는 폴백
+  });
 });

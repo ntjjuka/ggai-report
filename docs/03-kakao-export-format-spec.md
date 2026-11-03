@@ -1,7 +1,8 @@
 # 03. 카카오톡 대화 내보내기(.txt/.csv/.zip) 파서 명세
 
 > 목적: 사용자가 올린 카카오톡 내보내기 파일을 **단일 정규화 모델(`ParsedChat`)** 로 변환한다.
-> 파서는 Spring 의존성이 없는 순수 Java 모듈(`parser` 패키지)로 만들고, 골든 픽스처 테스트로 고정한다.
+> 파서는 의존성 없는 순수 TypeScript 모듈(`src/lib/parser`, 구현 정본)로 만들고, 골든 픽스처 테스트(`tests/parser.test.ts`)로 고정한다. `tools/spec_parser_prototype.py`는 명세 검증용 참조 구현.
+> 2026-11-03 봇 발신자 규칙·업로더 선택(ADR-16/20)을 구현 기준으로 갱신.
 > 조사 근거: GitHub 파서 8종(0-ki/kakaothread, hyundo32-copilot/kakaotalk-export-parser, doheon-code kakao_reply, Todari/toksai, gaoyuanshanzi/kakaotalk-chat-viewer, YeonHongMin/kakao-chat-summary, deeprine, graup) + 실제 내보내기 샘플(영문 로케일 포함).
 
 ---
@@ -113,7 +114,7 @@ X joined this chatroom. / X left.       SYSTEM_JOIN / SYSTEM_LEAVE (영문, 실�
 - `SYS_KICK`: `^(.{1,60}?)님을 내보냈습니다\.?$`
 - `SYS_INVITE_EN`: `^(.+?) invited (.+)\.$` · `SYS_JOIN_EN`: `^(.+?) joined( this chatroom)?\.$` · `SYS_LEAVE_EN`: `^(.+?) left( this chatroom)?\.$` (영문 join/leave 문구는 실측 미확정 — 미스여도 SYSTEM_OTHER로 안전)
 - `DELETED_MARKER`: `^(메시지가 삭제되었습니다\.|삭제된 메시지입니다\.|The message has been deleted\.)$` — 메시지 본문으로 오면 발신자 유지 + kind `DELETED`, 날짜 없는 단독 줄(영문 포맷)로 오면 발신자 null + 직전 메시지 시각.
-- 발신자가 `오픈채팅봇`이면 본문과 무관하게 kind=`BOT`(참여자 목록·통계·전사에서 제외)
+- 발신자가 카카오톡 시스템 봇 이름(`오픈채팅봇`·`오픈채팅 봇`·`채팅봇`·`플레이봇`·`카카오톡 채팅봇`, 또는 `^(카카오톡 )?(오픈)?(채팅|플레이) ?봇$` — 구현 `patterns.ts isBotSender`)이면 본문과 무관하게 kind=`BOT`. 참여자 행은 `is_bot=true`로 만들고 위저드에서 기본 제외(해제 가능), 통계·전사에서 제외
 
 ### 2.5 미디어/특수 본문 (본문이 아래와 **정확히** 일치할 때만 분류, 그 외는 TEXT)
 | 본문 | kind |
@@ -155,7 +156,7 @@ for line in lines:                       # \r\n, \r 정규화 후
   8. s 비어 있음                           → cur != null 이면 cur.body += ""(빈 줄 보존); continue
   9. 그 외                                 → cur != null 이면 cur.body += line (멀티라인), 아니면 warnings.orphanLines++
 end: flush(cur)
-flush: body = join("\n").strip() → classify(2.5) → sender == 오픈채팅봇 이면 BOT → emit
+flush: body = join("\n").strip() → classify(2.5) → isBotSender(sender) 이면 BOT → emit
 ```
 이 순서는 `docs/tools/spec_parser_prototype.py`(명세의 Python 참조 구현)로 13개 픽스처 전부에 대해 검증했다. Java 구현은 같은 입력에 대해 `fixtures/*.expected.json`과 동일한 결과를 내야 한다.
 - `flush`: 본문 trim 후 kind 분류(2.5), 빈 본문이면 `EMPTY` kind로 보존(통계 제외).
@@ -196,7 +197,7 @@ enum MessageKind { TEXT, PHOTO, VIDEO, EMOTICON, VOICE, FILE, MAP, CONTACT, DELE
 ---
 
 ## 5. 참여자 처리 (파서 밖, 서비스 계층)
-1. **"나" 식별**: 카카오톡은 업로더를 표시하지 않는다 → 업로드 후 참여자 목록에서 사용자가 선택(필수). 1:1에서 두 이름 중 하나.
+1. **"나" 식별**: 카카오톡은 업로더를 표시하지 않는다 → 위저드 참여자 단계에서 "이게 나예요"로 선택(**선택 사항**, ADR-16). 미지정이면 전사에 `(나)` 표식이 없고 프롬프트가 분기한다.
 2. **이름 변경 병합**: 같은 사람이 표시 이름을 바꾸면 두 이름으로 나타난다. 1:1(이름 3개 이상 감지) 시 toksai 알고리즘(화자 교대 가중치 기반 2분할 + 최근 활동 대표 이름) 으로 **제안**만 하고 사용자가 확인. 단체방은 제안 없이 수동 병합 UI.
 3. **제외**: 봇·공지 계정·분석 제외 대상은 사용자가 체크.
 4. 저장: `participant(raw_name, display_name, merged_into_id, excluded, is_uploader)`.
@@ -230,7 +231,7 @@ enum MessageKind { TEXT, PHOTO, VIDEO, EMOTICON, VOICE, FILE, MAP, CONTACT, DELE
 | `pc_csv.csv` | D | 따옴표 이스케이프 `""`, 쉼표, 셀 내 줄바꿈, 초 포함 시각, URL |
 | `en_android.txt` | E | `KakaoTalk Chats …` 제목, `Date Saved`, bare 영문 시각 줄 스킵, `invited … and …`→SYSTEM_INVITE, 단독 `The message has been deleted.`→DELETED(발신자 null), `Photo`, `12:00 am→00:00`, `12:30 pm→12:30` |
 | `mixed_split_merge/` (2파일) | A | 파일별 파싱 후 연결, 경계 중복 1건 제거, 시간 역행 1건 경고(`nonMonotonicTimestamp=1`) |
-| `group_30people.txt` | A | 참여자 30명 + 초대/퇴장, `오픈채팅봇`→BOT(참여자 제외), 멘션·링크 |
+| `group_30people.txt` | A | 참여자 30명 + 초대/퇴장, `오픈채팅봇`→BOT(`is_bot`, 기본 제외), 멘션·링크 |
 | `edge_colon_in_body.txt` | A | `시간은 3 : 30이야`, `ㅇㅋ : )`, 빈 본문(`… 곽민성 : `)→EMPTY |
 | `edge_body_looks_like_date.txt` | C | 멀티라인 2행째 `2024년 1월 1일 월요일`이 **구분선으로 오인되지 않음**(우세 포맷 조건), 3개 메시지 날짜 정상 |
 | `empty_or_garbage.txt` | - | `NO_MESSAGES` |

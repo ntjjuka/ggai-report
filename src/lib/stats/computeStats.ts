@@ -430,10 +430,12 @@ function computeFunFacts(
   };
 }
 
+/** 2인 대화의 비대칭 지표. 기준 참여자는 업로더, 미지정이면 첫 참여자(ADR-16). 숫자 사실·Tier 0는 이름으로 표기하므로 어느 쪽이 기준이든 결과는 대칭이다. */
 function computeBalance(perPerson: PersonStat[], uploaderId: string | null): ChatStats["balance"] {
-  if (perPerson.length !== 2 || !uploaderId) return null;
-  const me = perPerson.find((p) => p.id === uploaderId);
-  const other = perPerson.find((p) => p.id !== uploaderId);
+  if (perPerson.length !== 2) return null;
+  const ref = uploaderId && perPerson.some((p) => p.id === uploaderId) ? uploaderId : perPerson[0].id;
+  const me = perPerson.find((p) => p.id === ref);
+  const other = perPerson.find((p) => p.id !== ref);
   if (!me || !other) return null;
   const ratio = (a: number, b: number) => (a + b > 0 ? a / (a + b) : 0.5);
   const messageRatio = ratio(me.messages, other.messages);

@@ -40,6 +40,35 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         </div>
       </header>
 
+      {d.tier0 && (
+        <section className="card p-5">
+          <div className="text-xs font-bold text-muted">
+            통계만 보고 {persona}가 한 줄 · {d.tier0.relationLabel}
+          </div>
+          <div className="mt-1 text-xl font-extrabold">{d.tier0.headline}</div>
+          <ul className="mt-3 space-y-1 text-sm">
+            {d.tier0.lines.slice(0, 4).map((l, i) => (
+              <li key={i}>· {l.text}</li>
+            ))}
+          </ul>
+          {(d.tier0.badges.length > 0 || d.tier0.awards.length > 0) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {d.tier0.badges.map((b, i) => (
+                <span key={`b${i}`} className="rounded-full bg-pastel-yellow px-2 py-0.5 text-xs font-semibold text-[#6b4f00]">
+                  {b.icon} {b.name}
+                </span>
+              ))}
+              {d.tier0.awards.map((a, i) => (
+                <span key={`a${i}`} className="rounded-full bg-pastel-peach px-2 py-0.5 text-xs font-semibold text-[#7a3b12]">
+                  🏆 {a.name}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-xs text-muted">{d.tier0.signature}</p>
+        </section>
+      )}
+
       <section>
         <h2 className="mb-3 text-lg font-extrabold">{persona} 보고서</h2>
         {d.reports.length === 0 ? (

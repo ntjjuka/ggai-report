@@ -41,7 +41,7 @@ export function assembleReport(input: ReportDraft, ctx: AssembleContext): Report
 
   const isGroup = ctx.participants.length > 2;
   const resolvedFocus: ReportContent["meta"]["resolvedFocus"] =
-    ctx.focus !== "AUTO" ? ctx.focus : isGroup ? "FRIENDS_GROUP" : /ROM|LOVE|CRUSH|ONE|DATE|SITU/i.test(draft.verdict.relationType.code) ? "ROMANCE" : "FRIEND_ONE";
+    ctx.focus !== "AUTO" ? ctx.focus : isGroup ? "FRIENDS_GROUP" : /ROMAN|LOVE|CRUSH|DATING|SITU|COUPLE|FLIRT|SOME/i.test(draft.verdict.relationType.code) ? "ROMANCE" : "FRIEND_ONE";
 
   const ruleBadges = assignRuleBadges(ctx.stats);
   const awardNamesByPid = new Map<string, string[]>();

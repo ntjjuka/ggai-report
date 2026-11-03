@@ -245,6 +245,7 @@ export async function deleteReport(reportId: string, ownerHash: string): Promise
   if (row.status === "QUEUED" || row.status === "RUNNING") throw conflict("INVALID_STATE", "만드는 중인 보고서는 먼저 취소한 뒤 삭제할 수 있어요");
   await getDb().delete(schema.report).where(eq(schema.report.id, reportId));
   shareTokenCache.delete(reportId);
+  // audit_event.report_id는 FK(ON DELETE SET NULL)라 삭제된 ID를 넣을 수 없다 → 대화 ID만 남긴다
   await audit("REPORT_DELETE", { conversationId: row.conversationId, ownerHash });
 }
 

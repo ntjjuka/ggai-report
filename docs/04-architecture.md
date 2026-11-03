@@ -56,7 +56,7 @@
 |---|---|---|
 | `QUEUED` | 0 | 생성·재시도·stale 재큐 시 |
 | `LOAD` | 2 → 5 | `claimReport`(CAS `status='QUEUED'`, `attempt_count+1`, `heartbeat_at`, `started_at=coalesce`) 후 원문 복호화·재파싱, 스냅샷으로 참여자 맵 복원 |
-| `STATS` | 10 | `computeStats`(스냅샷 반영) → `pickScoreSet`(WORK→WORK, 그 외 2인=PAIR/3인+=GROUP) → `computePriors` → `renderStatsFacts`(숫자 사실 문장) |
+| `STATS` | 10 | `computeStats`(스냅샷 반영) → `pickScoreSet`(WORK→WORK, 그 외 2인=PAIR/3인+=GROUP) → `computePriors` → `renderStatsFacts`(숫자 사실 문장). 2인 대화의 `balance`는 업로더 미지정이어도 첫 참여자를 기준으로 계산한다(`computeBalance` 폴백, ADR-16) — 업로드·confirm·파이프라인 세 경로가 같은 규칙을 쓴다 |
 | `RENDER` | 15 | `toEffectiveMessages` → `buildTranscript`(ID `m{index}`, 마스킹, 토큰 추정) → `buildEvidenceIndex` |
 | (PLAN) | - | `makePlan`: SINGLE(≤`LLM_SINGLE_PASS_MAX_TOKENS` 150k) / CHUNKED(월 버킷 ≤`LLM_CHUNK_MAX_TOKENS` 60k, 총량 >`LLM_MAX_TOTAL_TOKENS` 1.5M이면 문맥 창 샘플링), 비용 추정 > `LLM_MAX_COST_USD`(5)면 재샘플링 후 `COST_LIMIT_EXCEEDED`. 진행 메시지는 따로 없음 |
 | `CHUNK` | 15 → 70 (선형) | 청크별 `CHUNK` 호출(동시 `WORKER_CHUNK_CONCURRENCY`=3). `LLM_REFUSED`·`LLM_BAD_REQUEST`는 즉시 실패, 그 외 청크 실패는 건너뜀. 성공 비율 < 0.6 → `INSUFFICIENT_COVERAGE`. 청크당 하이라이트 원문 ≤ 25개 보존 |
@@ -83,7 +83,7 @@ src/server/services conversations(업로드·확인·삭제·만료·원문 로�
 src/worker         index(프로세스 엔트리·유지보수 타이머)·pipeline(runReport)
 src/app            페이지(/, /setup, /guide/export, /privacy, /terms, /c/[id], /c/[id]/story, /c/[id]/reports/[seq], /r/[token], /r/[token]/card.png) + api/v1
 src/components     api(fetch 헬퍼)·ui·setup/Wizard·report/{ReportStatus,ReportView}·story/StoryViewer
-db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scripts/  smoke.sh · screenshots.cjs
+db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scripts/  smoke.sh · screenshots.cjs · eval.ts(품질 평가, 11 §5)
 ```
 의존 방향(관례, 도구로 강제하지 않음): `app → server → lib`, `worker → server·lib`. `lib/*`는 `server`·`app`을 import하지 않는다. Anthropic SDK import는 `src/lib/llm/anthropic.ts` 한 곳. `lib/tier0`·`lib/report`는 `lib/stats`에, `lib/report`는 `lib/tier0/badges`·`lib/llm/cost`에 의존한다.
 

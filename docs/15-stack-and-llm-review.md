@@ -32,19 +32,21 @@
 3. 결제·회원 등 "전형적 백오피스" 기능이 커질 것인가? → 커져도 Node로 충분하지만, 사용자 조직에 Spring 공통 모듈(결제·인증)이 이미 있으면 Spring 유지가 이득.
 
 ### A.3 추천: Node.js (TypeScript) — 구성
+> 2026-11-03 Node 구현 기준으로 갱신 (docs/18 P0-9): DB/ORM 행(Prisma → drizzle-orm)과 테스트 행(Playwright 역할)만 정정. 그 외 행은 추천 당시 그대로이며 실제 구성은 04 §1이 정본.
+
 | 영역 | 선택 | 메모 |
 |---|---|---|
 | 런타임/언어 | Node 22 LTS, TypeScript strict | pnpm |
 | 웹 | Next.js(App Router) 단일 앱: 페이지 + `app/api/v1/*` Route Handlers | 06 API 그대로 매핑 |
 | 워커 | 같은 코드베이스의 별도 프로세스 `src/worker/index.ts` (`tsx`로 실행) | pg-boss 소비자 |
 | 큐 | `pg-boss` (PostgreSQL) | `singletonKey = conversationId`로 "대화당 실행 1개" 보장, 재시도 3회·지수 백오프, 만료 복구 내장 |
-| DB/ORM | PostgreSQL 16 + Prisma (마이그레이션은 05 DDL을 SQL 마이그레이션으로 그대로 사용, 부분 유니크 인덱스 포함) | Prisma 스키마는 DDL에서 생성(`prisma db pull`) |
+| DB/ORM | PostgreSQL 16 + **drizzle-orm(node-postgres)** — 마이그레이션은 SQL 파일(`db/migrations/*.sql`, 러너 `src/server/migrate.ts`)이 정본, 부분 유니크 인덱스 포함 | 구현 시 Prisma 대신 drizzle 채택(2026-11-03 정정). drizzle 스키마 `src/server/schema.ts`는 DDL과 수동 1:1 동기(05 §4) |
 | 검증·DTO | Zod (요청 DTO, LLM 출력 스키마, DB JSON 컬럼 타입을 **하나의 스키마**로) | 07 §4 record → Zod 스키마 |
 | LLM | `@anthropic-ai/sdk` + Zod 구조화 출력, 프롬프트 캐시, `countTokens` | 모델 설정 동일(Opus 5.5 종합 / Sonnet 5.5 청크) |
 | 암호화 | Node `crypto` AES-256-GCM | 10 §2 동일 |
 | UI | Tailwind + shadcn/ui, 서버 컴포넌트로 보고서 렌더, 차트는 서버 SVG 컴포넌트 | 09 그대로 |
 | 공유 카드 | `next/og` `ImageResponse`(satori) → `/r/{token}/card.png`, OG 태그 | Pretendard 서브셋 폰트 |
-| 테스트 | Vitest(파서 골든: `fixtures/*.expected.json` 그대로 사용), Playwright(e2e·스크린샷), MSW/nock(LLM 계약) | 11 그대로 |
+| 테스트 | **Vitest**(단위 + 실 Postgres 통합; 파서 골든 `docs/fixtures/*.expected.json` 그대로 사용) · E2E는 `scripts/smoke.sh`(curl) · **Playwright는 `scripts/screenshots.cjs` 스크린샷 전용**(테스트 프레임워크가 아니고 의존성에도 없음, 전역 설치) · LLM 계약 테스트(MSW/nock)는 미구현 | 11 문서(2026-11-03 정정) |
 | 배포 | Docker Compose: web, worker, postgres. Railway/Fly/EC2 | Vercel 단독 불가(장기 워커) |
 
 ### A.4 설계 문서 매핑 (Node 선택 시 바뀌는 것)
