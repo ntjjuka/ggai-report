@@ -13,6 +13,8 @@ export interface StageRequest<T> {
   effort: Effort;
   /** 멱등키 (sha256). 호출 로그·체크포인트 키 */
   requestKey: string;
+  /** "fast": Opus fast mode(beta). 지원 모델이 아니거나 429면 표준 속도로 자동 복귀 */
+  speed?: "fast";
   /** Fake 클라이언트용 힌트 (실제 클라이언트는 무시) */
   hints?: {
     messageIds: string[];

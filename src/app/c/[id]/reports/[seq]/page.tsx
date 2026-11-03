@@ -23,7 +23,8 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   }
   const persona = process.env.PERSONA_NAME ?? "까비서";
   if (view.status === "QUEUED" || view.status === "RUNNING") {
-    const eta = Math.min(10, Math.max(2, Math.ceil(detail.messageCount / 6000) * 2));
+    // 압축 전사 + 청크 병렬 8 + 종합 medium 기준: 1만 개 ≈ 2분, 5만 개 ≈ 4분, 그 이상 ≈ 5~6분
+    const eta = Math.min(6, Math.max(2, Math.ceil(detail.messageCount / 15000) + 1));
     return <WritingScreen conversationId={id} seq={n} persona={persona} initial={view} etaMinutes={eta} />;
   }
   if (view.status === "FAILED" && view.error) {

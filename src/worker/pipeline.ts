@@ -181,7 +181,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
                 user,
                 schema: ChunkExtractionSchema,
                 maxTokens: 32000, // 청크 추출: 사고 토큰 + JSON
-                effort: "low", // 구조화 추출엔 충분, 사고 토큰 절감
+                effort: cfg.LLM_CHUNK_EFFORT, // 기본 low: 구조화 추출엔 충분, 사고 토큰(시간·비용) 절감
                 requestKey,
                 hints: { ...hintsBase, messageIds: chunk.messages.map((m) => m.id), speakerOf: Object.fromEntries(chunk.messages.map((m) => [m.id, m.pid])) },
               },
@@ -241,8 +241,9 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
         model: cfg.LLM_SYNTHESIS_MODEL,
         user: synthUser,
         schema: ReportDraftSchema,
-        maxTokens: 64000, // 종합: 사고 토큰(effort high) + 초안 JSON 8~12k
-        effort: "high",
+        maxTokens: 64000, // 종합: 사고 토큰 + 초안 JSON 8~12k
+        effort: cfg.LLM_SYNTHESIS_EFFORT, // 기본 medium: high는 사고 토큰으로 1~3분 더 걸린다
+        speed: cfg.LLM_FAST_MODE === "synthesis" ? ("fast" as const) : undefined,
         requestKey: synthKey,
         hints: { ...hintsBase, messageIds: synthIds.map((m) => m.id), speakerOf: Object.fromEntries(synthIds.map((m) => [m.id, m.pid])) },
       },

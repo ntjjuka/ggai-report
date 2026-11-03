@@ -77,6 +77,21 @@ describe("anthropic client — JSON mode fallback", () => {
     expect(calls.maxTokens).toEqual([64000, 96000]);
   });
 
+  it("fast mode uses the beta stream with speed=fast and falls back to standard on 429", async () => {
+    const c = new AnthropicLlmClient({ apiKey: "test-key", sleep: async () => {} });
+    const calls: string[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inner = (c as any).client as { messages: { stream: unknown }; beta: { messages: { stream: unknown } } };
+    inner.messages.stream = () => { calls.push("standard"); return { finalMessage: async () => fakeMessage('{"headline":"h","n":1}') }; };
+    inner.beta.messages.stream = (params: { speed?: string; betas?: string[] }) => {
+      calls.push(`fast:${params.speed}:${(params.betas ?? []).join(",")}`);
+      return { finalMessage: async () => { throw new Anthropic.RateLimitError(429, { type: "error", error: { type: "rate_limit_error", message: "fast mode limit" } }, "429 fast mode limit", new Headers()); } };
+    };
+    const res = await c.generateJson({ ...req("SYNTHESIS"), speed: "fast" });
+    expect(res.value).toEqual({ headline: "h", n: 1 });
+    expect(calls).toEqual(["fast:fast:fast-mode-2026-02-01", "standard"]);
+  });
+
   it("other 400s stay LLM_BAD_REQUEST", async () => {
     const { c } = stubbed(async () => { throw new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "model: not found" } }, "400 model: not found", new Headers()); }, async () => fakeMessage("{}"));
     await expect(c.generateJson(req("REPAIR"))).rejects.toMatchObject({ code: "LLM_BAD_REQUEST" });

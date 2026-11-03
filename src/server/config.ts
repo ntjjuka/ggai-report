@@ -14,6 +14,11 @@ const EnvSchema = z.object({
   /** 전사가 LLM_CHUNK_LARGE_TOKENS를 넘으면 청크 추출에 쓰는 싼 모델 (Haiku 5.5: Sonnet의 1/20 단가) */
   LLM_CHUNK_MODEL_LARGE: z.string().default("claude-haiku-5-5"),
   LLM_CHUNK_LARGE_TOKENS: z.coerce.number().default(1_000_000),
+  /** 사고 토큰은 시간·비용 둘 다 먹는다. 종합은 medium이 속도·품질 균형, 청크 추출은 low */
+  LLM_SYNTHESIS_EFFORT: z.enum(["low", "medium", "high", "xhigh"]).default("medium"),
+  LLM_CHUNK_EFFORT: z.enum(["low", "medium", "high"]).default("low"),
+  /** "synthesis": 종합(Opus) 호출을 fast mode(출력 2.5배 빠름, 단가 2배)로 — 개인용 속도 우선일 때 */
+  LLM_FAST_MODE: z.enum(["off", "synthesis"]).default("off"),
   LLM_SYNTHESIS_MODEL: z.string().default("claude-opus-5-5"),
   LLM_FALLBACK_MODEL: z.string().default("claude-opus-4-8"),
   LLM_SINGLE_PASS_MAX_TOKENS: z.coerce.number().default(150_000),
@@ -28,7 +33,7 @@ const EnvSchema = z.object({
   RAW_RETENTION_DAYS: z.coerce.number().default(7),
   STAGE_RESULT_RETENTION_HOURS: z.coerce.number().default(24),
   WORKER_CONCURRENCY: z.coerce.number().default(2),
-  WORKER_CHUNK_CONCURRENCY: z.coerce.number().default(3),
+  WORKER_CHUNK_CONCURRENCY: z.coerce.number().default(8), // 청크 병렬 수. 429가 잦으면 낮춘다
   WORKER_STALE_MINUTES: z.coerce.number().default(10), // 주기 하트비트 30초 기준. 긴 LLM 호출(수 분)을 오탐하지 않게
   WORKER_MAX_ATTEMPTS: z.coerce.number().default(3),
   WORKER_PIPELINE_TIMEOUT_MINUTES: z.coerce.number().default(25),

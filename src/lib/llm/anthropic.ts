@@ -81,6 +81,7 @@ export class AnthropicLlmClient implements LlmClient {
     let bumpedTokens = false;
     let badOutputRetried = false;
     let lastFailure: string | null = null;
+    let fastDisabled = false;
     const format = zodOutputFormat(req.schema);
     const schemaJson = JSON.stringify(format.schema);
     const system = [{ type: "text" as const, text: req.system, cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }];
@@ -88,10 +89,25 @@ export class AnthropicLlmClient implements LlmClient {
     while (true) {
       attempts += 1;
       const jsonMode = jsonModeStages.has(req.stage);
+      const fast = req.speed === "fast" && !fastDisabled && jsonMode && /opus-5|opus-4-8/.test(model);
       try {
         // 항상 스트리밍(finalMessage로 수집): max_tokens가 커도 요청 타임아웃에 걸리지 않는다
         let res: Anthropic.Message & { parsed_output?: unknown };
-        if (jsonMode) {
+        if (jsonMode && fast) {
+          // Opus fast mode: 출력 2.5배 빠름, 단가 2배. beta 엔드포인트 + beta 플래그 + speed 파라미터 세 가지가 모두 필요
+          const beta = await this.client.beta.messages
+            .stream({
+              model,
+              max_tokens: maxTokens,
+              system,
+              messages: [{ role: "user", content: req.user + jsonModeSuffix(schemaJson, lastFailure) }],
+              output_config: { effort: req.effort },
+              speed: "fast",
+              betas: ["fast-mode-2026-02-01"],
+            })
+            .finalMessage();
+          res = beta as unknown as Anthropic.Message;
+        } else if (jsonMode) {
           res = await this.client.messages
             .stream({
               model,
@@ -174,6 +190,12 @@ export class AnthropicLlmClient implements LlmClient {
         return { value, usage, model: res.model ?? model, latencyMs: Date.now() - started, attempts };
       } catch (e) {
         if (e instanceof LlmError) throw e;
+        if (fast && (e instanceof Anthropic.RateLimitError || e instanceof Anthropic.BadRequestError)) {
+          // fast mode 전용 한도(429)나 미지원(400)이면 표준 속도로 같은 요청을 다시
+          console.warn(`[llm] ${req.stage}: fast mode 사용 불가(${describe(e).slice(0, 80)}) → 표준 속도로 전환`);
+          fastDisabled = true;
+          continue;
+        }
         if (!jsonMode && isGrammarTooLargeError(e)) {
           // 스키마 문법이 너무 큼 → 이 단계는 앞으로 JSON 모드. 같은 요청을 즉시 다시 보낸다 (재시도 예산 소모 없음)
           console.warn(`[llm] ${req.stage}: 구조화 출력 문법이 너무 커서 JSON 모드로 전환합니다`);
