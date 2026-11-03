@@ -44,6 +44,7 @@ docker compose up --build
 
 - 백그라운드 실행: `docker compose up -d --build` · 로그: `docker compose logs -f worker web` · 중지: `docker compose down`(DB 데이터 유지) · 완전 초기화: `docker compose down -v`
 - 코드나 `.env`를 바꿨으면 `docker compose up -d --build` 로 다시 띄웁니다. `.env`만 바꿨으면 `docker compose up -d --force-recreate worker web`.
+- 업데이트를 한 번에: `powershell -ExecutionPolicy Bypass -File scripts\update.ps1` (git pull → 빌드·기동 → 상태·로그 출력, 휴대폰용 주소 안내). 휴대폰으로 열 때는 같은 와이파이에서 PC의 IPv4 주소로 접속하고, 안 열리면 Windows 방화벽에서 3000 포트를 허용합니다. 보고서 목록은 브라우저(쿠키)별이라 휴대폰에서 올린 대화만 휴대폰에서 보입니다.
 - 바인드 마운트가 없어서 Docker Desktop 파일 공유 설정은 필요 없습니다. DB는 named volume `pgdata`에 남습니다.
 
 ### 안 될 때
