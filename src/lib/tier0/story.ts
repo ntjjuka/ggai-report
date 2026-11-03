@@ -83,7 +83,7 @@ const pct = (x: number) => Math.round(x * 100);
 export function buildStory(stats: ChatStats, messages: Message[]): StoryCard[] {
   const byIndex = new Map(messages.map((m) => [m.index, m]));
   const name = (id: string) => stats.perPerson.find((p) => p.id === id)?.name ?? id;
-  const sortedPeople = [...stats.perPerson].sort((a, b) => b.messages - a.messages);
+  const sortedPeople = [...stats.perPerson].sort((a, b) => b.textMessages - a.textMessages); // 텍스트 기준
   const top5 = sortedPeople.slice(0, 5);
   const totalInit = Object.values(stats.sessions.starts).reduce((a, b) => a + b, 0) || 1;
   const bubbles = (indices: number[]): Bubble[] =>

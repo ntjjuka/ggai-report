@@ -63,10 +63,11 @@ function mediaTag(m: EffectiveMessage): string {
   }
 }
 
+/** LLM 전사에 넣는 메시지: 텍스트만. 사진·영상·이모티콘·파일 같은 첨부와 삭제·빈 메시지는 제외한다(통계에는 포함, 숫자 사실로 전달) */
 export function buildTranscript(eff: EffectiveMessage[], participants: Map<string, EffectiveParticipant>): TranscriptMessage[] {
   const byId = new Map<string, EffectiveParticipant>();
   for (const p of participants.values()) byId.set(p.id, p);
-  return eff.map((m) => {
+  return eff.filter((m) => m.kind === "TEXT").map((m) => {
     const p = byId.get(m.pid);
     const text = mediaTag(m);
     const name = p?.name ?? m.pid;

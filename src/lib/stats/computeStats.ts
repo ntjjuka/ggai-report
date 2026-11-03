@@ -268,9 +268,10 @@ export function computeStats(messages: Message[], map: ParticipantMap, uploaderI
     per.get(last.pid)!.sessionEnds += 1;
   }
 
+  const totalTextForShare = [...per.values()].reduce((a, p) => a + p.textMessages, 0);
   for (const p of per.values()) {
     p.avgLen = p.textMessages ? Math.round((p.chars / p.textMessages) * 10) / 10 : 0;
-    p.share = eff.length ? Math.round((p.messages / eff.length) * 1000) / 1000 : 0;
+    p.share = totalTextForShare ? Math.round((p.textMessages / totalTextForShare) * 1000) / 1000 : 0; // 텍스트 기준 (첨부 제외)
     const lat = latency.get(p.id)!;
     p.replyMedianSec = median(lat);
     p.replyP90Sec = percentile(lat, 0.9);
@@ -309,7 +310,7 @@ export function computeStats(messages: Message[], map: ParticipantMap, uploaderI
   const avgConsecutive: Record<string, number> = {};
   for (const [pid, c] of consecutive) avgConsecutive[pid] = c.runs ? Math.round((c.total / c.runs) * 100) / 100 : 0;
 
-  const perPerson = [...per.values()].sort((a, b) => b.messages - a.messages);
+  const perPerson = [...per.values()].sort((a, b) => b.textMessages - a.textMessages || b.messages - a.messages);
   const balance = computeBalance(perPerson, uploaderId);
 
   return {
@@ -438,7 +439,7 @@ function computeBalance(perPerson: PersonStat[], uploaderId: string | null): Cha
   const other = perPerson.find((p) => p.id !== ref);
   if (!me || !other) return null;
   const ratio = (a: number, b: number) => (a + b > 0 ? a / (a + b) : 0.5);
-  const messageRatio = ratio(me.messages, other.messages);
+  const messageRatio = ratio(me.textMessages, other.textMessages); // 텍스트 기준 (첨부 제외)
   const initiationRatio = ratio(me.initiations, other.initiations);
   const questionRatio = ratio(me.questions, other.questions);
   const replySpeedRatio =

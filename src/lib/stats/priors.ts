@@ -94,7 +94,7 @@ export function computePriors(stats: ChatStats, set: ScoreSet): ScorePrior[] {
     push("repair_reflex", null, "LLM: 갈등 후 복귀 사례");
     push("follow_through", null, "LLM: 계획 제안 → 실행 언급 비율");
   } else if (set === "GROUP") {
-    push("participation_balance", clamp((1 - gini(people.map((p) => p.messages))) * 100), "메시지 수 지니계수 역수");
+    push("participation_balance", clamp((1 - gini(people.map((p) => p.textMessages))) * 100), "텍스트 메시지 수 지니계수 역수");
     push("energy", energy, "활성일 비율·세션 길이");
     push("humor_density", humor, "ㅋ·이모티콘 밀도");
     push("plan_execution", null, "LLM: 계획 제안 → 실행");
@@ -105,7 +105,7 @@ export function computePriors(stats: ChatStats, set: ScoreSet): ScorePrior[] {
     push("responsiveness", replyScore(avgMed), "평균 답장 중앙값");
     push("clarity", null, "LLM");
     push("decision_speed", null, "LLM");
-    push("load_balance", clamp((1 - gini(people.map((p) => p.messages))) * 100), "메시지 분포");
+    push("load_balance", clamp((1 - gini(people.map((p) => p.textMessages))) * 100), "텍스트 메시지 분포");
     push("tone_safety", clamp(50 + humor * 0.3), "유머 밀도 보정");
   }
   return out;

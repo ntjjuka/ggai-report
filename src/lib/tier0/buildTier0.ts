@@ -64,14 +64,15 @@ export function buildTier0(stats: ChatStats, messages: Message[], seedKey: strin
       lines.push({ topic: "question", text: fill(LINES.question[0], { a: Math.max(q, 100 - q), b: Math.min(q, 100 - q) }) });
     }
   } else {
-    const sorted = [...people].sort((a, b) => b.messages - a.messages);
-    const topShare = pctOf((sorted[0]?.messages ?? 0) / Math.max(1, stats.total.messages));
+    const sorted = [...people].sort((a, b) => b.textMessages - a.textMessages);
+    const totalText = Math.max(1, stats.total.textMessages);
+    const topShare = pctOf((sorted[0]?.textMessages ?? 0) / totalText);
     let acc = 0;
     let active = 0;
     for (const p of sorted) {
-      acc += p.messages;
+      acc += p.textMessages;
       active += 1;
-      if (acc / Math.max(1, stats.total.messages) >= 0.9) break;
+      if (acc / totalText >= 0.9) break;
     }
     const ghost = stats.funFacts.ghost;
     if (ghost && active <= Math.ceil(n / 2)) {
@@ -118,7 +119,7 @@ export function buildTier0(stats: ChatStats, messages: Message[], seedKey: strin
   }
   lines.push({
     topic: "volume",
-    text: fill(pick(LINES.volume, seed, 9), { total: stats.total.messages.toLocaleString(), days: stats.period.days, perDay: Math.round(stats.total.messages / Math.max(1, stats.period.days)), active: stats.period.activeDays }),
+    text: fill(pick(LINES.volume, seed, 9), { total: stats.total.textMessages.toLocaleString(), days: stats.period.days, perDay: Math.round(stats.total.textMessages / Math.max(1, stats.period.days)), active: stats.period.activeDays }),
   });
 
   const badges = assignRuleBadges(stats).map((b) => ({ ...b, name: BADGE_BY_ID[b.badgeId].name, icon: BADGE_BY_ID[b.badgeId].icon }));

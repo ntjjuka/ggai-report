@@ -77,7 +77,7 @@ function render(card: StoryCard, colorOfName: (n: string) => string) {
     case "who_more_who_first":
       return (
         <>
-          <PastelCard tone="lavender" title="대화 지분">
+          <PastelCard tone="lavender" title="대화 지분 (텍스트 기준)">
             <div className="flex items-center gap-6">
               <Donut slices={[...card.share.map((s, i) => ({ pct: s.pct, color: colorFor(i) })), { pct: card.restPct, color: "#c9c0f0" }]} />
               <ul className="flex-1 space-y-1 text-sm">
