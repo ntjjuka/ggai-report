@@ -20,6 +20,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
     notFound();
   }
   const persona = process.env.PERSONA_NAME ?? "까비서";
+  const active = d.reports.find((r) => r.status === "QUEUED" || r.status === "RUNNING");
   return (
     <div className="space-y-8">
       <header>
@@ -89,7 +90,20 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         )}
       </section>
 
-      {d.rawAvailable && <NewReportForm conversationId={id} defaultFocus={d.defaultFocus} persona={persona} />}
+      {active ? (
+        <section className="card border-2 border-accent p-5">
+          <div className="text-xs font-bold text-muted">지금 만드는 중</div>
+          <div className="mt-1 font-extrabold">
+            No.{active.seq} · {active.status === "QUEUED" ? "줄 서는 중" : "작성 중"} {active.progressPct}%
+          </div>
+          <p className="mt-1 text-sm text-muted">대화 하나에 보고서는 한 번에 하나씩 만들어요. 긴 대화는 10분 넘게 걸릴 수 있어요. 끝나면 여기서 새 보고서를 만들 수 있어요.</p>
+          <Link href={`/c/${id}/reports/${active.seq}`} className="btn-primary mt-4 text-sm">
+            진행 상황 보기 · 취소하기
+          </Link>
+        </section>
+      ) : (
+        d.rawAvailable && <NewReportForm conversationId={id} defaultFocus={d.defaultFocus} persona={persona} />
+      )}
 
       <section className="border-t border-line pt-6">
         <DeleteConversationButton conversationId={id} />
