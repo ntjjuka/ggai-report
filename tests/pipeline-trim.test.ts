@@ -7,7 +7,7 @@ describe("trimChunkForSynthesis", () => {
     const v = {
       summary: "가".repeat(500),
       events: many(10).map((i) => ({ date: "2026-01-01", title: `e${i}`, summary: "", evidenceIds: ["m1"] })),
-      signals: ["p1", "p1", "p2", "p2", "p3"].map((pid, i) => ({ participantId: pid, interest: i, effort: i, toneLabel: "", reason: "", evidenceIds: [] })),
+      signals: ["p1", "p1", "p2", "p2", "p3"].map((pid, i) => ({ participantId: pid, interest: i, effort: i, toneLabel: "", reason: "", topics: ["a", "b", "c"], details: ["d1", "d2", "d3"], evidenceIds: ["m1", "m2"] })),
       highlights: many(9).map((i) => ({ messageId: `m${i}`, kind: "funny" as const, caption: "" })),
       keywords: many(12).map(String),
       roastMaterial: many(6).map((i) => ({ participantId: "p1", observation: `o${i}`, evidenceIds: [], device: "" })),
@@ -19,6 +19,9 @@ describe("trimChunkForSynthesis", () => {
     expect(t.summary.length).toBe(300);
     expect(t.events.length).toBe(4);
     expect(t.signals.map((s) => s.participantId)).toEqual(["p1", "p2", "p3"]);
+    expect(t.signals[0].topics).toEqual(["a", "b"]);
+    expect(t.signals[0].details).toEqual(["d1", "d2"]);
+    expect(t.signals[0].evidenceIds).toEqual(["m1"]);
     expect(t.highlights.length).toBe(4);
     expect(t.keywords.length).toBe(6);
     expect(t.roastMaterial.length).toBe(3);

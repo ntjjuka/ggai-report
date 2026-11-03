@@ -1,7 +1,7 @@
 // 보고서 서비스 — docs/06 §2, 상태 머신 QUEUED → RUNNING → SUCCEEDED | FAILED | CANCELED
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, isNotNull, lt, sql } from "drizzle-orm";
-import type { Focus, ReportContent, Tone } from "@/lib/report/schema";
+import type { Focus, ReportContent } from "@/lib/report/schema";
 import { getConfig } from "../config";
 import { randomToken, sha256Hex } from "../crypto";
 import { getDb, schema } from "../db";
@@ -102,7 +102,6 @@ export async function listReportSummaries(conversationId: string): Promise<Repor
 
 export interface CreateReportInput {
   focus: Focus;
-  tone: Tone;
   focusQuestion: string | null;
 }
 
@@ -174,7 +173,7 @@ export async function createReport(conversationId: string, ownerHash: string, in
         seq,
         status: "QUEUED",
         focus: input.focus,
-        tone: input.tone,
+        tone: "CASUAL", // 반말 고정 (2026-11-03 사용자 결정) — 컬럼은 호환을 위해 유지
         focusQuestion: input.focusQuestion?.trim() || null,
         personaName: cfg.PERSONA_NAME,
         participantSnapshot: snapshot,

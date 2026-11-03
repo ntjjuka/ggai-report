@@ -63,7 +63,7 @@
 ### 2.5 프롬프트 `tests/report.test.ts` — `describe "prompts"`
 | it | 검증 |
 |---|---|
-| `system prompt is byte-stable and has no volatile content` | 2회 호출 동일, 날짜(`YYYY-MM-DDT`)·UUID 패턴 없음, "까비서"·"반말" 포함, POLITE면 "존댓말" |
+| `system prompt is byte-stable and has no volatile content` | 2회 호출 동일, 날짜(`YYYY-MM-DDT`)·UUID 패턴 없음, "까비서"·"반말"·"존댓말은 쓰지 않는다"·"인물 페르소나"·"갤주"·"뻔함 금지" 포함 |
 | `synthesis prompt carries facts, priors, mood and question` | "DRY(건조)", 질문 문구, `<transcript>`, `participation_balance` 포함 |
 - 골든 문자열 스냅샷은 두지 않는다(변경 잦음).
 
@@ -91,7 +91,7 @@
 | 4 | `creates a report (QUEUED) and rejects a second active one` | `FRIEND_ONE`/`CASUAL`/질문 → `QUEUED`, `seq 1`; 두 번째 → 409 `REPORT_ALREADY_RUNNING` |
 | 5 | `runs the pipeline with the fake LLM and produces a full report` | `runReport` → `"done"`, `SUCCEEDED`, 헤드라인, 참여자 2(업로더 "민수"), 점수 5, 제안 3, 어워드 ≥3, 근거 텍스트·이름 채움, `answer.question`, `quality.mode SINGLE`, `costUsd ≥ 0`, `resolvedFocus FRIEND_ONE`, `llm_call_log`에 `SYNTHESIS OK` |
 | 6 | `re-running a succeeded report is skipped (ownership)` | 재실행 → `"skipped"` |
-| 7 | `fails with retryable error, then retries reusing checkpoints` | `seq 2`를 `rate_limit`로 실행 → `"failed"`, `LLM_UNAVAILABLE` retryable → `retryReport` → `QUEUED` → `ok`로 실행 → `SUCCEEDED`, `attemptCount 2`, `persona.tone POLITE` |
+| 7 | `fails with retryable error, then retries reusing checkpoints` | `seq 2`를 `rate_limit`로 실행 → `"failed"`, `LLM_UNAVAILABLE` retryable → `retryReport` → `QUEUED` → `ok`로 실행 → `SUCCEEDED`, `attemptCount 2`, 모든 참여자 `paragraphs ≥ 1` |
 | 8 | `hallucinated ids are dropped and counted; non-korean output is repaired` | `hallucinate_ids` → `quality.evidence.dropped ≥ 1`; `hanja` → 본문에 한자 0, `quality.repaired true` |
 | 9 | `cancels a queued report and the worker skips it` | 취소 → `CANCELED`; 워커 → `"skipped"`; 재취소 → 409 `INVALID_STATE` |
 | 10 | `recovers stale RUNNING reports` | 클레임 후 `heartbeat_at`을 10분 전으로 → `recoverStaleReports` `requeued 1` → `QUEUED` → 실행 `"done"` |

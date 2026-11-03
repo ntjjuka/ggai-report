@@ -240,7 +240,6 @@ export function DeleteReportButton({ reportId, conversationId }: { reportId: str
 export function NewReportForm({ conversationId, defaultFocus, persona }: { conversationId: string; defaultFocus: string; persona: string }) {
   const router = useRouter();
   const [focus, setFocus] = useState(defaultFocus);
-  const [tone, setTone] = useState<"CASUAL" | "POLITE">("CASUAL");
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -261,7 +260,7 @@ export function NewReportForm({ conversationId, defaultFocus, persona }: { conve
         setBusy(true);
         setMsg(null);
         try {
-          const r = await api<{ seq: number }>(`/api/v1/conversations/${conversationId}/reports`, { method: "POST", body: JSON.stringify({ focus, tone, focusQuestion: question.trim() || null }) });
+          const r = await api<{ seq: number }>(`/api/v1/conversations/${conversationId}/reports`, { method: "POST", body: JSON.stringify({ focus, focusQuestion: question.trim() || null }) });
           router.push(`/c/${conversationId}/reports/${r.seq}?show=writing`);
         } catch (err) {
           setMsg(err instanceof ClientApiError ? err.message : "요청에 실패했어요");
@@ -274,13 +273,6 @@ export function NewReportForm({ conversationId, defaultFocus, persona }: { conve
         {FOCUS.map(([k, l]) => (
           <button key={k} type="button" onClick={() => setFocus(k)} className={`rounded-full border px-3 py-1 text-sm ${focus === k ? "border-ink bg-ink text-white" : "border-line"}`}>
             {l}
-          </button>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        {(["CASUAL", "POLITE"] as const).map((t) => (
-          <button key={t} type="button" onClick={() => setTone(t)} className={`rounded-full border px-3 py-1 text-sm ${tone === t ? "border-ink bg-ink text-white" : "border-line"}`}>
-            {t === "CASUAL" ? "반말" : "존댓말"}
           </button>
         ))}
       </div>

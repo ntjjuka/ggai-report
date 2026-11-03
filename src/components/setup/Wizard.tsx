@@ -72,7 +72,6 @@ export default function Wizard({ persona, initialConversationId, backHref }: { p
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [uploader, setUploader] = useState<string | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
-  const [tone, setTone] = useState<"CASUAL" | "POLITE">("CASUAL");
   const [question, setQuestion] = useState("");
   const [mergePick, setMergePick] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -133,7 +132,7 @@ export default function Wizard({ persona, initialConversationId, backHref }: { p
       });
       const r = await api<{ seq: number }>(`/api/v1/conversations/${detail.conversationId}/reports`, {
         method: "POST",
-        body: JSON.stringify({ focus, tone, focusQuestion: question.trim() || null }),
+        body: JSON.stringify({ focus, focusQuestion: question.trim() || null }),
       });
       router.push(`/c/${detail.conversationId}/story?then=${encodeURIComponent(`/c/${detail.conversationId}/reports/${r.seq}?show=writing`)}`);
     } catch (e) {
@@ -403,15 +402,8 @@ export default function Wizard({ persona, initialConversationId, backHref }: { p
           <h1 className="text-2xl font-extrabold">{persona}한테 보고서를 부탁할게요</h1>
           <p className="mt-1 mb-6 text-sm text-muted">통계 보고서는 바로 나오고, {persona}의 보고서는 보통 2~5분, 긴 대화는 최대 10분 걸려요. 이 브라우저에서만 열 수 있으니 링크를 잃어버리지 마세요.</p>
           <div className="space-y-4">
-            <div className="card p-4">
-              <div className="mb-2 text-sm font-bold">말투</div>
-              <div className="flex gap-2">
-                {(["CASUAL", "POLITE"] as const).map((t) => (
-                  <button key={t} type="button" onClick={() => setTone(t)} className={`rounded-full border px-4 py-1.5 text-sm font-semibold ${tone === t ? "border-ink bg-ink text-white" : "border-line"}`}>
-                    {t === "CASUAL" ? "반말 (기본)" : "존댓말"}
-                  </button>
-                ))}
-              </div>
+            <div className="card p-4 text-sm text-muted">
+              {persona}는 반말로, 멤버 한 명 한 명을 대화 속 팩트로만 신랄하게 털어요. 사람이 아니라 행동을 깎고, 외모·건강 같은 건 건드리지 않아요.
             </div>
             <div className="card p-4">
               <div className="mb-2 text-sm font-bold">{persona}한테 물어볼 것 (선택)</div>

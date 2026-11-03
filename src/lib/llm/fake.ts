@@ -37,10 +37,23 @@ export class FakeLlmClient implements LlmClient {
 
   private chunk(h: NonNullable<StageRequest<unknown>["hints"]>, idAt: (i: number) => string, bogus: string[]): ChunkExtraction {
     const ps = h.participantIds;
+    const ownOf = (p: string) => h.messageIds.filter((id) => h.speakerOf[id] === p);
     return {
       summary: "이 구간은 한쪽이 묻고 한쪽이 답하는 구조다. 계획은 나왔고 날짜는 안 나왔다.",
       events: [{ date: "2025-01-01", title: "계획이 처음 나온 날", summary: "누군가 '보자'고 했고 아무도 날짜를 안 박았다.", evidenceIds: [idAt(1), ...bogus] }],
-      signals: ps.map((p, i) => ({ participantId: p, interest: 70 - i * 20, effort: 65 - i * 25, toneLabel: i === 0 ? "적극" : "건조", reason: "선톡과 질문 빈도", evidenceIds: [idAt(2 + i)] })),
+      signals: ps.map((p, i) => {
+        const own = ownOf(p);
+        return {
+          participantId: p,
+          interest: 70 - i * 20,
+          effort: 65 - i * 25,
+          toneLabel: i === 0 ? "적극" : "건조",
+          reason: "선톡과 질문 빈도",
+          topics: i === 0 ? ["주말 약속", "카페"] : ["ㅇㅇ", "나중에"],
+          details: own.length ? [`'보자'를 먼저 꺼내고 날짜는 안 냄(${own[0]})`] : [],
+          evidenceIds: own.length ? [own[0]] : [idAt(2 + i)],
+        };
+      }),
       highlights: [
         { messageId: idAt(3), kind: "funny", caption: "여기서 둘 다 웃었다" },
         { messageId: idAt(5), kind: "awkward", caption: "답이 하루 늦게 왔다" },
@@ -55,29 +68,40 @@ export class FakeLlmClient implements LlmClient {
 
   private synthesis(h: NonNullable<StageRequest<unknown>["hints"]>, idAt: (i: number) => string, bogus: string[], hanja: string, forbidden: string, hasQuestion = false): ReportDraft {
     const ps = h.participantIds;
-    const participants = (this.scenario === "missing_participant" ? ps.slice(0, Math.max(1, ps.length - 1)) : ps).map((p, i) => {
+    const participants: ReportDraft["participants"] = (this.scenario === "missing_participant" ? ps.slice(0, Math.max(1, ps.length - 1)) : ps).map((p, i) => {
       const own = h.messageIds.filter((id) => h.speakerOf[id] === p);
-      const ev = own.length ? [own[Math.floor(own.length / 2)]] : [];
+      const q1 = own.length ? [own[Math.floor(own.length / 2)]] : [];
+      const q2 = own.length > 1 ? [own[own.length - 1]] : [];
       return {
         participantId: p,
-        nickname: i === 0 ? "먼저 켜는 사람" : i === 1 ? "좋지 머신" : `조용한 ${i + 1}번`,
-        role: i === 0 ? "판을 들고 있는 사람" : i === 1 ? "판을 쥔 사람" : "사라지는 사람",
-        statement: i === 0 ? `${p}는 묻고 기다린다. 대화의 전원 버튼은 이 사람 손에 있다${hanja}.` : `${p}는 '좋지'로 받고 날짜는 안 낸다${forbidden}.`,
-        softLanding: "그래도 먼저 '보자'고 한 적이 있어. 그거 할 줄 아는 사람이면 다 할 수 있어.",
+        emoji: i === 0 ? "🔌" : i === 1 ? "🛋️" : "👻",
+        title: i === 0 ? "질문은 던지고 답은 기다리는 '전원 버튼 담당'" : i === 1 ? "'좋지'는 즉답이고 날짜는 무응답인 '좋지 머신'" : `접속은 하고 글은 안 쓰는 '눈팅 ${i + 1}호'`,
+        nickname: i === 0 ? "전원 버튼 담당" : i === 1 ? "좋지 머신" : `눈팅 ${i + 1}호`,
+        type: { label: i === 0 ? "떡밥 투척 갤주형" : i === 1 ? "프로 보류러형" : "눈팅족형", description: i === 0 ? "방이 조용하면 제일 먼저 질문을 던지고 답이 없으면 또 던진다." : "제안엔 1초 만에 '좋지'를 치고 날짜 얘기가 나오면 사라진다." },
+        topics: i === 0 ? ["주말 약속", "카페 투어", "수업 끝나고 뭐 하기"] : i === 1 ? ["ㅇㅇ", "나중에", "다음에 보자"] : ["생존 신고"],
+        paragraphs: [
+          {
+            text: i === 0 ? `${p}는 이 방의 갤주다. 떡밥은 다 이 사람이 던지고, 아무도 안 물면 본인이 물어서 끌고 간다. 대화의 전원 버튼이 이 사람 손에 있다는 걸 본인만 모른다${hanja}.` : `${p}는 '좋지'로 받고 날짜는 안 낸다. 제안이 오면 1초 컷으로 '좋지'를 치는데, 그 뒤에 날짜 얘기가 나오면 안읽씹 상태로 들어간다${forbidden}. 결론: 동의는 즉시, 실행은 외주.`,
+            quoteIds: q1,
+          },
+          {
+            text: i === 0 ? "웃긴 건 질문을 던지고 답이 오기 전에 다음 질문을 던진다는 점이다. 상대가 답을 고르는 동안 선택지가 두 배가 된다. 그래도 이 방이 아직 살아 있는 건 이 사람 덕분이라는 건 전원이 안다." : "그래도 먼저 '보자'고 한 적이 한 번은 있다. 그거 할 줄 아는 사람이면 날짜도 박을 수 있다.",
+            quoteIds: q2,
+          },
+        ],
         badgeIds: i === 0 ? ["first_texter"] : i === 1 ? ["slow_burner"] : [],
-        evidenceIds: ev,
       };
     });
     const num = h.numbers[0] ?? 71;
     const scores = h.scoreKeys.map((key, i) => ({ key, value: h.priors[key] ?? 50 + i * 7, oneLiner: `${key}: 숫자 ${h.numbers[i] ?? num} 기준. 보고 끝.`, confidence: "MEDIUM" as const }));
     return {
       verdict: {
+        reportTitle: "좋지 보고서: 동의는 즉시, 실행은 외주",
         headline: "둘 중 한 명만 연애 중이다",
         body: [
           `결론부터. 선톡 ${num}%는 한 사람 몫이야. 이건 대화가 아니라 방송이야.`,
           `그런데 ${idAt(4)}를 봐. 침묵을 깬 것도 같은 사람이야.`,
-          "진짜였던 건 초반이고, 바뀐 건 중반이야. 그 뒤로 역전이 없어.",
-          "그래도 둘이 웃는 건 진짜야. 문제는 마음이 아니라 손가락이야.",
+          "진짜였던 건 초반이고, 바뀐 건 중반이야. 그 뒤로 역전이 없어. 그래도 둘이 웃는 건 진짜야. 문제는 마음이 아니라 손가락이야.",
         ],
         relationType: { code: "ONE-WAY", label: "한쪽만 달리는 사이", description: "선톡·질문·답장 속도가 한쪽으로 기울어 있다." },
         confidence: "HIGH",
@@ -144,7 +168,10 @@ export class FakeLlmClient implements LlmClient {
     return {
       patches: paths.map((path) => {
         if (path === "verdict.headline") return { path, valueJson: JSON.stringify("둘 중 한 명만 연애 중이다") };
-        if (/^participants\[\d+\]\.statement$/.test(path)) return { path, valueJson: JSON.stringify(`선톡과 질문을 맡고 있다(${idAt(1)}).`) };
+        if (path === "verdict.reportTitle") return { path, valueJson: JSON.stringify("좋지 보고서: 동의는 즉시, 실행은 외주") };
+        if (/^participants\[\d+\]\.paragraphs\[\d+\]$/.test(path)) return { path, valueJson: JSON.stringify({ text: `선톡과 질문을 맡고 있다(${idAt(1)}). 수리된 문단이지만 화법은 유지한다.`, quoteIds: [] }) };
+        if (/^participants\[\d+\]\.paragraphs$/.test(path)) return { path, valueJson: JSON.stringify([{ text: `선톡과 질문을 맡고 있다(${idAt(1)}). 재료가 모자라 한 문단으로 보고한다.`, quoteIds: [] }]) };
+        if (/^participants\[\d+\]\.(title|nickname)$/.test(path)) return { path, valueJson: JSON.stringify("수리된 '별명'") };
         if (/^participants\[\d+\]$/.test(path)) return { path, valueJson: JSON.stringify(null) };
         if (/^findings\[\d+\]$/.test(path)) return { path, valueJson: JSON.stringify({ title: "수리된 발견", observed: "보인 것", interpretation: "해석", evidenceIds: [idAt(2)], confidence: "LOW", tags: [] }) };
         return { path, valueJson: JSON.stringify("수리됨") };

@@ -40,11 +40,11 @@ assembleReport(draft, ctx: AssembleContext): ReportContent
 
 // src/lib/llm
 interface LlmClient { provider; generateJson<T>(req: StageRequest<T>): Promise<StageResponse<T>>; countTokens(model, system, user) }
-buildSystemPrompt({ name, tone })   buildChunkUserPrompt(args)   buildSynthesisUserPrompt(args)   buildRepairUserPrompt(args)
+buildSystemPrompt({ name })   buildChunkUserPrompt(args)   buildSynthesisUserPrompt(args)   buildRepairUserPrompt(args)
 
 // src/server/services
 uploadConversation(input): Promise<{ detail: ConversationDetail; reused }>   confirmParticipants(id, ownerHash, cmd)   deleteConversation(id, ownerHash)
-createReport(conversationId, ownerHash, { focus, tone, focusQuestion }): Promise<ReportView>
+createReport(conversationId, ownerHash, { focus, focusQuestion }): Promise<ReportView>
 cancelReport / retryReport / enableShare / disableShare / deleteReport / getSharedReport
 claimReport / heartbeat / markSucceeded / markFailed / recoverStaleReports / cleanupStageResults   // 워커 전용
 

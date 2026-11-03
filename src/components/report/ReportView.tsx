@@ -31,6 +31,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
             {content.meta.period.from} ~ {content.meta.period.to} · {content.meta.period.days}일 · 메시지 {content.meta.messageCount.toLocaleString()}개
           </span>
         </div>
+        {content.verdict.reportTitle && <h1 className="text-3xl font-black leading-tight sm:text-4xl">{content.verdict.reportTitle}</h1>}
         <div className="flex flex-wrap gap-2">
           {content.meta.participants.map((p) => (
             <span key={p.id} className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1 text-sm font-semibold">
@@ -73,6 +74,82 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
           </p>
         )}
       </section>
+
+      {/* 1b 인물 페르소나 — 메인 코너 */}
+      <Section title={isGroup ? "멤버 페르소나 · 전원 해부" : "두 사람 페르소나"} sub={`${persona}가 대화 속 팩트로만 깎았어. 말풍선은 그 사람이 실제로 보낸 메시지야.`}>
+        <div className="space-y-5">
+          {content.participants.map((p) => {
+            const paragraphs = personaParagraphs(p);
+            return (
+              <article key={p.participantId} className="rounded-3xl border border-line bg-white p-5 sm:p-6" style={{ borderTopColor: colorOf(p.name), borderTopWidth: 5 }}>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-full bg-ink px-2 py-0.5 font-bold text-white">{p.type?.label || "미분류"}</span>
+                  <span className="text-muted">
+                    {p.name}
+                    {p.isUploader ? " (나)" : ""}
+                  </span>
+                </div>
+                <h4 className="mt-2 text-xl font-extrabold leading-snug sm:text-2xl">
+                  <span className="mr-1">{p.emoji}</span>
+                  <span style={{ color: colorOf(p.name) }}>{p.name}</span>
+                  <span className="text-muted">: </span>
+                  {p.title}
+                </h4>
+                {p.type?.description && (
+                  <p className="mt-1 text-sm text-muted">
+                    <T s={p.type.description} />
+                  </p>
+                )}
+                {p.topics?.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="font-bold text-muted">주로 떠든 얘기</span>
+                    {p.topics.map((t) => (
+                      <span key={t} className="rounded-full bg-pastel-lavender px-2 py-0.5 font-semibold text-[#3c2a7a]">
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 space-y-4">
+                  {paragraphs.map((par, i) => (
+                    <div key={i}>
+                      <p className="leading-relaxed">
+                        <T s={par.text} />
+                      </p>
+                      {par.quotes.length > 0 && (
+                        <div className="mt-2 flex flex-col items-start gap-2 pl-3 sm:pl-6">
+                          {par.quotes.map((e) => (
+                            <div key={e.messageId} className="bubble text-[14px]" title={e.at.replace("T", " ")}>
+                              <div className="text-xs font-bold" style={{ color: colorOf(e.participantName) }}>
+                                {e.participantName} · {e.at.slice(0, 10)}
+                              </div>
+                              {e.text}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {(p.badges.length > 0 || p.awardNames.length > 0) && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {p.badges.map((b) => (
+                      <span key={b.id} className="rounded-full bg-pastel-yellow px-2 py-0.5 text-xs font-semibold text-[#6b4f00]">
+                        {b.icon} {b.name}
+                      </span>
+                    ))}
+                    {p.awardNames.map((a) => (
+                      <span key={a} className="rounded-full bg-pastel-peach px-2 py-0.5 text-xs font-semibold text-[#7a3b12]">
+                        🏆 {a}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      </Section>
 
       {/* 2 진짜 역학 */}
       <Section title="진짜 역학" sub={isGroup ? "판을 들고 있는 사람 / 사라지는 사람 / 판을 쥔 사람" : undefined}>
@@ -178,43 +255,6 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
           </div>
         </Section>
       )}
-
-      {/* 4 인물별 의견 */}
-      <Section title={isGroup ? "모든 멤버에 대한 의견" : "두 사람에 대한 의견"}>
-        <div className="space-y-4">
-          {content.participants.map((p) => (
-            <div key={p.participantId} className="rounded-3xl border border-line p-5" style={{ borderTopColor: colorOf(p.name), borderTopWidth: 4 }}>
-              <div className="flex flex-wrap items-baseline gap-2">
-                <span className="text-xl font-extrabold">「{p.nickname}」</span>
-                <span className="text-sm text-muted">
-                  {p.name}
-                  {p.isUploader ? " (나)" : ""}
-                  {p.role ? ` · ${p.role}` : ""}
-                </span>
-              </div>
-              <p className="mt-2 leading-relaxed">
-                <T s={p.statement} />
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {p.badges.map((b) => (
-                  <span key={b.id} className="rounded-full bg-pastel-yellow px-2 py-0.5 text-xs font-semibold text-[#6b4f00]">
-                    {b.icon} {b.name}
-                  </span>
-                ))}
-                {p.awardNames.map((a) => (
-                  <span key={a} className="rounded-full bg-pastel-peach px-2 py-0.5 text-xs font-semibold text-[#7a3b12]">
-                    🏆 {a}
-                  </span>
-                ))}
-              </div>
-              <p className="mt-3 text-sm text-muted">
-                <T s={p.softLanding} />
-              </p>
-              <Evidence items={p.evidence} colorOf={colorOf} />
-            </div>
-          ))}
-        </div>
-      </Section>
 
       {/* 5 발견 */}
       {content.findings.length > 0 && (
@@ -404,6 +444,16 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
       </footer>
     </article>
   );
+}
+
+/** 2026-11-03 이전 보고서(statement/softLanding/evidence)도 새 카드로 그린다 */
+function personaParagraphs(p: ReportContent["participants"][number]): { text: string; quotes: EvidenceItem[] }[] {
+  if (Array.isArray(p.paragraphs) && p.paragraphs.length) return p.paragraphs;
+  const legacy = p as unknown as { statement?: string; softLanding?: string; evidence?: EvidenceItem[] };
+  const out: { text: string; quotes: EvidenceItem[] }[] = [];
+  if (legacy.statement) out.push({ text: legacy.statement, quotes: legacy.evidence ?? [] });
+  if (legacy.softLanding) out.push({ text: legacy.softLanding, quotes: [] });
+  return out;
 }
 
 /** 산문 속 m123 참조를 「발신자 「인용」」 칩으로. 근거 표에 없는 토큰은 숨긴다 (검증기가 이미 제거했어야 함). */

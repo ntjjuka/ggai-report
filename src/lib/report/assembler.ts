@@ -3,14 +3,13 @@ import { BADGE_BY_ID, assignRuleBadges } from "@/lib/tier0/badges";
 import { SCORE_LABELS, type ScoreKey, type ScorePrior } from "@/lib/stats/priors";
 import type { ChatStats } from "@/lib/stats/types";
 import { pickShareEmoji, pickSignature } from "./moods";
-import { DISCLAIMER, type Evidence, type Focus, type Mood, type ReportContent, type ReportDraft, type Tone } from "./schema";
+import { DISCLAIMER, type Evidence, type Focus, type Mood, type ReportContent, type ReportDraft } from "./schema";
 import { maskText, type EvidenceIndex } from "./transcript";
 import { collectInlineIds, mapProseStrings } from "./validator";
 
 export interface AssembleContext {
   reportId: string;
   personaName: string;
-  tone: Tone;
   mood: Mood;
   title: string;
   focus: Focus;
@@ -53,17 +52,19 @@ export function assembleReport(input: ReportDraft, ctx: AssembleContext): Report
     .map((p) => {
       const d = draft.participants.find((x) => x.participantId === p.id);
       const badgeIds = d && d.badgeIds.length ? d.badgeIds : ruleBadges.filter((b) => b.participantId === p.id).map((b) => b.badgeId);
+      const paragraphs = (d?.paragraphs ?? []).filter((par) => par.text.trim().length > 0).map((par) => ({ text: par.text, quotes: ev(par.quoteIds) }));
       return {
         participantId: p.id,
         name: p.name,
         isUploader: p.isUploader,
+        emoji: d?.emoji || "🫥",
+        title: d?.title || `아직 캐릭터를 못 잡은 '${p.name}'`,
         nickname: d?.nickname || p.name,
-        role: d?.role ?? "",
-        statement: d?.statement || "데이터가 부족해서 까비서가 판단을 보류했어. 숫자만 남긴다.",
-        softLanding: d?.softLanding || "다음 보고서에서 다시 볼게.",
+        type: { label: d?.type?.label || "미분류", description: d?.type?.description ?? "" },
+        topics: d?.topics ?? [],
+        paragraphs: paragraphs.length ? paragraphs : [{ text: `${ctx.personaName}가 이 사람은 판단을 보류했어. 텍스트 메시지가 ${ctx.stats.perPerson.find((x) => x.id === p.id)?.textMessages ?? 0}개라 캐릭터를 잡기엔 재료가 모자라. 숫자만 남긴다.`, quotes: [] }],
         badges: badgeIds.filter((id) => BADGE_BY_ID[id]).slice(0, 2).map((id) => ({ id, name: BADGE_BY_ID[id].name, icon: BADGE_BY_ID[id].icon })),
         awardNames: awardNamesByPid.get(p.id) ?? [],
-        evidence: ev(d?.evidenceIds ?? []),
       };
     });
 
@@ -90,7 +91,7 @@ export function assembleReport(input: ReportDraft, ctx: AssembleContext): Report
 
   return {
     schemaVersion: 1,
-    persona: { name: ctx.personaName, tone: ctx.tone },
+    persona: { name: ctx.personaName },
     mood: ctx.mood,
     meta: {
       title: ctx.title,

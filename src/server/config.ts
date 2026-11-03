@@ -6,7 +6,6 @@ const EnvSchema = z.object({
   APP_CRYPTO_KEY: z.string().min(1), // base64, 32 bytes
   APP_CRYPTO_KEY_ID: z.string().default("k1"),
   PERSONA_NAME: z.string().default("까비서"),
-  DEFAULT_TONE: z.enum(["CASUAL", "POLITE"]).default("CASUAL"),
   SCORES_ENABLED: z.string().default("true"),
   LLM_PROVIDER: z.enum(["anthropic", "fake"]).default("anthropic"),
   ANTHROPIC_API_KEY: z.string().optional(),

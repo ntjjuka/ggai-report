@@ -82,11 +82,11 @@ describe("end-to-end service flow", () => {
   });
 
   it("creates a report (QUEUED) and rejects a second active one", async () => {
-    const view = await createReport(conversationId, OWNER, { focus: "FRIEND_ONE", tone: "CASUAL", focusQuestion: "얘 나한테 관심 있어?" });
+    const view = await createReport(conversationId, OWNER, { focus: "FRIEND_ONE", focusQuestion: "얘 나한테 관심 있어?" });
     expect(view.status).toBe("QUEUED");
     expect(view.seq).toBe(1);
     firstReportId = view.reportId;
-    await expect(createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null })).rejects.toMatchObject({ code: "REPORT_ALREADY_RUNNING" });
+    await expect(createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null })).rejects.toMatchObject({ code: "REPORT_ALREADY_RUNNING" });
   });
 
   it("runs the pipeline with the fake LLM and produces a full report", async () => {
@@ -115,7 +115,7 @@ describe("end-to-end service flow", () => {
   });
 
   it("fails with retryable error, then retries reusing checkpoints", async () => {
-    const view = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "POLITE", focusQuestion: null });
+    const view = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     expect(view.seq).toBe(2);
     expect(await runReport(view.reportId, { llm: new FakeLlmClient("rate_limit") })).toBe("failed");
     const failed = await getReportBySeq(conversationId, 2, OWNER);
@@ -128,15 +128,16 @@ describe("end-to-end service flow", () => {
     const ok = await getReportBySeq(conversationId, 2, OWNER);
     expect(ok.status).toBe("SUCCEEDED");
     expect(ok.attemptCount).toBe(2);
-    expect(ok.content?.persona.tone).toBe("POLITE");
+    expect(ok.content?.persona.name).toBeTruthy();
+    expect(ok.content?.participants.every((p) => p.paragraphs.length >= 1)).toBe(true);
   });
 
   it("hallucinated ids are dropped and counted; non-korean output is repaired", async () => {
-    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     expect(await runReport(v.reportId, { llm: new FakeLlmClient("hallucinate_ids") })).toBe("done");
     const r = await getReportBySeq(conversationId, v.seq, OWNER);
     expect(r.content?.quality.evidence.dropped).toBeGreaterThanOrEqual(1);
-    const v2 = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v2 = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     expect(await runReport(v2.reportId, { llm: new FakeLlmClient("hanja") })).toBe("done");
     const r2 = await getReportBySeq(conversationId, v2.seq, OWNER);
     const text = JSON.stringify(r2.content);
@@ -145,7 +146,7 @@ describe("end-to-end service flow", () => {
   });
 
   it("cancels a queued report and the worker skips it", async () => {
-    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     const canceled = await cancelReport(v.reportId, OWNER);
     expect(canceled.status).toBe("CANCELED");
     expect(await runReport(v.reportId, { llm: new FakeLlmClient("ok") })).toBe("skipped");
@@ -153,7 +154,7 @@ describe("end-to-end service flow", () => {
   });
 
   it("recovers stale RUNNING reports", async () => {
-    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     const claimed = await claimReport(v.reportId);
     expect(claimed?.status).toBe("RUNNING");
     await getDb().execute(sql`UPDATE report SET heartbeat_at = now() - interval '10 minutes' WHERE id = ${v.reportId}`);
@@ -175,7 +176,7 @@ describe("end-to-end service flow", () => {
   });
 
   it("deletes a single report, but not while it is queued or running", async () => {
-    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     await expect(deleteReport(v.reportId, OWNER)).rejects.toMatchObject({ code: "INVALID_STATE" });
     await cancelReport(v.reportId, OWNER);
     await expect(deleteReport(v.reportId, OTHER_OWNER)).rejects.toMatchObject({ status: 404 });
@@ -188,7 +189,7 @@ describe("end-to-end service flow", () => {
   });
 
   it("bootstrap recovery re-enqueues a QUEUED report whose queue job is gone", async () => {
-    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     const before = (await getDb().select().from(schema.report).where(sql`id = ${v.reportId}`))[0];
     expect(before.jobId).toBeTruthy();
     const boss = await getBoss();
@@ -203,13 +204,13 @@ describe("end-to-end service flow", () => {
   });
 
   it("creating a report releases a dead worker's leftover active job (singleton conflict)", async () => {
-    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     const boss = await getBoss();
     const fetched = await boss.fetch(REPORT_QUEUE); // 워커처럼 잡을 가져가 active 로 만든다
     expect(fetched?.length ?? 0).toBeGreaterThanOrEqual(1);
     await claimReport(v.reportId);
     await markFailed(v.reportId, 1, "LLM_BAD_REQUEST"); // 보고서는 끝났지만 잡은 active 로 남음 (워커 사망 재현)
-    const next = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const next = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     expect(next.status).toBe("QUEUED");
     const row = (await getDb().select().from(schema.report).where(sql`id = ${next.reportId}`))[0];
     expect(row.jobId).toBeTruthy();
@@ -217,10 +218,10 @@ describe("end-to-end service flow", () => {
   });
 
   it("creating a report heals a dead RUNNING report (stale heartbeat) instead of 409", async () => {
-    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     await claimReport(v.reportId);
     await getDb().execute(sql`UPDATE report SET heartbeat_at = now() - interval '30 minutes' WHERE id = ${v.reportId}`);
-    await expect(createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null })).resolves.toMatchObject({ status: "QUEUED" });
+    await expect(createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null })).resolves.toMatchObject({ status: "QUEUED" });
     const old = await getReportBySeq(conversationId, v.seq, OWNER);
     expect(old.status).toBe("FAILED");
     expect(old.error?.code).toBe("STALE_TIMEOUT");
@@ -230,14 +231,14 @@ describe("end-to-end service flow", () => {
     expect(active.length).toBe(1);
     await cancelReport(active[0].reportId, OWNER);
     // 살아 있는(하트비트 최근) RUNNING은 그대로 409
-    const w = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const w = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     await claimReport(w.reportId);
-    await expect(createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null })).rejects.toMatchObject({ code: "REPORT_ALREADY_RUNNING" });
+    await expect(createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null })).rejects.toMatchObject({ code: "REPORT_ALREADY_RUNNING" });
     await cancelReport(w.reportId, OWNER);
   });
 
   it("requeues a RUNNING report immediately on worker shutdown (requeueRunning)", async () => {
-    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null });
     await claimReport(v.reportId);
     expect(await requeueRunning(v.reportId)).toBe(true);
     const row = await getReportBySeq(conversationId, v.seq, OWNER);
@@ -255,7 +256,7 @@ describe("end-to-end service flow", () => {
     expect(detail.status).toBe("RAW_EXPIRED");
     const old = await getReportBySeq(conversationId, 1, OWNER);
     expect(old.status).toBe("SUCCEEDED"); // 기존 보고서는 열림
-    await expect(createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null })).rejects.toMatchObject({ code: "RAW_EXPIRED" });
+    await expect(createReport(conversationId, OWNER, { focus: "AUTO", focusQuestion: null })).rejects.toMatchObject({ code: "RAW_EXPIRED" });
   });
 
   it("deletes everything with cascade", async () => {

@@ -4,8 +4,6 @@ import { z } from "zod";
 export const FOCUS = ["AUTO", "ROMANCE", "FRIENDS_GROUP", "FRIEND_ONE", "FAMILY", "WORK", "OTHER"] as const;
 export const FOCUS_LABEL: Record<(typeof FOCUS)[number], string> = { AUTO: "자동", ROMANCE: "연애", FRIENDS_GROUP: "친구 단톡방", FRIEND_ONE: "친구 한 명", FAMILY: "가족", WORK: "회사/팀", OTHER: "기타" };
 export type Focus = (typeof FOCUS)[number];
-export const TONE = ["CASUAL", "POLITE"] as const;
-export type Tone = (typeof TONE)[number];
 export const MOOD = ["DIRECT", "WARM", "DRY", "HYPED"] as const;
 export type Mood = (typeof MOOD)[number];
 export const MOOD_LABEL: Record<Mood, string> = { DIRECT: "직진", WARM: "다정", DRY: "건조", HYPED: "들뜸" };
@@ -30,7 +28,9 @@ export const ChunkExtractionSchema = z.object({
       effort: z.number().describe("노력 0~100"),
       toneLabel: z.string(),
       reason: z.string(),
-      evidenceIds: Ids,
+      topics: z.array(z.string()).describe("이 구간에서 이 사람이 주로 떠든 주제 1~3개, 구체 명사(상품·장소·사람·취미·불평거리)"),
+      details: z.array(z.string()).describe("본인이 직접 말한 구체 디테일 1~3개(소비·습관·사건·자랑·변명·말 vs 행동), 각 40자 이내, 끝에 메시지 ID 1개"),
+      evidenceIds: Ids.describe("이 사람 메시지 중 캐릭터가 가장 드러나는 것 1~2개 (m123 형식)"),
     }),
   ),
   highlights: z.array(z.object({ messageId: z.string(), kind: z.enum(MOMENT_KINDS), caption: z.string().describe("60자 이내") })),
@@ -45,7 +45,8 @@ export type ChunkExtraction = z.infer<typeof ChunkExtractionSchema>;
 // ── 종합 초안 (docs/07 §4.2) ─────────────────────────────────────────
 export const ReportDraftSchema = z.object({
   verdict: z.object({
-    headline: z.string().describe("40자 이내, 이모지 0, 숫자 1개 이하. 스크린샷용 한 문장 또는 조어 제목"),
+    reportTitle: z.string().describe("보고서 제목 조어 20~40자: 「○○ 보고서: 부제」 꼴. 이 방에서만 나올 수 있는 명사로"),
+    headline: z.string().describe("40자 이내, 이모지 0, 숫자 1개 이하. 스크린샷용 한 문장 판정"),
     body: z.array(z.string()).describe("3~4문단: 결론+숫자 / '그런데 m####를 봐' 반전 / 진짜였던 것·바뀐 것 / 애정 한 줄"),
     relationType: z.object({ code: z.string().describe("영문 4~8자"), label: z.string().describe("한국어 라벨"), description: z.string() }),
     confidence: Conf,
@@ -82,12 +83,21 @@ export const ReportDraftSchema = z.object({
   participants: z.array(
     z.object({
       participantId: z.string(),
-      nickname: z.string().describe("패턴·대화 속 표현에서 뽑은 별명"),
-      role: z.string(),
-      statement: z.string().describe("'○는 △ 대신 □를 한다' 꼴 선언문 1개, 근거 ID 포함"),
-      softLanding: z.string().describe("다정한 마지막 한 문장"),
+      emoji: z.string().describe("이 사람 캐릭터를 요약하는 이모지 1개"),
+      title: z.string().describe("칭호 20~45자: 「수식절 + '별명'」 꼴. 예: 회식 자리마다 다음 회식을 예약하는 '2차 사장'"),
+      nickname: z.string().describe("title 속 따옴표 별명만"),
+      type: z.object({
+        label: z.string().describe("이 방에서 이 사람의 유형 라벨 4~12자(…형/…파/…족), 예: 프로 불참러형"),
+        description: z.string().describe("그 유형이 이 대화에서 어떻게 드러나는지 한 문장"),
+      }),
+      topics: z.array(z.string()).describe("이 사람이 주로 떠든 주제 2~4개, 구체 명사(상품·장소·취미·불평거리·자랑거리). '일상'처럼 뭉개지 않는다"),
+      paragraphs: z.array(
+        z.object({
+          text: z.string().describe("로스트 문단 150~450자: 본인이 말한 구체 디테일 2~3개를 쌓고 마지막 절에서 꺾는다"),
+          quoteIds: Ids.describe("이 문단을 뒷받침하는 그 사람 메시지 0~2개. 서버가 문단 아래 말풍선으로 붙인다"),
+        }),
+      ).describe("2~3문단(참여자 9명 이상이면 텍스트 지분 상위 8명만 2~3문단, 나머지 1문단)"),
       badgeIds: z.array(z.string()).describe("뱃지 id 0~2개"),
-      evidenceIds: Ids,
     }),
   ),
   findings: z.array(
@@ -128,7 +138,7 @@ export interface Evidence {
 
 export interface ReportContent {
   schemaVersion: 1;
-  persona: { name: string; tone: Tone };
+  persona: { name: string };
   mood: Mood;
   meta: {
     title: string;
@@ -145,13 +155,20 @@ export interface ReportContent {
   firstMove: { initiator: { id: string; name: string } | null; pretender: { id: string; name: string } | null; body: string; evidence: Evidence[] };
   privateLanguage: { phrases: { phrase: string; meaning: string; evidence: Evidence[] }[]; runningJokes: { title: string; summary: string; evidence: Evidence[] }[] };
   weekChanged: Omit<ReportDraft["weekChanged"], "pivotMessageId" | "evidenceIds"> & { pivot: Evidence | null; evidence: Evidence[] };
-  participants: (Omit<ReportDraft["participants"][number], "evidenceIds" | "badgeIds"> & {
+  /** 인물 페르소나 — 보고서의 메인 코너. 문단마다 그 사람의 실제 메시지(quotes)를 말풍선으로 붙인다 */
+  participants: {
+    participantId: string;
     name: string;
     isUploader: boolean;
+    emoji: string;
+    title: string;
+    nickname: string;
+    type: { label: string; description: string };
+    topics: string[];
+    paragraphs: { text: string; quotes: Evidence[] }[];
     badges: { id: string; name: string; icon: string }[];
     awardNames: string[];
-    evidence: Evidence[];
-  })[];
+  }[];
   findings: (Omit<ReportDraft["findings"][number], "evidenceIds"> & { id: number; evidence: Evidence[] })[];
   whatIWouldDo: ReportDraft["whatIWouldDo"];
   awards: (Omit<ReportDraft["awards"][number], "evidenceIds"> & { participantName: string | null; evidence: Evidence[] })[];

@@ -34,8 +34,11 @@ export interface ValidationResult {
 }
 
 const NON_KOREAN_SCRIPT = /[一-鿿㐀-䶿぀-ヿ豈-﫿]/;
-const FORBIDDEN = /뚱(?:뚱|보|땡)|살\s?쪘|살이\s?쪄|못생|외모가|얼굴이\s?(?:별로|이상|못)|장애(?:인|자)?\b|정신병|우울증|조울증|ADHD|자살|죽어\s?버(?:려|리)|섹스|성관계|야한\s?(?:사진|얘기|영상)|흑인|동남아\s?(?:같|스럽)|게이\b|레즈|트랜스젠더|종교가\s?이상/;
-const COUNSELOR = /전반적으로|긍정적인\s?관계|소통이\s?(?:잘|부족)|성향(?:이|으로)\s?보|노력이\s?필요|관계(?:는|로)\s?보입니다/;
+const FORBIDDEN = /뚱(?:뚱|보|땡)|못생|외모가|얼굴이\s?(?:별로|이상|못)|장애(?:인|자)?\b|정신병|우울증|조울증|ADHD|자살|죽어\s?버(?:려|리)|섹스|성관계|야한\s?(?:사진|얘기|영상)|흑인|동남아\s?(?:같|스럽)|게이\b|레즈|트랜스젠더|종교가\s?이상/;
+const COUNSELOR = /전반적으로|긍정적인\s?관계|소통이\s?(?:잘|부족)|성향(?:이|으로)\s?보|노력이\s?필요|관계(?:는|로)\s?보입니다|인상적(?:이|인)|주목할\s?만한|흥미로운\s?(?:점|부분)|중요한\s?역할|다양한\s?주제/;
+const TITLE_MAX = 60;
+const TOPIC_MAX = 4;
+const PARAGRAPH_MAX = 3;
 const HEADLINE_MAX = 40;
 const SUBLINE_MAX = 30;
 
@@ -94,11 +97,26 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
     draft.weekChanged.before = `바뀐 주는 ${draft.weekChanged.weekLabel}다. ${draft.weekChanged.before}`.trim();
   }
 
-  // participants
+  // participants — 인물 페르소나: 문단별 인용은 그 사람이 보낸 메시지만, 문단 0개면 MISSING(수리 대상)
   const seen = new Set<string>();
   draft.participants = draft.participants
     .filter((p) => pidSet.has(p.participantId) && !seen.has(p.participantId) && seen.add(p.participantId))
-    .map((p) => ({ ...p, evidenceIds: keepIds(p.evidenceIds, p.participantId), badgeIds: [...new Set(p.badgeIds)].slice(0, 2) }));
+    .map((p) => ({
+      ...p,
+      emoji: firstGrapheme(p.emoji),
+      title: clip(p.title, TITLE_MAX),
+      nickname: p.nickname.trim(),
+      type: { label: clip(p.type?.label ?? "", 20), description: clip(p.type?.description ?? "", 160) },
+      topics: [...new Set((p.topics ?? []).map((t) => clip(t, 30)).filter(Boolean))].slice(0, TOPIC_MAX),
+      paragraphs: (p.paragraphs ?? [])
+        .map((par) => ({ text: (par.text ?? "").trim(), quoteIds: keepIds(par.quoteIds ?? [], p.participantId).slice(0, 2) }))
+        .filter((par) => par.text.length > 0)
+        .slice(0, PARAGRAPH_MAX),
+      badgeIds: [...new Set(p.badgeIds)].slice(0, 2),
+    }));
+  draft.participants.forEach((p, i) => {
+    if (p.paragraphs.length === 0) violations.push({ path: `participants[${i}].paragraphs`, reason: "MISSING", detail: `참여자 ${p.participantId} 문단 없음 — 1~3문단` });
+  });
   for (const pid of ctx.participantIds) {
     if (!seen.has(pid)) violations.push({ path: `participants[${pid}]`, reason: "MISSING", detail: `참여자 ${pid} 항목 없음` });
   }
@@ -111,7 +129,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
       metrics.lowFindings += 1;
     }
   });
-  if (draft.findings.length < 4) violations.push({ path: "findings", reason: "MISSING", detail: "4~6개 필요" });
+  if (draft.findings.length < 3) violations.push({ path: "findings", reason: "MISSING", detail: "3~5개 필요" });
   if (metrics.lowFindings >= 3) violations.push({ path: "findings", reason: "NO_EVIDENCE", detail: `근거 없는 발견 ${metrics.lowFindings}개` });
 
   // whatIWouldDo
@@ -162,6 +180,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
 
   // 숫자 소프트 검증 (품질 지표만)
   metrics.unverifiedNumbers = countUnverifiedNumbers([...draft.verdict.body, ...draft.dynamic.paragraphs, ...draft.findings.map((f) => f.observed)], ctx.allowedNumbers);
+  if ([...draft.verdict.reportTitle].length > TITLE_MAX) draft.verdict.reportTitle = clip(draft.verdict.reportTitle, TITLE_MAX);
 
   // 산문 속 인라인 메시지 ID("그런데 m8812를 봐"): 전사에 없는 ID는 제거하고 dropped로 센다 (docs/18 §4, docs/07 §6)
   const scrubbed = scrubInlineIds(draft, (id) => ctx.evidence.has(id), (ok) => {
@@ -170,6 +189,20 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
   });
 
   return { draft: scrubbed, violations: dedupeViolations(violations), metrics };
+}
+
+function clip(s: string, max: number): string {
+  const t = (s ?? "").trim();
+  const chars = [...t];
+  return chars.length > max ? chars.slice(0, max - 1).join("") + "…" : t;
+}
+
+/** 첫 글자(이모지 1개). 비어 있으면 기본 이모지 */
+export function firstGrapheme(s: string): string {
+  const t = (s ?? "").trim();
+  if (!t) return "🙂";
+  const seg = typeof Intl !== "undefined" && "Segmenter" in Intl ? [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(t)][0]?.segment : undefined;
+  return seg ?? [...t][0];
 }
 
 const INLINE_ID_TEST = /\bm\d+\b/;
@@ -281,15 +314,21 @@ export function enforceFinal(draft: ReportDraft, violations: Violation[]): Repor
     else if ((m = v.path.match(/^awards\[(\d+)\]/))) removeAward.add(Number(m[1]));
     else if ((m = v.path.match(/^verdict\.body\[(\d+)\]/))) out.verdict.body[Number(m[1])] = "";
     else if ((m = v.path.match(/^dynamic\.paragraphs\[(\d+)\]/))) out.dynamic.paragraphs[Number(m[1])] = "";
-    else if ((m = v.path.match(/^participants\[(\d+)\]\.(\w+)/))) {
+    else if ((m = v.path.match(/^participants\[(\d+)\]\.paragraphs\[(\d+)\]/))) {
+      const p = out.participants[Number(m[1])];
+      if (p?.paragraphs[Number(m[2])]) p.paragraphs[Number(m[2])] = { text: "", quoteIds: [] };
+    } else if ((m = v.path.match(/^participants\[(\d+)\]\.topics\[(\d+)\]/))) {
+      const p = out.participants[Number(m[1])];
+      if (p) p.topics[Number(m[2])] = "";
+    } else if ((m = v.path.match(/^participants\[(\d+)\]\.(\w+)/))) {
       const p = out.participants[Number(m[1])];
       if (p) {
-        if (m[2] === "statement") p.statement = "";
+        if (m[2] === "title") p.title = "";
         if (m[2] === "nickname") p.nickname = "";
-        if (m[2] === "softLanding") p.softLanding = "다음 보고서에서 다시 볼게.";
-        if (m[2] === "role") p.role = "";
+        if (m[2] === "type") p.type = { label: "", description: "" };
+        if (m[2] === "emoji") p.emoji = "🙂";
       }
-    } else if (v.path === "verdict.headline") out.verdict.headline = [...out.verdict.headline].slice(0, HEADLINE_MAX - 1).join("") + "…";
+    } else if (v.path === "verdict.reportTitle") out.verdict.reportTitle = ""; else if (v.path === "verdict.headline") out.verdict.headline = [...out.verdict.headline].slice(0, HEADLINE_MAX - 1).join("") + "…";
     else if ((m = v.path.match(/^whatIWouldDo\[(\d+)\]/))) out.whatIWouldDo[Number(m[1])] = { title: "보류", body: "내가 너라면 이 항목은 다음 보고서로 넘긴다.", deadline: "다음 보고서" };
     else if (v.path.startsWith("shareCard")) out.shareCard = { headline: out.verdict.headline, subline: "" };
     else if (v.path.startsWith("answer") && out.answer) out.answer = { ...out.answer, body: "질문에 대한 답은 검토 중 제외됐어. 다시 생성해 봐." };
@@ -307,6 +346,10 @@ export function enforceFinal(draft: ReportDraft, violations: Violation[]): Repor
   out.awards = out.awards.filter((_, i) => !removeAward.has(i));
   out.verdict.body = out.verdict.body.filter((p) => p.length > 0);
   out.dynamic.paragraphs = out.dynamic.paragraphs.filter((p) => p.length > 0);
+  for (const p of out.participants) {
+    p.paragraphs = p.paragraphs.filter((par) => par.text.length > 0);
+    p.topics = p.topics.filter(Boolean);
+  }
   return out;
 }
 

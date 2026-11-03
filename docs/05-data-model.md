@@ -20,7 +20,7 @@ pgboss.*                                   pg-boss 가 자체 스키마 `pgboss`
 - `report.status`: `QUEUED → RUNNING → SUCCEEDED | FAILED | CANCELED`. 되돌림 전이 2개: `FAILED → QUEUED`(사용자 재시도, `attempt_count < WORKER_MAX_ATTEMPTS`), `RUNNING → QUEUED`(stale 복구). `QUEUED|RUNNING → CANCELED`(취소·대화 삭제 선행).
 - `report.progress_stage`: `QUEUED | LOAD | STATS | RENDER | CHUNK | SYNTH | VALIDATE | DONE | FAILED`(04 §2.4). `PLAN`·`ASSEMBLE`은 별도 값이 없다.
 - `report.focus`: `default_focus`와 같은 7종. `report.resolved_focus`: `AUTO`를 제외한 6종 — `assembleReport`가 결정(AUTO가 아니면 그대로; AUTO면 3인+ → `FRIENDS_GROUP`, 2인은 LLM `relationType.code`가 `/ROM|LOVE|CRUSH|ONE|DATE|SITU/i`에 걸리면 `ROMANCE`, 아니면 `FRIEND_ONE`). 성공 시 `markSucceeded`가 저장.
-- `report.tone`: `CASUAL | POLITE`(`TONE`). `report.report_language`: 기본 `'ko'`, 현재 **쓰는 코드 없음**(위저드 언어 단계는 한국어만 활성, 17 결정 8의 자리만 확보). `report.visibility`: 기본 `'FULL'`, 코드에서 읽지 않음(13 ADR-12 플래그).
+- `report.tone`: 2026-11-03부터 **항상 `'CASUAL'`**(존댓말 옵션 삭제, ADR-10). 컬럼은 호환을 위해 유지하며 읽는 코드 없음. `report.report_language`: 기본 `'ko'`, 현재 **쓰는 코드 없음**(위저드 언어 단계는 한국어만 활성, 17 결정 8의 자리만 확보). `report.visibility`: 기본 `'FULL'`, 코드에서 읽지 않음(13 ADR-12 플래그).
 - `conversation.source_format`: `KAKAO_ANDROID_KO | KAKAO_IOS_DOTTED | KAKAO_PC_BRACKET | KAKAO_CSV | KAKAO_EN`.
 - `report_stage_result.stage`: `CHUNK | SYNTHESIS | REPAIR`. `chunk_index`: 청크 번호, 종합 `-1`, 수리 `-2`.
 - `llm_call_log.status`: `OK | CACHED | RETRYABLE_ERROR | FATAL_ERROR | REFUSAL | MAX_TOKENS`.

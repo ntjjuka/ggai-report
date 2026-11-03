@@ -132,7 +132,6 @@ db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scri
 | `APP_CRYPTO_KEY` | (필수, base64 32B) | ✓ | 원문 암호화 키 |
 | `APP_CRYPTO_KEY_ID` | `k1` | ✓ | `raw_key_id` |
 | `PERSONA_NAME` | `까비서` | ✓ | 보고서 `persona_name`, 프롬프트, UI(페이지는 `process.env.PERSONA_NAME`을 직접 읽음) |
-| `DEFAULT_TONE` | `CASUAL` | ✓ | 선언만 있고 **사용처 없음**(톤은 요청 바디 기본값 `CASUAL`) |
 | `SCORES_ENABLED` | `"true"` | ✓ | `"false"`면 점수 섹션 비활성(`scoresEnabled`) |
 | `LLM_PROVIDER` | `anthropic` | ✓ | `anthropic` / `fake` |
 | `ANTHROPIC_API_KEY` | - | ✓ | 없으면 경고만 하고 SDK 기본 자격증명 탐색에 의존 |

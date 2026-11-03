@@ -166,7 +166,6 @@ describe("validator + assembler", () => {
     const content = assembleReport(v.draft, {
       reportId: "r1",
       personaName: "까비서",
-      tone: "CASUAL",
       mood: pickMood("r1"),
       title: "테스트",
       focus: "AUTO",
@@ -182,6 +181,15 @@ describe("validator + assembler", () => {
     });
     expect(content.schemaVersion).toBe(1);
     expect(content.participants.length).toBe(s.parts.length); // 전원
+    // 인물 페르소나: 칭호·유형·주제·문단(말풍선은 그 사람 메시지만)
+    for (const p of content.participants) {
+      expect(p.title.length).toBeGreaterThan(0);
+      expect(p.type.label.length).toBeGreaterThan(0);
+      expect(p.paragraphs.length).toBeGreaterThanOrEqual(1);
+      for (const par of p.paragraphs) for (const q of par.quotes) expect(q.participantId).toBe(p.participantId);
+    }
+    expect(content.participants.some((p) => p.paragraphs.some((par) => par.quotes.length > 0))).toBe(true);
+    expect(content.verdict.reportTitle).toContain("보고서");
     expect(content.scores.length).toBe(5);
     expect(content.findings.every((f) => f.evidence.every((e) => e.text.length > 0))).toBe(true);
     expect(content.weekChanged.pivot?.text).toBeTruthy();
@@ -204,7 +212,6 @@ describe("validator + assembler", () => {
     const content = assembleReport(v.draft, {
       reportId: "r2",
       personaName: "까비서",
-      tone: "CASUAL",
       mood: pickMood("r2"),
       title: "테스트",
       focus: "AUTO",
@@ -221,7 +228,7 @@ describe("validator + assembler", () => {
     expect(content.inlineEvidence?.[valid]?.text.length).toBeGreaterThan(0);
     expect(content.inlineEvidence?.m999999).toBeUndefined();
     // 산문 속 participantId는 이름으로 치환, ID 전용 필드는 유지
-    const prose = [...content.verdict.body, content.firstMove.body, ...content.participants.map((p) => p.statement), ...content.findings.map((f) => f.observed)].join("\n");
+    const prose = [...content.verdict.body, content.firstMove.body, ...content.participants.flatMap((p) => [p.title, ...p.paragraphs.map((par) => par.text)]), ...content.findings.map((f) => f.observed)].join("\n");
     for (const p of s.parts) expect(prose.includes(p.id)).toBe(false);
     expect(content.participants.every((p) => s.parts.some((q) => q.id === p.participantId))).toBe(true);
   });
@@ -258,6 +265,30 @@ describe("validator + assembler", () => {
     expect(patched.findings.length).toBe(v.draft.findings.length - 1);
   });
 
+  it("drops persona quotes from other speakers, flags empty paragraphs, and enforceFinal blanks a forbidden paragraph", async () => {
+    const s = await fakeDraft("ok");
+    const ctx = { evidence: s.evidence, participantIds: s.parts.map((p) => p.id), isGroup: true, scoreKeys: [], priors: {}, scoresEnabled: false, allowedNumbers: new Set<number>() };
+    const target = s.draft.participants[0];
+    const other = s.transcript.find((m) => m.pid !== target.participantId)!;
+    target.paragraphs[0].quoteIds = [other.id, ...target.paragraphs[0].quoteIds];
+    s.draft.participants[1].paragraphs = [];
+    s.draft.participants[0].paragraphs[1].text = "이 사람은 뚱뚱해서 그래.";
+    s.draft.participants[0].topics = ["카페", "카페", "주말", "약속", "x", "y"];
+    const v = validateDraft(s.draft, ctx);
+    expect(v.draft.participants[0].paragraphs[0].quoteIds.includes(other.id)).toBe(false);
+    expect(v.draft.participants[0].topics).toEqual(["카페", "주말", "약속", "x"]);
+    expect(v.violations.some((x) => x.reason === "MISSING" && x.path === "participants[1].paragraphs")).toBe(true);
+    expect(v.violations.some((x) => x.reason === "FORBIDDEN_TOPIC" && x.path === "participants[0].paragraphs[1].text")).toBe(true);
+    const fixed = enforceFinal(v.draft, v.violations);
+    expect(fixed.participants[0].paragraphs.length).toBe(1);
+    // 본인이 떠든 다이어트 선언은 로스트 소재 — 금지어가 아니다
+    const ok = validateDraft({ ...s.draft, participants: s.draft.participants.map((p) => ({ ...p, paragraphs: [{ text: "살쪘다고 선언만 세 번 하고 마라탕을 시켰다.", quoteIds: [] }] })) }, ctx);
+    expect(ok.violations.some((x) => x.reason === "FORBIDDEN_TOPIC")).toBe(false);
+    // AI 티 어휘는 상담사 톤으로 잡는다
+    const ai = validateDraft({ ...s.draft, verdict: { ...s.draft.verdict, body: ["이 방의 소통은 전반적으로 인상적인 모습이다.", "둘째 문단."] } }, ctx);
+    expect(ai.violations.some((x) => x.reason === "COUNSELOR_TONE" && x.path === "verdict.body[0]")).toBe(true);
+  });
+
   it("clamps scores to prior ±40 and downgrades confidence", async () => {
     const s = await fakeDraft("ok");
     s.draft.scores = s.priors.map((p) => ({ key: p.key, value: 100, oneLiner: "x", confidence: "HIGH" as const }));
@@ -271,13 +302,17 @@ describe("validator + assembler", () => {
 
 describe("prompts", () => {
   it("system prompt is byte-stable and has no volatile content", () => {
-    const a = buildSystemPrompt({ name: "까비서", tone: "CASUAL" });
-    const b = buildSystemPrompt({ name: "까비서", tone: "CASUAL" });
+    const a = buildSystemPrompt({ name: "까비서" });
+    const b = buildSystemPrompt({ name: "까비서" });
     expect(a).toBe(b);
     expect(a).not.toMatch(/\d{4}-\d{2}-\d{2}T|[0-9a-f]{8}-[0-9a-f]{4}-/);
     expect(a).toContain("까비서");
     expect(a).toContain("반말");
-    expect(buildSystemPrompt({ name: "까비서", tone: "POLITE" })).toContain("존댓말");
+    expect(a).toContain("존댓말은 쓰지 않는다");
+    // 화법 개편: 인물 페르소나 메인, 커뮤니티 어법·밈 팔레트, 뻔한 비유 금지
+    expect(a).toContain("인물 페르소나");
+    expect(a).toContain("갤주");
+    expect(a).toContain("뻔함 금지");
   });
 
   it("synthesis prompt carries facts, priors, mood and question", () => {
@@ -289,7 +324,6 @@ describe("prompts", () => {
       messageCount: 14,
       participants: s.parts,
       focus: "AUTO",
-      tone: "CASUAL",
       mood: "DRY",
       question: "얘 나한테 관심 있어?",
       statsFacts: facts.map((f) => `- ${f.text}`).join("\n"),
@@ -305,5 +339,8 @@ describe("prompts", () => {
     expect(p).toContain("관심 있어?");
     expect(p).toContain("<transcript>");
     expect(p).toContain("participation_balance");
+    expect(p).toContain("participants (메인 코너");
+    const chunked = buildSynthesisUserPrompt({ title: "t", period: "p", messageCount: 1, participants: s.parts, focus: "AUTO", mood: "DRY", question: null, statsFacts: "", scorePriors: [], scoresEnabled: false, mode: "CHUNKED", transcript: null, chunkJson: "[]", highlightCandidates: "m1 10:00 a: x", personaCandidates: "p1=a:\nm1 10:00 a: x", badgeCatalog: "" });
+    expect(chunked).toContain("[인물별 인용 후보 원문");
   });
 });

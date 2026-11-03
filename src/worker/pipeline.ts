@@ -22,7 +22,6 @@ import {
   type Focus,
   type Mood,
   type ReportDraft,
-  type Tone,
   type TranscriptMessage,
 } from "@/lib/report";
 import { allowedNumbers, computePriors, computeStats, factsToText, pickScoreSet, renderStatsFacts, toEffectiveMessages } from "@/lib/stats";
@@ -100,7 +99,6 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     const participants = snapshot.map((s) => ({ id: s.id, name: s.name, isUploader: s.isUploader }));
     const uploaderId = snapshot.find((s) => s.isUploader)?.id ?? null;
     const focus = row.focus as Focus;
-    const tone = row.tone as Tone;
 
     // [2] STATS
     await progress("STATS", 10, `${persona}가 숫자를 세고 있어요 · ${messages.length.toLocaleString()}개 메시지`);
@@ -129,7 +127,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
       synthesisModel: cfg.LLM_SYNTHESIS_MODEL,
     });
     const participantsSig = participants.map((p) => `${p.id}=${p.name}${p.isUploader ? "*" : ""}`).join(",");
-    const system = buildSystemPrompt({ name: persona, tone });
+    const system = buildSystemPrompt({ name: persona });
     const systemHash = sha256(system).slice(0, 16);
     const scoreKeys = cfg.scoresEnabled ? priors.map((p) => p.key) : [];
     const hintsBase = {
@@ -222,13 +220,17 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     const chunkJson = plan.mode === "CHUNKED" ? JSON.stringify(okChunks.map((c) => ({ label: c.label, ...(dense ? trimChunkForSynthesis(c.value) : c.value) }))) : null;
     const perChunkHighlights = okChunks.length ? Math.max(2, Math.floor(160 / okChunks.length)) : 25;
     const highlightMessages = plan.mode === "CHUNKED" ? okChunks.flatMap((c) => c.highlights.slice(0, perChunkHighlights)) : [];
+    // 인물별 인용 후보: 청크 signals/roastMaterial이 가리킨 그 사람의 실제 메시지 (페르소나 문단 말풍선 재료, 사람당 상한)
+    const personaMessages = plan.mode === "CHUNKED" ? collectPersonaCandidates(okChunks.map((c) => c.value), participants.map((p) => p.id), evidence) : new Map<string, TranscriptMessage[]>();
+    const personaCandidates = personaMessages.size
+      ? [...personaMessages.entries()].map(([pid, msgs]) => `${pid}=${participants.find((p) => p.id === pid)?.name ?? pid}:\n${msgs.map(renderLine).join("\n")}`).join("\n")
+      : null;
     const synthUser = buildSynthesisUserPrompt({
       title: conv.title ?? "카카오톡 대화",
       period: `${stats.period.startedAt.slice(0, 10)} ~ ${stats.period.endedAt.slice(0, 10)}`,
       messageCount: stats.total.messages,
       participants,
       focus,
-      tone,
       mood,
       question: row.focusQuestion,
       statsFacts: factsToText(facts),
@@ -238,9 +240,10 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
       transcript: plan.mode === "SINGLE" ? renderTranscript(plan.chunks[0].messages) : null,
       chunkJson,
       highlightCandidates: highlightMessages.length ? highlightMessages.map(renderLine).join("\n") : null,
+      personaCandidates,
       badgeCatalog: BADGE_CATALOG,
     });
-    const synthIds = plan.mode === "SINGLE" ? plan.chunks[0].messages : highlightMessages;
+    const synthIds = plan.mode === "SINGLE" ? plan.chunks[0].messages : dedupeMessages([...highlightMessages, ...[...personaMessages.values()].flat()]);
     const synthKey = sha256(`${reportId}|SYNTHESIS|${systemHash}|${sha256(synthUser)}|${cfg.LLM_SYNTHESIS_MODEL}`);
     const synth = await callLlm<ReportDraft>(
       {
@@ -299,7 +302,6 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     const content = assembleReport(finalCheck.draft, {
       reportId,
       personaName: persona,
-      tone,
       mood,
       title: conv.title ?? "카카오톡 대화",
       focus,
@@ -333,7 +335,7 @@ export function trimChunkForSynthesis(v: ChunkExtraction): ChunkExtraction {
   return {
     summary: v.summary.slice(0, 300),
     events: v.events.slice(0, 4),
-    signals: v.signals.filter((s) => !seenSignal.has(s.participantId) && seenSignal.add(s.participantId)),
+    signals: v.signals.filter((s) => !seenSignal.has(s.participantId) && seenSignal.add(s.participantId)).map((s) => ({ ...s, topics: (s.topics ?? []).slice(0, 2), details: (s.details ?? []).slice(0, 2), evidenceIds: s.evidenceIds.slice(0, 1) })),
     highlights: v.highlights.slice(0, 4),
     keywords: v.keywords.slice(0, 6),
     roastMaterial: v.roastMaterial.slice(0, 3),
@@ -341,6 +343,52 @@ export function trimChunkForSynthesis(v: ChunkExtraction): ChunkExtraction {
     plans: v.plans.slice(0, 2),
     safetyFlags: v.safetyFlags,
   };
+}
+
+/** 인물별 인용 후보 수집: 청크 signals·roastMaterial의 근거 ID 중 그 사람이 보낸 메시지만, 시간순 고르게 샘플 (사람당 3~10개, 총 120개) */
+export function collectPersonaCandidates(chunks: ChunkExtraction[], participantIds: string[], evidence: Map<string, TranscriptMessage>, total = 120): Map<string, TranscriptMessage[]> {
+  const perPerson = Math.max(3, Math.min(10, Math.floor(total / Math.max(1, participantIds.length))));
+  const pool = new Map<string, TranscriptMessage[]>();
+  const seen = new Set<string>();
+  const add = (pid: string, ids: string[]) => {
+    for (const id of ids) {
+      const m = evidence.get(id);
+      if (!m || m.pid !== pid || seen.has(id)) continue;
+      seen.add(id);
+      const arr = pool.get(pid) ?? [];
+      arr.push(m);
+      pool.set(pid, arr);
+    }
+  };
+  for (const c of chunks) {
+    for (const sg of c.signals) add(sg.participantId, sg.evidenceIds);
+    for (const r of c.roastMaterial) add(r.participantId, r.evidenceIds);
+  }
+  const out = new Map<string, TranscriptMessage[]>();
+  for (const pid of participantIds) {
+    const arr = (pool.get(pid) ?? []).sort((a, b) => a.index - b.index);
+    if (arr.length === 0) continue;
+    if (arr.length <= perPerson) {
+      out.set(pid, arr);
+      continue;
+    }
+    const step = arr.length / perPerson;
+    const picked: TranscriptMessage[] = [];
+    for (let i = 0; i < perPerson; i++) picked.push(arr[Math.floor(i * step)]);
+    out.set(pid, picked);
+  }
+  return out;
+}
+
+function dedupeMessages(msgs: TranscriptMessage[]): TranscriptMessage[] {
+  const seen = new Set<string>();
+  const out: TranscriptMessage[] = [];
+  for (const m of msgs) {
+    if (seen.has(m.id)) continue;
+    seen.add(m.id);
+    out.push(m);
+  }
+  return out;
 }
 
 function classify(e: unknown): string {
@@ -359,7 +407,7 @@ function collectIds(draft: ReportDraft): string[] {
   push(draft.dynamic.evidenceIds);
   push(draft.weekChanged.evidenceIds);
   if (draft.weekChanged.pivotMessageId) ids.push(draft.weekChanged.pivotMessageId);
-  draft.participants.forEach((p) => push(p.evidenceIds));
+  draft.participants.forEach((p) => p.paragraphs.forEach((par) => push(par.quoteIds)));
   draft.findings.forEach((f) => push(f.evidenceIds));
   draft.awards.forEach((a) => push(a.evidenceIds));
   draft.moments.forEach((m) => push(m.messageIds));

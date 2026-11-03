@@ -24,7 +24,7 @@ code=$(curl -s -o "$OUT/confirm.json" -w "%{http_code}" -b "$JAR" -H 'Content-Ty
 [ "$code" = "200" ] || { echo "confirm failed: $code"; cat "$OUT/confirm.json"; exit 1; }
 
 echo "3) create report"
-code=$(curl -s -o "$OUT/rep.json" -w "%{http_code}" -b "$JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/v1/conversations/$CID/reports" -d '{"focus":"FRIEND_ONE","tone":"CASUAL","focusQuestion":"얘 나한테 관심 있어?"}')
+code=$(curl -s -o "$OUT/rep.json" -w "%{http_code}" -b "$JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/v1/conversations/$CID/reports" -d '{"focus":"FRIEND_ONE","focusQuestion":"얘 나한테 관심 있어?"}')
 [ "$code" = "202" ] || { echo "create failed: $code"; cat "$OUT/rep.json"; exit 1; }
 SEQ=$(j "$OUT/rep.json" "['seq']")
 RID=$(j "$OUT/rep.json" "['reportId']")
@@ -56,7 +56,7 @@ code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/v1/shared/$TOKEN")
 [ "$code" = "404" ] || { echo "share disable failed: $code"; exit 1; }
 
 echo "5b) single report delete (409 while queued → cancel → 204 → 404)"
-code=$(curl -s -o "$OUT/rep2.json" -w "%{http_code}" -b "$JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/v1/conversations/$CID/reports" -d '{"focus":"AUTO","tone":"CASUAL","focusQuestion":null}')
+code=$(curl -s -o "$OUT/rep2.json" -w "%{http_code}" -b "$JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/v1/conversations/$CID/reports" -d '{"focus":"AUTO","focusQuestion":null}')
 [ "$code" = "202" ] || { echo "second report failed: $code"; cat "$OUT/rep2.json"; exit 1; }
 RID2=$(j "$OUT/rep2.json" "['reportId']")
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -X DELETE "$BASE/api/v1/reports/$RID2")

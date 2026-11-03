@@ -22,7 +22,6 @@ import {
   validateDraft,
   type Focus,
   type ReportDraft,
-  type Tone,
 } from "@/lib/report";
 import { allowedNumbers, computePriors, computeStats, factsToText, pickScoreSet, renderStatsFacts, toEffectiveMessages, type ParticipantMap } from "@/lib/stats";
 import { BADGES } from "@/lib/tier0";
@@ -33,7 +32,6 @@ const env = (k: string, d: string) => process.env[k] ?? d;
 const PROVIDER = env("LLM_PROVIDER", "fake");
 const MODEL = env("LLM_SYNTHESIS_MODEL", "claude-opus-5-5");
 const PERSONA = env("PERSONA_NAME", "까비서");
-const TONE = env("EVAL_TONE", "CASUAL") as Tone;
 const FOCUS = env("EVAL_FOCUS", "AUTO") as Focus;
 const QUESTION = process.env.EVAL_QUESTION ?? null;
 const DEFAULT_FILES = ["docs/fixtures/android_ko_basic.txt", "docs/fixtures/ios_dotted_24h.txt", "docs/fixtures/group_30people.txt"];
@@ -73,14 +71,13 @@ async function evalFile(llm: LlmClient, file: string, outDir: string) {
     return null;
   }
   const mood = pickMood(file);
-  const system = buildSystemPrompt({ name: PERSONA, tone: TONE });
+  const system = buildSystemPrompt({ name: PERSONA });
   const user = buildSynthesisUserPrompt({
     title: chat.title ?? basename(file),
     period: `${stats.period.startedAt.slice(0, 10)} ~ ${stats.period.endedAt.slice(0, 10)}`,
     messageCount: stats.total.messages,
     participants: parts,
     focus: FOCUS,
-    tone: TONE,
     mood,
     question: QUESTION,
     statsFacts: factsToText(facts),
@@ -120,7 +117,6 @@ async function evalFile(llm: LlmClient, file: string, outDir: string) {
   const content = assembleReport(v2.draft, {
     reportId: `eval-${basename(file)}`,
     personaName: PERSONA,
-    tone: TONE,
     mood,
     title: chat.title ?? basename(file),
     focus: FOCUS,
@@ -140,7 +136,7 @@ async function evalFile(llm: LlmClient, file: string, outDir: string) {
     ...content.verdict.body,
     ...content.dynamic.paragraphs,
     content.firstMove.body,
-    ...content.participants.map((p) => `${p.statement} ${p.softLanding}`),
+    ...content.participants.flatMap((p) => [p.title, ...p.paragraphs.map((par) => par.text)]),
     ...content.findings.map((f) => `${f.observed} ${f.interpretation}`),
     ...content.whatIWouldDo.map((w) => w.body),
   ].join("\n");
@@ -168,6 +164,16 @@ async function evalFile(llm: LlmClient, file: string, outDir: string) {
       jokes: content.privateLanguage.runningJokes.length,
       weekChanged: content.weekChanged.exists,
     },
+    persona: {
+      people: content.participants.length,
+      avgParagraphs: content.participants.length ? Math.round((content.participants.reduce((a, p) => a + p.paragraphs.length, 0) / content.participants.length) * 10) / 10 : 0,
+      avgParagraphLen: (() => {
+        const all = content.participants.flatMap((p) => p.paragraphs.map((par) => [...par.text].length));
+        return all.length ? Math.round(all.reduce((a, b) => a + b, 0) / all.length) : 0;
+      })(),
+      withQuotes: content.participants.filter((p) => p.paragraphs.some((par) => par.quotes.length > 0)).length,
+      typeLabels: content.participants.map((p) => p.type.label),
+    },
     voice: {
       avgSentenceLen: avgLen,
       counselorHits: (prose.match(COUNSELOR) ?? []).length,
@@ -184,6 +190,7 @@ async function evalFile(llm: LlmClient, file: string, outDir: string) {
   console.log(`  모델 ${summary.model} · ${summary.latencyMs}ms · in ${res.usage.input} / out ${res.usage.output} / cacheRead ${res.usage.cacheRead} · $${costUsd.toFixed(4)}`);
   console.log(`  위반: ${JSON.stringify(summary.violations)} · 근거 ${v2.metrics.evidenceTotal - v2.metrics.evidenceDropped}/${v2.metrics.evidenceTotal} · 근거 없는 발견 ${v2.metrics.lowFindings} · 미검증 숫자 ${v2.metrics.unverifiedNumbers}`);
   console.log(`  섹션: ${JSON.stringify(summary.sections)}`);
+  console.log(`  페르소나: ${summary.persona.people}명 · 평균 ${summary.persona.avgParagraphs}문단 · 문단 평균 ${summary.persona.avgParagraphLen}자 · 말풍선 있는 사람 ${summary.persona.withQuotes} · 유형 ${summary.persona.typeLabels.join("/")}`);
   console.log(`  화법: 평균 문장 ${avgLen}자 · 상담사 어휘 ${summary.voice.counselorHits} · 재고 라벨 ${summary.voice.stockHits} · 한자 ${summary.voice.hanja} · 헤드라인 이모지 ${summary.voice.emojiInHeadline} · 떡볶이 ${summary.voice.tteokbokki}`);
   return summary;
 }
@@ -194,7 +201,7 @@ function main(): Promise<void> {
   const outDir = join(tmpdir(), "ggai-eval");
   mkdirSync(outDir, { recursive: true });
   const llm = client();
-  console.log(`eval: provider=${llm.provider} model=${MODEL} tone=${TONE} focus=${FOCUS} files=${files.length}`);
+  console.log(`eval: provider=${llm.provider} model=${MODEL} focus=${FOCUS} files=${files.length}`);
   return files
     .reduce<Promise<void>>((p, f) => p.then(() => evalFile(llm, f, outDir)).then(() => undefined), Promise.resolve())
     .then(() => console.log(`\n결과 JSON: ${outDir}`));

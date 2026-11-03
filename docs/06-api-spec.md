@@ -91,9 +91,9 @@
 
 ### POST `/api/v1/conversations/{id}/reports` — JSON(바디 생략 가능)
 ```json
-{ "focus": "AUTO", "tone": "CASUAL", "focusQuestion": "얘 나한테 관심 있는 거 맞아?" }
+{ "focus": "AUTO", "focusQuestion": "얘 나한테 관심 있는 거 맞아?" }
 ```
-- 검증: `focus` 7종(기본 `AUTO`), `tone` `CASUAL|POLITE`(기본 `CASUAL`), `focusQuestion` ≤300자·nullable. 공백만이면 null 저장.
+- 검증: `focus` 7종(기본 `AUTO`), `focusQuestion` ≤300자·nullable. 공백만이면 null 저장. (`tone` 필드는 2026-11-03 삭제 — 보내도 무시된다. 응답의 `tone`은 항상 `"CASUAL"`)
 - 409: `RAW_EXPIRED`(원문 만료) · `NOT_ENOUGH_PARTICIPANTS`(스냅샷 2명 미만) · `REPORT_ALREADY_RUNNING`(이 대화에 `QUEUED|RUNNING` 존재). 429: 소유자 일일 10건.
 - 응답 `202 Accepted` = `ReportView & { statusUrl: "/api/v1/conversations/{id}/reports/{seq}" }` (`status: "QUEUED"`). 큐 투입에 실패하면 같은 응답이 `status: "FAILED"`, `error.code: "QUEUE_ERROR"`(retryable)로 온다.
 
