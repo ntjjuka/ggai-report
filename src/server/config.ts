@@ -1,0 +1,62 @@
+import { z } from "zod";
+
+const EnvSchema = z.object({
+  DATABASE_URL: z.string().min(1),
+  APP_BASE_URL: z.string().url().default("http://localhost:3000"),
+  APP_CRYPTO_KEY: z.string().min(1), // base64, 32 bytes
+  APP_CRYPTO_KEY_ID: z.string().default("k1"),
+  PERSONA_NAME: z.string().default("까비서"),
+  DEFAULT_TONE: z.enum(["CASUAL", "POLITE"]).default("CASUAL"),
+  SCORES_ENABLED: z.string().default("true"),
+  LLM_PROVIDER: z.enum(["anthropic", "fake"]).default("anthropic"),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  LLM_CHUNK_MODEL: z.string().default("claude-sonnet-5-5"),
+  LLM_SYNTHESIS_MODEL: z.string().default("claude-opus-5-5"),
+  LLM_FALLBACK_MODEL: z.string().default("claude-opus-4-8"),
+  LLM_SINGLE_PASS_MAX_TOKENS: z.coerce.number().default(150_000),
+  LLM_CHUNK_MAX_TOKENS: z.coerce.number().default(60_000),
+  LLM_MAX_TOTAL_TOKENS: z.coerce.number().default(1_500_000),
+  LLM_MAX_COST_USD: z.coerce.number().default(5),
+  LLM_CALL_TIMEOUT_MS: z.coerce.number().default(600_000),
+  UPLOAD_MAX_BYTES: z.coerce.number().default(50 * 1024 * 1024),
+  UPLOAD_MAX_MESSAGES: z.coerce.number().default(300_000),
+  UPLOAD_MIN_MESSAGES: z.coerce.number().default(30),
+  UPLOAD_MAX_PARTICIPANTS: z.coerce.number().default(60),
+  RAW_RETENTION_DAYS: z.coerce.number().default(7),
+  STAGE_RESULT_RETENTION_HOURS: z.coerce.number().default(24),
+  WORKER_CONCURRENCY: z.coerce.number().default(2),
+  WORKER_CHUNK_CONCURRENCY: z.coerce.number().default(3),
+  WORKER_STALE_MINUTES: z.coerce.number().default(3),
+  WORKER_MAX_ATTEMPTS: z.coerce.number().default(3),
+  WORKER_PIPELINE_TIMEOUT_MINUTES: z.coerce.number().default(25),
+  LIMIT_UPLOADS_PER_IP_PER_HOUR: z.coerce.number().default(10),
+  LIMIT_REPORTS_PER_OWNER_PER_DAY: z.coerce.number().default(10),
+  IP_HASH_SALT: z.string().default("ggai"),
+});
+
+export type AppConfig = z.infer<typeof EnvSchema> & { scoresEnabled: boolean; cryptoKey: Buffer };
+
+let cached: AppConfig | null = null;
+
+export function getConfig(): AppConfig {
+  if (cached) return cached;
+  const parsed = EnvSchema.safeParse(process.env);
+  if (!parsed.success) {
+    const missing = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ");
+    throw new Error(`환경 변수 설정 오류: ${missing}`);
+  }
+  const env = parsed.data;
+  const key = Buffer.from(env.APP_CRYPTO_KEY, "base64");
+  if (key.length !== 32) throw new Error("APP_CRYPTO_KEY 는 base64로 인코딩된 32바이트 키여야 합니다");
+  if (env.LLM_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+    // 키가 없으면 SDK가 다른 자격증명(ant auth 프로필)을 시도할 수 있으므로 경고만
+    console.warn("[config] ANTHROPIC_API_KEY 가 없습니다. SDK 기본 자격증명 탐색에 의존합니다. 로컬 실행은 LLM_PROVIDER=fake 를 권장합니다.");
+  }
+  cached = { ...env, scoresEnabled: env.SCORES_ENABLED !== "false", cryptoKey: key };
+  return cached;
+}
+
+/** 테스트에서 환경을 바꾼 뒤 재로드 */
+export function resetConfigForTests(): void {
+  cached = null;
+}

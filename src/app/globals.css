@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+  --color-ink: #111111;
+  --color-muted: #6b6b6b;
+  --color-line: #e6e6e6;
+  --color-paper: #ffffff;
+  --color-pastel-lavender: #e7ddff;
+  --color-pastel-pink: #ffd3e6;
+  --color-pastel-peach: #ffd8c2;
+  --color-pastel-mint: #c6f1e3;
+  --color-pastel-yellow: #fff0b3;
+  --color-pastel-beige: #f1e8dc;
+  --color-accent: #3b82f6;
+  --radius-card: 1.5rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 선택 카드·버튼 공통 */
+.card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line);
+  background: var(--color-paper);
+  box-shadow: 0 4px 0 0 #ededed;
+}
+.card-pastel {
+  border-radius: var(--radius-card);
+  padding: 1.25rem 1.5rem;
+}
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  background: var(--color-ink);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.9rem 1.5rem;
+  box-shadow: 0 4px 0 0 #000;
+  transition: transform 0.05s ease;
+}
+.btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 0 #000;
+}
+.btn-primary:disabled {
+  background: #9a9a9a;
+  box-shadow: 0 4px 0 0 #7a7a7a;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid var(--color-line);
+  background: #fff;
+  font-weight: 600;
+  padding: 0.8rem 1.25rem;
+}
+.option-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  text-align: left;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line);
+  background: #fff;
+  box-shadow: 0 5px 0 0 #ececec;
+  padding: 1.1rem 1.25rem;
+  transition: transform 0.05s ease;
+}
+.option-card:hover {
+  border-color: #cfcfcf;
+}
+.option-card:active,
+.option-card[data-selected="true"] {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 0 #ececec;
+  border-color: var(--color-ink);
+}
+.bubble {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 1rem;
+  background: #fff;
+  padding: 0.6rem 0.9rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 1px 0 0 #e9e2d6;
+}
+.progress-gradient {
+  background: linear-gradient(90deg, #7ee8c6, #6aa7ff, #b57bff);
+}
+.glow-card {
+  background: linear-gradient(135deg, #ff4d6d 0%, #ff8a3d 45%, #ffd23f 100%);
+}
