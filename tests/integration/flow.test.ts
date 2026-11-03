@@ -8,7 +8,7 @@ import { closeDb, getDb, schema } from "@/server/db";
 import { runMigrations } from "@/server/migrate";
 import { REPORT_QUEUE, getBoss, stopBoss } from "@/server/queue";
 import { confirmParticipants, deleteConversation, expireRawConversations, getConversationDetail, listOwnedConversations, uploadConversation } from "@/server/services/conversations";
-import { cancelReport, claimReport, createReport, deleteReport, disableShare, enableShare, getReportBySeq, getSharedReport, markFailed, recoverStaleReports, retryReport } from "@/server/services/reports";
+import { cancelReport, claimReport, createReport, deleteReport, disableShare, enableShare, getReportBySeq, getSharedReport, markFailed, recoverStaleReports, requeueRunning, retryReport } from "@/server/services/reports";
 import { runReport } from "@/worker/pipeline";
 
 const OWNER = "a".repeat(64);
@@ -234,6 +234,17 @@ describe("end-to-end service flow", () => {
     await claimReport(w.reportId);
     await expect(createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null })).rejects.toMatchObject({ code: "REPORT_ALREADY_RUNNING" });
     await cancelReport(w.reportId, OWNER);
+  });
+
+  it("requeues a RUNNING report immediately on worker shutdown (requeueRunning)", async () => {
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    await claimReport(v.reportId);
+    expect(await requeueRunning(v.reportId)).toBe(true);
+    const row = await getReportBySeq(conversationId, v.seq, OWNER);
+    expect(row.status).toBe("QUEUED");
+    expect(row.progress.message).toContain("다시 줄 서는 중");
+    expect(await requeueRunning(v.reportId)).toBe(false); // 이미 QUEUED
+    await cancelReport(v.reportId, OWNER);
   });
 
   it("expires raw text and blocks new reports afterwards", async () => {

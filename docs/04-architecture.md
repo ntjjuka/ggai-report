@@ -96,7 +96,7 @@ db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scri
 - 유지보수 루프(`worker/index.ts`, `setInterval`):
   | 주기 | 함수 | 동작 |
   |---|---|---|
-  | 60초 (+ 워커 기동 직후 bootstrap) | `recoverStaleReports` | ① `RUNNING AND heartbeat_at < now - WORKER_STALE_MINUTES(10)분`(bootstrap은 60초) → 옛 pg-boss 잡을 **cancel+deleteJob으로 비운 뒤** `attempt_count < WORKER_MAX_ATTEMPTS(3)`면 `QUEUED`로 되돌리고 다시 enqueue, 아니면 `FAILED(STALE_TIMEOUT)` ② `QUEUED`인데 잡이 없거나 끝난 상태(2분 이상, bootstrap은 즉시) → 다시 enqueue. 파이프라인은 30초마다 하트비트를 써서 수 분짜리 LLM 호출 중에도 오탐되지 않는다. `createReport`도 enqueue가 null(싱글톤 충돌)이면 그 대화의 끝난 보고서가 남긴 잡을 비우고 한 번 더 시도한다 |
+  | 60초 (+ 워커 기동 직후 bootstrap) | `recoverStaleReports` | ⓪ 워커가 SIGTERM을 받으면 처리 중이던 보고서를 **즉시** `QUEUED`로 되돌리고 재큐잉(`requeueRunning`) — 재배포 뒤 멈춤 없음 ① `RUNNING AND heartbeat_at < now - WORKER_STALE_MINUTES(3)분`(bootstrap은 60초) → 옛 pg-boss 잡을 **cancel+deleteJob으로 비운 뒤** `attempt_count < WORKER_MAX_ATTEMPTS(3)`면 `QUEUED`로 되돌리고 다시 enqueue, 아니면 `FAILED(STALE_TIMEOUT)` ② `QUEUED`인데 잡이 없거나 끝난 상태(2분 이상, bootstrap은 즉시) → 다시 enqueue. 파이프라인은 30초마다 하트비트를 써서 수 분짜리 LLM 호출 중에도 오탐되지 않는다. `createReport`도 enqueue가 null(싱글톤 충돌)이면 그 대화의 끝난 보고서가 남긴 잡을 비우고 한 번 더 시도한다 |
   | 10분 | `expireRawConversations` | `raw_cipher IS NOT NULL AND expires_at < now` → `raw_cipher=NULL, status='RAW_EXPIRED'` + `audit("RAW_EXPIRE")` |
   | 60분 | `cleanupStageResults` | `report_stage_result.created_at < now - STAGE_RESULT_RETENTION_HOURS(24)` 이고 보고서가 `SUCCEEDED`인 행 삭제 |
 - 워커 시작 시 `MIGRATE_ON_START !== "false"`면 `runMigrations`(05 §6)를 먼저 적용한다.
@@ -144,7 +144,7 @@ db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scri
 | `RAW_RETENTION_DAYS` | 7 | ✓ | `expires_at` |
 | `STAGE_RESULT_RETENTION_HOURS` | 24 | - | 체크포인트 보존 |
 | `WORKER_CONCURRENCY` / `WORKER_CHUNK_CONCURRENCY` | 2 / 3 | ✓ / - | 동시 보고서 / 보고서 내 동시 청크 |
-| `WORKER_STALE_MINUTES` / `WORKER_MAX_ATTEMPTS` / `WORKER_PIPELINE_TIMEOUT_MINUTES` | 10 / 3 / 25 | - | §4.1 |
+| `WORKER_STALE_MINUTES` / `WORKER_MAX_ATTEMPTS` / `WORKER_PIPELINE_TIMEOUT_MINUTES` | 3 / 3 / 25 | - | §4.1 |
 | `LIMIT_UPLOADS_PER_IP_PER_HOUR` / `LIMIT_REPORTS_PER_OWNER_PER_DAY` | 10 / 10 | ✓ | §4.6 |
 | `IP_HASH_SALT` | `ggai`(코드) · `change-me`(.env.example) | ✓ | IP 해시 솔트 |
 

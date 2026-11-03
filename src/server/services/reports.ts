@@ -400,6 +400,31 @@ export async function logLlmCall(data: { reportId: string; stage: string; chunkI
 
 /** 하트비트가 끊긴 RUNNING 보고서 복구: attempt<max → QUEUED 재투입, 아니면 FAILED(STALE_TIMEOUT) */
 /**
+ * 워커가 종료(재시작·배포)될 때 자기가 처리 중이던 보고서를 즉시 QUEUED로 되돌린다.
+ * 하트비트 타임아웃을 기다리지 않으므로 재배포 뒤 10분씩 멈춰 보이는 일이 없다. 잡은 비우고 다시 넣는다(실패하면 bootstrap 복구가 집어 간다).
+ */
+export async function requeueRunning(reportId: string, reason = "워커 재시작으로 다시 줄 서는 중"): Promise<boolean> {
+  const db = getDb();
+  const rows = await db.select().from(schema.report).where(and(eq(schema.report.id, reportId), eq(schema.report.status, "RUNNING"))).limit(1);
+  const r = rows[0];
+  if (!r) return false;
+  const updated = await db
+    .update(schema.report)
+    .set({ status: "QUEUED", heartbeatAt: null, progressStage: "QUEUED", progressMessage: reason, updatedAt: new Date() })
+    .where(and(eq(schema.report.id, reportId), eq(schema.report.status, "RUNNING"), eq(schema.report.attemptCount, r.attemptCount)))
+    .returning({ id: schema.report.id });
+  if (!updated[0]) return false;
+  await releaseReportJob(r.jobId);
+  try {
+    const jobId = await enqueueReportJob(reportId, r.conversationId);
+    await db.update(schema.report).set({ jobId: jobId ?? null }).where(eq(schema.report.id, reportId));
+  } catch {
+    /* 큐가 이미 닫혔으면 다음 워커의 bootstrap 복구(QUEUED + 잡 없음 → 즉시 재큐잉)가 처리 */
+  }
+  return true;
+}
+
+/**
  * 멈춘 보고서 복구 (워커 60초 주기 + 기동 직후 bootstrap).
  * - RUNNING인데 하트비트가 끊김(워커 사망·재시작): 옛 잡을 큐에서 비우고 QUEUED로 되돌려 다시 enqueue
  * - QUEUED인데 살아 있는 잡이 없음(싱글톤 충돌로 enqueue가 null이었거나 잡이 만료·삭제됨): 다시 enqueue

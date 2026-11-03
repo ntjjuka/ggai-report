@@ -34,7 +34,7 @@ const EnvSchema = z.object({
   STAGE_RESULT_RETENTION_HOURS: z.coerce.number().default(24),
   WORKER_CONCURRENCY: z.coerce.number().default(2),
   WORKER_CHUNK_CONCURRENCY: z.coerce.number().default(8), // 청크 병렬 수. 429가 잦으면 낮춘다
-  WORKER_STALE_MINUTES: z.coerce.number().default(10), // 주기 하트비트 30초 기준. 긴 LLM 호출(수 분)을 오탐하지 않게
+  WORKER_STALE_MINUTES: z.coerce.number().default(3), // 하트비트 30초 주기 → 3분이면 6번 놓친 것. 강제 종료(kill -9) 뒤 복구 지연 상한
   WORKER_MAX_ATTEMPTS: z.coerce.number().default(3),
   WORKER_PIPELINE_TIMEOUT_MINUTES: z.coerce.number().default(25),
   LIMIT_UPLOADS_PER_IP_PER_HOUR: z.coerce.number().default(10),
