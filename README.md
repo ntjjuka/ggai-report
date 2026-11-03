@@ -61,7 +61,7 @@ docker compose up --build
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 워커 로그에 `The compiled grammar is too large` | 종합 단계의 구조화 출력 스키마가 API 문법 한도를 넘음 | 수정됨: 종합 단계는 JSON 모드(스키마를 프롬프트에 첨부, 서버에서 zod 검증)로 호출 |
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 로그에 `401` / `authentication_error` | `ANTHROPIC_API_KEY`가 틀리거나 비어 있음 | `.env`의 키 확인 후 `docker compose up -d --force-recreate worker` |
 | 보고서가 `LLM_BAD_REQUEST`로 실패, 로그에 `credit balance is too low` | Console 크레딧 부족 | console.anthropic.com → Billing 에서 충전 |
-| 새 보고서를 만들면 `이미 만들고 있는 보고서(No.N)가 있어요` | 워커 재시작·배포 중에 만들던 보고서가 QUEUED/RUNNING으로 남음 | 수정됨: 워커가 기동 직후 자동 복구. 당장은 그 보고서 화면의 "너무 오래 걸리면 취소하기"로 취소하거나, 아래 SQL로 정리 |
+| 새 보고서를 만들면 `이미 만들고 있는 보고서(No.N)가 있어요` | 워커 재시작·배포 중에 만들던 보고서가 QUEUED/RUNNING으로 남음 | 수정됨: 워커 기동 시 자동 복구 + 새 보고서 요청 시 죽은 보고서(하트비트 10분 끊김)는 web이 직접 정리. 그래도 나오면 실제로 진행 중인 것이니 대화 페이지 배너 → "진행 상황 보기" → "너무 오래 걸리면 취소하기". 배포 뒤에는 **web과 worker를 모두** 다시 빌드할 것(`docker compose up -d --build`) |
 
 멈춘 보고서를 손으로 정리하려면(워커가 멈춘 상태에서만):
 ```powershell

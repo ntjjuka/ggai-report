@@ -106,10 +106,52 @@ export interface CreateReportInput {
   focusQuestion: string | null;
 }
 
+/**
+ * 새 보고서 요청 직전, 이 대화의 "진행 중" 보고서가 사실상 죽은 상태면 정리한다 (웹 쪽 자가 치유 — 워커 버전·생존과 무관).
+ * - RUNNING인데 하트비트가 WORKER_STALE_MINUTES 넘게 끊김 → 잡 비우고 FAILED(STALE_TIMEOUT, 재시도 가능)
+ * - QUEUED인데 잡이 살아 있지 않음: 2분 넘었으면 다시 enqueue, 10분 넘었으면 FAILED(QUEUE_ERROR, 재시도 가능)
+ * 살아 있는 보고서는 건드리지 않으므로, 그 경우엔 그대로 409가 난다.
+ */
+export async function healStuckReports(conversationId: string, now = new Date()): Promise<{ failed: number; requeued: number }> {
+  const cfg = getConfig();
+  const db = getDb();
+  const rows = await db.select().from(schema.report).where(and(eq(schema.report.conversationId, conversationId), sql`${schema.report.status} IN ('QUEUED','RUNNING')`));
+  let failed = 0;
+  let requeued = 0;
+  for (const r of rows) {
+    if (r.status === "RUNNING") {
+      const staleAt = now.getTime() - cfg.WORKER_STALE_MINUTES * 60_000;
+      if (r.heartbeatAt && r.heartbeatAt.getTime() >= staleAt) continue;
+      await releaseReportJob(r.jobId);
+      await markFailed(r.id, r.attemptCount, "STALE_TIMEOUT", "워커 응답이 끊겨 중단됨 (새 보고서 요청 시 정리)");
+      failed += 1;
+      continue;
+    }
+    const state = await getReportJobState(r.jobId);
+    if (state === "created" || state === "retry" || state === "active") continue;
+    const ageMs = now.getTime() - r.updatedAt.getTime();
+    if (ageMs < 2 * 60_000) continue;
+    await releaseReportJob(r.jobId);
+    if (ageMs < 10 * 60_000) {
+      const jobId = await enqueueReportJob(r.id, r.conversationId).catch(() => null);
+      if (jobId) {
+        await db.update(schema.report).set({ jobId, updatedAt: now, progressMessage: "다시 줄 서는 중" }).where(eq(schema.report.id, r.id));
+        requeued += 1;
+        continue;
+      }
+    }
+    await markFailed(r.id, r.attemptCount, "QUEUE_ERROR", "큐에서 유실되어 중단됨 (새 보고서 요청 시 정리)");
+    failed += 1;
+  }
+  return { failed, requeued };
+}
+
 export async function createReport(conversationId: string, ownerHash: string, input: CreateReportInput): Promise<ReportView> {
   const cfg = getConfig();
   const db = getDb();
   await assertReportAllowed(ownerHash, cfg.LIMIT_REPORTS_PER_OWNER_PER_DAY);
+  const healed = await healStuckReports(conversationId);
+  if (healed.failed || healed.requeued) console.info(`[reports] healed stuck reports for ${conversationId}: failed=${healed.failed} requeued=${healed.requeued}`);
   const reportId = randomUUID();
   const created = await db.transaction(async (tx) => {
     const convRows = await tx.select().from(schema.conversation).where(and(eq(schema.conversation.id, conversationId), eq(schema.conversation.ownerTokenHash, ownerHash))).for("update");

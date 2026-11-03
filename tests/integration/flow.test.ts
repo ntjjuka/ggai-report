@@ -216,6 +216,26 @@ describe("end-to-end service flow", () => {
     await cancelReport(next.reportId, OWNER);
   });
 
+  it("creating a report heals a dead RUNNING report (stale heartbeat) instead of 409", async () => {
+    const v = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    await claimReport(v.reportId);
+    await getDb().execute(sql`UPDATE report SET heartbeat_at = now() - interval '30 minutes' WHERE id = ${v.reportId}`);
+    await expect(createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null })).resolves.toMatchObject({ status: "QUEUED" });
+    const old = await getReportBySeq(conversationId, v.seq, OWNER);
+    expect(old.status).toBe("FAILED");
+    expect(old.error?.code).toBe("STALE_TIMEOUT");
+    expect(old.error?.retryable).toBe(true);
+    const detail = await getConversationDetail(conversationId, OWNER);
+    const active = detail.reports.filter((r) => r.status === "QUEUED" || r.status === "RUNNING");
+    expect(active.length).toBe(1);
+    await cancelReport(active[0].reportId, OWNER);
+    // 살아 있는(하트비트 최근) RUNNING은 그대로 409
+    const w = await createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null });
+    await claimReport(w.reportId);
+    await expect(createReport(conversationId, OWNER, { focus: "AUTO", tone: "CASUAL", focusQuestion: null })).rejects.toMatchObject({ code: "REPORT_ALREADY_RUNNING" });
+    await cancelReport(w.reportId, OWNER);
+  });
+
   it("expires raw text and blocks new reports afterwards", async () => {
     await getDb().execute(sql`UPDATE conversation SET expires_at = now() - interval '1 day' WHERE id = ${conversationId}`);
     expect(await expireRawConversations()).toBe(1);
