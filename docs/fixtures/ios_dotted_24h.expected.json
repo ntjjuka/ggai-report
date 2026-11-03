@@ -1,0 +1,81 @@
+{
+ "title": "신우",
+ "sourceFormat": "KAKAO_IOS_DOTTED",
+ "messageCount": 5,
+ "participants": [
+  {
+   "rawName": "신우",
+   "messageCount": 3,
+   "firstAt": "2026-02-22T12:19",
+   "lastAt": "2026-02-23T00:06"
+  },
+  {
+   "rawName": "이마따전 🤯⚒️💙",
+   "messageCount": 2,
+   "firstAt": "2026-02-22T23:45",
+   "lastAt": "2026-02-23T09:00"
+  }
+ ],
+ "warnings": {
+  "orphanLines": 0,
+  "unknownSystemLines": 0,
+  "dateUnknownBeforeSeparator": 0,
+  "encodingFallback": false,
+  "dedupedCount": 0,
+  "nonMonotonicTimestamp": 0
+ },
+ "messages": [
+  {
+   "index": 0,
+   "at": "2026-02-22T12:19",
+   "sender": "신우",
+   "kind": "TEXT",
+   "text": "조식",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 1,
+   "at": "2026-02-22T23:45",
+   "sender": "이마따전 🤯⚒️💙",
+   "kind": "TEXT",
+   "text": "야식",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 2,
+   "at": "2026-02-23T00:05",
+   "sender": "신우",
+   "kind": "TEXT",
+   "text": "자정 넘김",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 3,
+   "at": "2026-02-23T00:06",
+   "sender": "신우",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 4,
+   "at": "2026-02-23T09:00",
+   "sender": "이마따전 🤯⚒️💙",
+   "kind": "TEXT",
+   "text": "https://example.com/a/b 봐봐 @신우",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": [
+    "신우"
+   ]
+  }
+ ]
+}

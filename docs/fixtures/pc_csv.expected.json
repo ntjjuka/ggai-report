@@ -1,0 +1,69 @@
+{
+ "title": null,
+ "sourceFormat": "KAKAO_CSV",
+ "messageCount": 4,
+ "participants": [
+  {
+   "rawName": "김민지",
+   "messageCount": 2,
+   "firstAt": "2026-01-01T12:00",
+   "lastAt": "2026-01-01T12:05"
+  },
+  {
+   "rawName": "박준호",
+   "messageCount": 2,
+   "firstAt": "2026-01-01T12:01",
+   "lastAt": "2026-01-02T09:30"
+  }
+ ],
+ "warnings": {
+  "orphanLines": 0,
+  "unknownSystemLines": 0,
+  "dateUnknownBeforeSeparator": 0,
+  "encodingFallback": false,
+  "dedupedCount": 0,
+  "nonMonotonicTimestamp": 0
+ },
+ "messages": [
+  {
+   "index": 0,
+   "at": "2026-01-01T12:00",
+   "sender": "김민지",
+   "kind": "TEXT",
+   "text": "새해 복 많이 받아, 진짜로",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 1,
+   "at": "2026-01-01T12:01",
+   "sender": "박준호",
+   "kind": "TEXT",
+   "text": "너도!! \"올해는\" 꼭 보자\n두 줄로 보내는 메시지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 2,
+   "at": "2026-01-01T12:05",
+   "sender": "김민지",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 3,
+   "at": "2026-01-02T09:30",
+   "sender": "박준호",
+   "kind": "TEXT",
+   "text": "https://example.com/path?x=1 이거 봐봐",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  }
+ ]
+}

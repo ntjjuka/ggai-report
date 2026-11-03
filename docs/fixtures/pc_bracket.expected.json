@@ -1,0 +1,207 @@
+{
+ "title": "산악회 단톡방",
+ "sourceFormat": "KAKAO_PC_BRACKET",
+ "messageCount": 16,
+ "participants": [
+  {
+   "rawName": "김모임",
+   "messageCount": 4,
+   "firstAt": "2026-10-01T19:01",
+   "lastAt": "2026-10-03T00:05"
+  },
+  {
+   "rawName": "이등산",
+   "messageCount": 5,
+   "firstAt": "2026-10-01T19:05",
+   "lastAt": "2026-10-03T18:05"
+  },
+  {
+   "rawName": "박산행",
+   "messageCount": 3,
+   "firstAt": "2026-10-01T19:06",
+   "lastAt": "2026-10-02T09:13"
+  },
+  {
+   "rawName": "최한라",
+   "messageCount": 1,
+   "firstAt": "2026-10-02T09:25",
+   "lastAt": "2026-10-02T09:25"
+  },
+  {
+   "rawName": "박산행 [별명]",
+   "messageCount": 1,
+   "firstAt": "2026-10-03T00:06",
+   "lastAt": "2026-10-03T00:06"
+  }
+ ],
+ "warnings": {
+  "orphanLines": 0,
+  "unknownSystemLines": 0,
+  "dateUnknownBeforeSeparator": 0,
+  "encodingFallback": false,
+  "dedupedCount": 0,
+  "nonMonotonicTimestamp": 0
+ },
+ "messages": [
+  {
+   "index": 0,
+   "at": "2026-10-01T19:01",
+   "sender": "김모임",
+   "kind": "TEXT",
+   "text": "이번 가을 정모 날짜 정해야 하는데 언제가 좋을까요",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 1,
+   "at": "2026-10-01T19:05",
+   "sender": "이등산",
+   "kind": "TEXT",
+   "text": "10월 18일 토요일 어때요? 단풍도 예쁠 때라",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 2,
+   "at": "2026-10-01T19:06",
+   "sender": "박산행",
+   "kind": "TEXT",
+   "text": "18일 좋습니다\n저도 그날 비어 있어요",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 3,
+   "at": "2026-10-01T19:10",
+   "sender": "김모임",
+   "kind": "TEXT",
+   "text": "그럼 10월 18일 토요일로 확정합니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 4,
+   "at": "2026-10-01T19:11",
+   "sender": "이등산",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 5,
+   "at": "2026-10-01T19:12",
+   "sender": "김모임",
+   "kind": "TEXT",
+   "text": "회비는 1인 2만원으로 할게요. 버스 대절비 포함입니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 6,
+   "at": "2026-10-01T19:20",
+   "sender": "이등산",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 7,
+   "at": "2026-10-02T09:02",
+   "sender": "박산행",
+   "kind": "TEXT",
+   "text": "수리산 등산로 입구 식당으로 예약 완료했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 8,
+   "at": "2026-10-02T09:13",
+   "sender": "박산행",
+   "kind": "FILE",
+   "text": "파일: 수리산_코스지도.pdf",
+   "fileName": "수리산_코스지도.pdf",
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 9,
+   "at": "2026-10-02T09:13",
+   "sender": null,
+   "kind": "SYSTEM_INVITE",
+   "text": "김모임님이 최한라님을 초대했습니다.",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 10,
+   "at": "2026-10-02T09:25",
+   "sender": "최한라",
+   "kind": "TEXT",
+   "text": "안녕하세요. 정모 때 뵙겠습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 11,
+   "at": "2026-10-02T09:25",
+   "sender": null,
+   "kind": "SYSTEM_LEAVE",
+   "text": "최한라님이 나갔습니다.",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 12,
+   "at": "2026-10-02T20:30",
+   "sender": "이등산",
+   "kind": "TEXT",
+   "text": "24시간제 표기도 처리",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 13,
+   "at": "2026-10-03T00:05",
+   "sender": "김모임",
+   "kind": "TEXT",
+   "text": "자정 넘어 메시지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 14,
+   "at": "2026-10-03T00:06",
+   "sender": "박산행 [별명]",
+   "kind": "TEXT",
+   "text": "이름에 대괄호가 있는 경우",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 15,
+   "at": "2026-10-03T18:05",
+   "sender": "이등산",
+   "kind": "VIDEO",
+   "text": "동영상",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  }
+ ]
+}

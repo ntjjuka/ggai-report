@@ -1,0 +1,65 @@
+{
+ "title": "모임",
+ "sourceFormat": "KAKAO_PC_BRACKET",
+ "messageCount": 3,
+ "participants": [
+  {
+   "rawName": "김모임",
+   "messageCount": 1,
+   "firstAt": "2026-01-09T19:01",
+   "lastAt": "2026-01-09T19:01"
+  },
+  {
+   "rawName": "이등산",
+   "messageCount": 1,
+   "firstAt": "2026-01-09T19:05",
+   "lastAt": "2026-01-09T19:05"
+  },
+  {
+   "rawName": "박산행",
+   "messageCount": 1,
+   "firstAt": "2026-01-10T09:00",
+   "lastAt": "2026-01-10T09:00"
+  }
+ ],
+ "warnings": {
+  "orphanLines": 0,
+  "unknownSystemLines": 0,
+  "dateUnknownBeforeSeparator": 0,
+  "encodingFallback": false,
+  "dedupedCount": 0,
+  "nonMonotonicTimestamp": 0
+ },
+ "messages": [
+  {
+   "index": 0,
+   "at": "2026-01-09T19:01",
+   "sender": "김모임",
+   "kind": "TEXT",
+   "text": "정모 날짜 공지합니다\n2024년 1월 1일 월요일\n장소는 추후 공지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 1,
+   "at": "2026-01-09T19:05",
+   "sender": "이등산",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 2,
+   "at": "2026-01-10T09:00",
+   "sender": "박산행",
+   "kind": "TEXT",
+   "text": "확인",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  }
+ ]
+}
