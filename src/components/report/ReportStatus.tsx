@@ -50,6 +50,7 @@ export function WritingScreen({ conversationId, seq, persona, initial, etaMinute
         <div className="progress-gradient h-full rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
       </div>
       <p className="mt-6 text-sm text-muted">{view.progress.message ?? `약 ${etaMinutes}분 걸려요.`}</p>
+      {view.progress.stage === "SYNTH" && <p className="mt-1 text-xs text-muted">마지막 단계예요. 대화가 길면 이 단계에서 2~4분 머물러요. 진행률이 멈춘 것처럼 보여도 작성 중이에요.</p>}
       <p className="mt-1 text-xs text-muted">보통 {etaMinutes}분 안에 나와요. 이 페이지를 닫아도 "내 보고서"에서 다시 열 수 있어요.</p>
       <CancelReportButton reportId={view.reportId} />
     </div>

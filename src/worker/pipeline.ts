@@ -63,10 +63,14 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
   const persona = row.personaName || cfg.PERSONA_NAME;
   const deadline = started + cfg.WORKER_PIPELINE_TIMEOUT_MINUTES * 60_000;
   const usage: Usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 };
-  // 단계 전환 사이(수 분짜리 LLM 호출 중)에도 살아 있음을 알린다. 끊기면 복구 루프가 되돌리고, 우리는 다음 체크포인트에서 멈춘다
+  // 단계 전환 사이(수 분짜리 LLM 호출 중)에도 살아 있음을 알린다. 끊기면 복구 루프가 되돌리고, 우리는 다음 체크포인트에서 멈춘다.
+  // 긴 단계(종합·검증)에서는 진행률을 시간에 따라 조금씩 올리고 "N분째"를 붙여 멈춘 것처럼 보이지 않게 한다 (상한 90%).
   let lost = false;
+  let cur = { stage: "LOAD", pct: 2, message: "", at: now() };
   const hb = setInterval(() => {
-    heartbeat(reportId, attempt).catch((e) => {
+    const elapsedMin = Math.floor((now() - cur.at) / 60_000);
+    const soft = (cur.stage === "SYNTH" || cur.stage === "VALIDATE") && elapsedMin >= 1 ? { stage: cur.stage, pct: Math.min(90, cur.pct + elapsedMin * 2), message: `${cur.message.replace(/ \(\d+분째\)$/, "")} (${elapsedMin}분째)` } : undefined;
+    heartbeat(reportId, attempt, soft).catch((e) => {
       if (e instanceof JobLostError) lost = true;
     });
   }, 30_000);
@@ -75,7 +79,10 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<"
     if (lost) throw new JobLostError();
     if (now() > deadline) throw new LlmError("LLM_UNAVAILABLE", "PIPELINE_TIMEOUT", true);
   };
-  const progress = (stage: string, pct: number, message: string) => heartbeat(reportId, attempt, { stage, pct, message });
+  const progress = (stage: string, pct: number, message: string) => {
+    cur = { stage, pct, message, at: now() };
+    return heartbeat(reportId, attempt, { stage, pct, message });
+  };
 
   try {
     return await runStages();
