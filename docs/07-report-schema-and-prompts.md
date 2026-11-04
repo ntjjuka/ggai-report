@@ -148,8 +148,10 @@ LLM은 prior를 보고 최종 값을 정하되 **±25 이상 벗어나면 `oneLi
 |---|---|---|
 | `summary` | string | 이 구간의 흐름 2~3문장 |
 | `events[]` | `{ date(YYYY-MM-DD), title, summary, evidenceIds }` | 사건 |
-| `signals[]` | `{ participantId, interest(0~100), effort(0~100), toneLabel, reason, evidenceIds }` | 사람별 관심·노력 신호 — 이전 문서의 `interestToward`는 **`interest`** |
+| `facts[]` | `{ participantId, kind(health\|preference\|possession\|habit\|declaration\|event\|money\|work\|relationship\|other), claim(≤40자), when(YYYY-MM-DD), messageId }` | 인물 팩트 장부 재료(14 §9.7) — 참여자당 ≤4, 뒤집히거나 결합될 사실 우선 |
+| `signals[]` | `{ participantId, interest(0~100), effort(0~100), toneLabel, reason, topics[](1~3 구체 명사), details[](≤3, 각 40자 + ID), callbacks[](0~3: 별명·놀림거리·테스트 결과·말버릇·특유의 오타·감탄사 원문 그대로), evidenceIds }` | 사람별 신호 + 인물 로스트 재료 — 이전 문서의 `interestToward`는 **`interest`** |
 | `highlights[]` | `{ messageId, kind(funny\|flutter\|touching\|banter\|awkward\|clash), caption(≤60자) }` | 인상적인 순간. 종합 단계에 넘기는 **하이라이트 원문 후보**(청크당 ≤25개 보존) |
+| `exchanges[]` | `{ title(≤30자), messageIds(연속 2~4개, 순서대로), participantIds, why(≤40자) }` | **주고받은 사건**(2026-11-04, 14 §10) — 종합이 요약 대신 장면 원문을 읽게 한다. 청크당 ≤3, 파이프라인은 청크당 2·총 40개를 `[사건 원문]` 블록으로 펼친다(`buildExchangesBlock`). 그 메시지도 인용 허용 ID |
 | `keywords[]` | string | ≤8 |
 | `roastMaterial[]` | `{ participantId, observation, evidenceIds, device }` | 반복 행동 패턴 + 유머 장치 id 제안 |
 | `conflicts[]` | `{ startMessageId, endMessageId, summary, repaired(boolean), repairedBy(participantId\|null) }` | 갈등·회복 |
@@ -166,7 +168,7 @@ LLM은 prior를 보고 최종 값을 정하되 **±25 이상 벗어나면 `oneLi
 | `privateLanguage` | `{ phrases: { phrase, meaning, evidenceIds }[](0~5), runningJokes: { title, summary, evidenceIds }[](0~4) }` — 실제 반복된 것만, 없으면 빈 배열(지어내지 않는다) |
 | `weekChanged` | `{ exists: boolean, weekLabel("2025년 6월 둘째 주"), weekStart(그 주 월요일 YYYY-MM-DD), before, after, pivotMessageId: id\|null, evidenceIds, confidence }` — 뚜렷한 변화가 없으면 `exists=false` + "바뀐 주가 없다" |
 | `moments[]` | `{ kind, title("제N장: '조어' — 부제" ≤40자), summary(장 본문 2~3문단, 문단 사이 빈 줄, 2인칭 "너희", 조어는 **굵게**), participantIds(1~4), messageIds(사건의 메시지 2~4) }`(3~5장) — **스키마 첫 키**: 방을 관통하는 기믹·사건을 장(章)으로 묶은 뒤 사람별로 정리한다(14 §9.5) |
-| `participants[]` | `{ participantId, emoji(1개), title(「수식절 + '별명'」 20~45자), nickname, epithet(목차용 8~18자 명사구), type{ label(…형/…파/…족), description(1문장) }, topics: string[](2~4, 구체 명사), paragraphs: { text(150~450자), quoteIds(그 사람 메시지 0~2) }[](2~3; 9명 이상이면 상위 8명만 2~3, 나머지 1), oneLiner("결론:"으로 시작하는 한 줄 15~40자), badgeIds: string[](0~2) }` — 모든 참여자 ID 각 1개. **메인 코너**, 스키마 둘째 키 |
+| `participants[]` | `{ participantId, thesis(≤120자 — 카드를 관통하는 논제: 결합 라벨 또는 시간차 반전 + 과장된 동기 한 절. 내부 메모, 화면 미노출, 2026-11-04), emoji(1개), title(「수식절 + '별명'」 20~45자), nickname, epithet(목차용 8~18자 명사구), type{ label(…형/…파/…족), description(1문장) }, topics: string[](2~4, 구체 명사), paragraphs: { text(150~450자), quoteIds(그 사람 메시지 0~2) }[](상승 구조 — 판결+증거 / "심지어" / 결정타; 2~3, 9명 이상이면 상위 8명만 2, 나머지 1), oneLiner("결론:"으로 시작하는 한 줄 15~40자), badgeIds: string[](0~2) }` — 모든 참여자 ID 각 1개. **메인 코너**. 종합 세 갈래에서는 `PersonaBatchSchema`(`participants`만)로 2~3명씩 묶어 병렬 호출, 장(章)은 `ScenesDraftSchema`(`moments`만) |
 | `findings[]` | `{ title(기현상 이름 조어), observed(장면), interpretation(왜 이 방에서만), evidenceIds(1~3), confidence, tags: string[] }`(3~4) — UI 제목 "이 방만의 기현상" |
 | `whatIWouldDo[]` | `{ title, body("내가 너라면 …"으로 시작, 조건·시한 포함), deadline }`(정확히 3) |
 | `awards[]` | `{ name(행동 기반), participantId: id\|null("올해의 한 줄상"은 null), reason, evidenceIds }`(3) |
@@ -319,3 +321,10 @@ REPAIR 호출은 종합 모델로 **1회**(`maxTokens 8000`, `effort medium`), �
 - 출력 토큰 절감(페르소나 문단 증가 상쇄): 판정 3문단, 발견 3~4, 어워드 3, 역학 2문단.
 - 작성 순서 고정(사용자 요청: "책 한 권을 읽고 재밌게 읽은 부분을 요약한 뒤 사람별로 정리하고 명쾌한 해답"): 스키마 키 순서를 `moments → participants → verdict → …`로 바꾸고 프롬프트에 [작성 순서] 명시. `moments`를 제목·서술·등장인물이 있는 "재밌게 읽은 장면"으로 확장해 판정 직후에 배치(구 "검증된 순간" 대체), 인물마다 `oneLiner`("결론: …") 추가. "낱낱이 파헤쳐 부끄럽게": 사람마다 가장 숨기고 싶었을 발언을 최소 한 번 말풍선으로 소환하라는 규칙.
 - 검증기: 문단별 인용 화자 검증, 문단 0개 MISSING(수리), 금지어에서 본인 다이어트 선언 제외, AI 티 어휘를 상담사 톤으로 탐지.
+
+## 12. 보정 기록 (2026-11-04, 14 §10 할당량 코미디 탈출)
+- 시스템 프롬프트: 화법 bullet 28개 중 문단당 최소치·밈 할당·저속어 팔레트를 걷어내고 "웃기는 원리 다섯 개"를 앞세움. 분석가 ✗/폭로자 ○ 대비 예시와 보이스 예시(민재·수빈)를 **목표 형태 카드 1장**('영우')과 장·첫마디 예시로 교체. 절대 규칙 6: 확신 등급은 판정·발견·점수에만, 인물 카드의 과장된 동기 해석은 농담 장치.
+- 종합 지침: `[작성 지침]` 인물 블록을 ①thesis → ②파생(topics·type·title·epithet) → ③상승 구조 문단 → ④quoteIds → ⑤oneLiner → ⑥badgeIds 순서로 재작성. 갈래 `SCENES`(장만)·`PERSONA`(묶음, `[이번 호출의 인물]`·`[이미 쓴 장(章)]`·`[이번 인물 집중 자료]` 블록)·`VERDICT`·`ALL`. 공유 문맥에 `[사건 원문]` 추가.
+- 청크 지침: `exchanges`(주고받은 사건 0~3, 연속 메시지 2~4개 ID) 추출, `callbacks` 0~3(말버릇·특유의 오타·감탄사 포함).
+- 스키마: `participants[].thesis`(첫 키), `ChunkExtractionSchema.exchanges`, `ScenesDraftSchema`·`PersonaBatchSchema`. `ReportContent.participants[].thesis?`(미노출, eval용).
+- 기분: `pickMood` 직진 100%. `MOOD_INSTRUCTION.DIRECT` "농담은 장치 개수가 아니라 사실의 배치로".

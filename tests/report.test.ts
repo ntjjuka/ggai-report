@@ -365,17 +365,21 @@ describe("prompts", () => {
     expect(a).toContain("까비서");
     expect(a).toContain("반말");
     expect(a).toContain("존댓말은 쓰지 않는다");
-    // 화법 개편: 인물 페르소나 메인, 커뮤니티 어법·밈 팔레트, 뻔한 비유 금지
+    // 화법 개편(2026-11-04, docs/14 §10): 원리 다섯 개 + 논제 하나·상승 구조, 예시 카드 한 장. 문단당 할당량·저속어 팔레트는 없다
     expect(a).toContain("인물 페르소나");
-    expect(a).toContain("갤주");
+    expect(a).toContain("웃기는 원리 다섯 개");
+    expect(a).toContain("논제 하나, 증거 셋, 상승");
+    expect(a).toContain("가짜 격식");
+    expect(a).toContain("동기를 해석한다");
     expect(a).toContain("뻔함 금지");
-    expect(a).toContain("숫자 규칙");
-    expect(a).toContain("폭로자");
-    expect(a).toContain("분석가 말투 ✗");
-    expect(a).toContain("소재 선택");
     expect(a).toContain("명사형 종결");
-    expect(a).toContain("방의 전설");
-    expect(a).toContain("관심사(집착)가 로스트의 뼈대다");
+    expect(a).toContain("갤주");
+    expect(a).toContain("participants[영우].thesis");
+    expect(a).toContain("심지어");
+    expect(a).not.toContain("문단마다 최소");
+    expect(a).not.toContain("처먹다");
+    expect(a).not.toContain("대가리 박다");
+    expect(a).not.toContain("결론부터.");
   });
 
   it("synthesis prompt carries facts, priors, mood and question", () => {
@@ -402,7 +406,7 @@ describe("prompts", () => {
     expect(p).toContain("관심 있어?");
     expect(p).toContain("<transcript>");
     expect(p).toContain("participation_balance");
-    expect(p).toContain("participants (메인 코너");
+    expect(p).toContain("- participants:");
     const chunked = buildSynthesisUserPrompt({ title: "t", period: "p", messageCount: 1, participants: s.parts, focus: "AUTO", mood: "DRY", question: null, statsFacts: "", scorePriors: [], scoresEnabled: false, mode: "CHUNKED", transcript: null, chunkJson: "[]", highlightCandidates: "m1 10:00 a: x", personaCandidates: "p1=a:\nm1 10:00 a: x", interestDigest: "p1=a: 집착 낚시(3)", factLedger: "p1=a:\n  선호 · 2025-03-01 · 해산물 싫어함 (m1)", badgeCatalog: "" });
     expect(chunked).toContain("[인물별 인용 후보 원문");
     expect(chunked).toContain("[사람별 관심사 집계");
@@ -421,23 +425,34 @@ describe("prompts", () => {
     const persona = buildSynthesisInstructions(args, "PERSONA");
     const verdict = buildSynthesisInstructions(args, "VERDICT");
     const all = buildSynthesisInstructions(args, "ALL");
-    expect(persona).toContain("participants (메인 코너");
-    expect(persona).toContain("[관심사가 뼈대]");
-    expect(persona).toContain("[팩트 장부 활용]");
-    expect(persona).toContain("[문단 구조]");
-    expect(persona).toContain("[기록 동사 금지]");
-    expect(persona).toContain("[나와 너]");
+    expect(persona).toContain("- participants:");
+    expect(persona).toContain("① thesis");
     expect(persona).toContain("결합 라벨");
-    expect(persona).toContain("[숫자]");
-    expect(persona).toContain("[인용 규칙]");
-    expect(persona).toContain("[전설 소환]");
+    expect(persona).toContain("상승 구조");
+    expect(persona).toContain("\"심지어\"");
+    expect(persona).toContain("quoteIds: 문단당 0~2개");
+    expect(persona).not.toContain("moments = 장");
+    // 장(章)만 쓰는 갈래, 그리고 인물 묶음 호출의 가변 블록
+    const scenes = buildSynthesisInstructions(args, "SCENES");
+    expect(scenes).toContain("moments = 장");
+    expect(scenes).not.toContain("- participants:");
+    expect(scenes).not.toContain("verdict.body");
+    const batch = buildSynthesisInstructions(args, "PERSONA", { participants: s.parts.slice(0, 1), majorIds: [s.parts[0].id], material: "=== x ===\n관심사: 낚시", scenes: "1. 제1장: '다음 달엔 진짜'" });
+    expect(batch).toContain(`[이번 호출의 인물] ${s.parts[0].id}=`);
+    expect(batch).toContain("[이미 쓴 장(章)");
+    expect(batch).toContain("1. 제1장: '다음 달엔 진짜'");
+    expect(batch).toContain("[이번 인물 집중 자료");
+    expect(batch).toContain("관심사: 낚시");
+    expect(batch).toContain("떡볶이는 이 호출에서 0회");
+    expect(buildSynthesisInstructions(args, "PERSONA", { participants: s.parts, majorIds: [], material: null, scenes: null })).toContain("떡볶이 최대 1회");
     expect(verdict).toContain("verdict.predictions");
     expect(verdict).toContain("기현상");
     expect(persona).not.toContain("verdict.body");
     expect(verdict).toContain("verdict.body");
-    expect(verdict).not.toContain("participants (메인 코너");
+    expect(verdict).not.toContain("- participants:");
     expect(verdict).toContain("떡볶이는 이 호출에서 0회");
-    expect(all).toContain("participants (메인 코너");
+    expect(all).toContain("moments = 장");
+    expect(all).toContain("- participants:");
     expect(all).toContain("verdict.body");
     expect(buildSynthesisUserPrompt(args)).toBe(`${ctx}\n${all}`);
   });

@@ -116,6 +116,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
       title: clip(p.title, TITLE_MAX),
       nickname: p.nickname.trim(),
       epithet: clip(p.epithet ?? "", 30),
+      thesis: clip(p.thesis ?? "", 120),
       type: { label: clip(p.type?.label ?? "", 20), description: clip(p.type?.description ?? "", 160) },
       topics: [...new Set((p.topics ?? []).map((t) => clip(t, 30)).filter(Boolean))].slice(0, TOPIC_MAX),
       paragraphs: (p.paragraphs ?? [])

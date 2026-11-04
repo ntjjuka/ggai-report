@@ -27,9 +27,13 @@ export class FakeLlmClient implements LlmClient {
     let value: unknown;
     if (req.stage === "CHUNK") value = this.chunk(h, idAt, bogus);
     else if (req.stage === "SYNTHESIS") value = this.synthesis(h, idAt, bogus, hanja, forbidden, hasQuestion);
-    else if (req.stage === "SYNTHESIS_PERSONA") {
+    else if (req.stage === "SYNTHESIS_SCENES") {
+      value = { moments: this.synthesis(h, idAt, bogus, hanja, forbidden, hasQuestion).moments };
+    } else if (req.stage === "SYNTHESIS_PERSONA") {
+      // 묶음 호출: hints.batchIds가 있으면 그 사람들만 (파이프라인이 묶음을 합친다)
       const full = this.synthesis(h, idAt, bogus, hanja, forbidden, hasQuestion);
-      value = { moments: full.moments, participants: full.participants };
+      const batch = h.batchIds ? new Set(h.batchIds) : null;
+      value = { participants: batch ? full.participants.filter((p) => batch.has(p.participantId)) : full.participants };
     } else if (req.stage === "SYNTHESIS_VERDICT") {
       const { moments: _m, participants: _p, ...rest } = this.synthesis(h, idAt, bogus, hanja, forbidden, hasQuestion);
       value = rest;
@@ -76,6 +80,7 @@ export class FakeLlmClient implements LlmClient {
         { messageId: idAt(3), kind: "funny", caption: "여기서 둘 다 웃었다" },
         { messageId: idAt(5), kind: "awkward", caption: "답이 하루 늦게 왔다" },
       ],
+      exchanges: h.messageIds.length >= 2 ? [{ title: "카페 가자와 좋지 사이", messageIds: h.messageIds.slice(0, Math.min(3, h.messageIds.length)), participantIds: ps.slice(0, 2), why: "제안→동의→날짜 증발의 3단 구조" }] : [],
       keywords: ["약속", "주말", "카페"],
       roastMaterial: ps.slice(0, 2).map((p, i) => ({ participantId: p, observation: i === 0 ? "질문으로 끝나는 메시지가 많다" : "'좋지'로 받고 날짜는 안 낸다", evidenceIds: [idAt(6 + i)], device: "CONTRAST" })),
       conflicts: [],
@@ -92,6 +97,7 @@ export class FakeLlmClient implements LlmClient {
       const q2 = own.length > 1 ? [own[own.length - 1]] : [];
       return {
         participantId: p,
+        thesis: i === 0 ? "답 오기 전에 다음 질문을 던지는 갤주 — 침묵이 무서워 떡밥으로 방을 먹여 살리는 인간" : i === 1 ? "'좋지'는 즉답, 날짜는 무응답 — 동의로 책임을 피하는 보류 장인" : "생존 신고만 하는 눈팅족 — 존재를 4년에 한 번 증명한다",
         emoji: i === 0 ? "🔌" : i === 1 ? "🛋️" : "👻",
         title: i === 0 ? "질문은 던지고 답은 기다리는 '전원 버튼 담당'" : i === 1 ? "'좋지'는 즉답이고 날짜는 무응답인 '좋지 머신'" : `접속은 하고 글은 안 쓰는 '눈팅 ${i + 1}호'`,
         nickname: i === 0 ? "전원 버튼 담당" : i === 1 ? "좋지 머신" : `눈팅 ${i + 1}호`,

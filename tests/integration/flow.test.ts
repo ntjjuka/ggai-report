@@ -108,9 +108,10 @@ describe("end-to-end service flow", () => {
     expect(view.options.resolvedFocus).toBe("FRIEND_ONE");
     const logs = await getDb().select().from(schema.llmCallLog);
     // 종합은 기본 두 갈래(장면·인물 / 판정·나머지)로 동시에 — 둘 다 OK로 기록되고 체크포인트도 둘
-    expect(logs.filter((l) => l.stage.startsWith("SYNTHESIS") && l.status === "OK").map((l) => l.stage).sort()).toEqual(["SYNTHESIS_PERSONA", "SYNTHESIS_VERDICT"]);
+    // 세 갈래: 장(章) → 인물 묶음(3명이면 1호출) ∥ 판정
+    expect(logs.filter((l) => l.stage.startsWith("SYNTHESIS") && l.status === "OK").map((l) => l.stage).sort()).toEqual(["SYNTHESIS_PERSONA", "SYNTHESIS_SCENES", "SYNTHESIS_VERDICT"]);
     const stages = await getDb().select().from(schema.reportStageResult);
-    expect(stages.filter((r) => r.stage.startsWith("SYNTHESIS")).length).toBe(2);
+    expect(stages.filter((r) => r.stage.startsWith("SYNTHESIS")).length).toBe(3);
   });
 
   it("re-running a succeeded report is skipped (ownership)", async () => {

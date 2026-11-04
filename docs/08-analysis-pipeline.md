@@ -76,7 +76,15 @@ else:                           mode=CHUNKED
 - 청크 실패(재시도 소진)는 **건너뛰고 계속**; 성공 청크 비율 < 60% → FAILED `INSUFFICIENT_COVERAGE`. 성공률은 quality에 기록.
 
 ## 7. [6] SYNTH 호출
-> 2026-11-03 **두 갈래 동시 종합**(`LLM_SYNTH_SPLIT=on` 기본): 같은 문맥(대화 정보·통계·전사 또는 청크 JSON·후보)을 공유하는 두 호출을 띄운다 — `SYNTHESIS_PERSONA`(장면 `moments` + 인물 `participants`, 출력이 가장 긴 쪽)와 `SYNTHESIS_VERDICT`(판정·역학·바뀐 주·누가 먼저·둘만의 언어·발견·제안·상·점수·캡션·답·공유 카드). 공유 문맥은 사용자 메시지의 첫 블록에 `cache_control: ephemeral`을 걸어 두 번째 호출이 입력을 10% 단가로 읽고(5분 TTL), 두 번째 호출은 `LLM_SYNTH_STAGGER_MS`(15초) 뒤에 보낸다(캐시는 첫 응답이 시작되면 열린다; 첫 갈래가 캐시 히트로 즉시 끝나면 기다리지 않는다). 종합 문맥에는 CHUNKED일 때 `[인물 팩트 장부]`(청크 `facts`를 사람별·시간순으로, `buildFactLedger` — 상위 8명 30개·나머지 10개, 14 §9.7)와 `[사람별 관심사 집계]`(청크 `signals.topics` 구간 수·`callbacks`, `buildInterestDigest`)가 들어가 인물 로스트의 뼈대가 된다(14 §9.6). 서버가 두 결과를 합쳐 `ReportDraft`로 검증한다. 효과: 스트림 하나가 절반으로 짧아져 중간 끊김 노출이 줄고, 총 시간은 max(두 갈래) ≈ 종전의 60%. 각 갈래는 별도 체크포인트(`report_stage_result`)라 한쪽만 실패해도 재시도 때 다른 쪽은 캐시로 재사용된다. `off`면 종전처럼 `SYNTHESIS` 한 호출.
+> 2026-11-04 **세 갈래 종합**(`LLM_SYNTH_SPLIT=on` 기본, 14 §10, 13 ADR-28): 같은 공유 문맥(대화 정보·통계·전사 또는 청크 JSON·장부·관심사·사건 원문·후보)을 `cache_control: ephemeral` 블록으로 캐시하고 세 종류의 호출을 띄운다.
+> ① `SYNTHESIS_SCENES` — 장(章) `moments`만. 가장 먼저 보내 프롬프트 캐시를 연다. effort `LLM_PERSONA_EFFORT`.
+> ② `SYNTHESIS_VERDICT` — 판정·역학·바뀐 주·누가 먼저·둘만의 언어·발견·제안·상·점수·캡션·답·공유 카드. ①이 응답을 시작했거나 `LLM_SYNTH_STAGGER_MS`(15초)가 지나면 보낸다(캐시 적중). effort `LLM_SYNTHESIS_EFFORT`.
+> ③ `SYNTHESIS_PERSONA` × N — 인물 카드 `participants`를 **2~3명씩 묶어 병렬**로. ①이 끝난 뒤 시작하며 사용자 메시지(비캐시 부분)에 `[이번 호출의 인물]`, `[이미 쓴 장(章)]`(①의 제목·등장인물·본문 앞 320자), `[이번 인물 집중 자료]`(그 사람들의 관심사 줄·팩트 장부·인용 후보를 다시 모은 것, `buildPersonaMaterial`)를 받는다. 묶음은 `batchParticipants`: 텍스트 지분 상위 8명은 `LLM_PERSONA_BATCH_SIZE`(3)명씩, 나머지는 2배씩, 호출 수가 `LLM_PERSONA_MAX_CALLS`(6)를 넘으면 묶음을 키운다. 한 호출이 8명분을 쓰면 뒤로 갈수록 흐려지던 것을 막는다. Fake 클라이언트는 `hints.batchIds`로 묶음을 흉내 낸다.
+> 서버가 ①+②+③을 합쳐 `ReportDraft`로 검증한다. ①이 실패하면 그 자리에서 던져져 재시도 정책(§10)을 탄다. 각 호출은 별도 체크포인트(`report_stage_result`)라 일부만 실패해도 재시도 때 나머지는 캐시로 재사용된다. `off`면 종전처럼 `SYNTHESIS` 한 호출.
+> 종합 문맥(CHUNKED): `[인물 팩트 장부]`(청크 `facts`를 사람별·시간순으로, `buildFactLedger` — 상위 8명 30개·나머지 10개, 14 §9.7), `[사람별 관심사 집계]`(청크 `signals.topics` 구간 수·`callbacks`, `buildInterestDigest`, 14 §9.6), **`[사건 원문]`**(청크 `exchanges`의 연속 메시지 2~4개를 실제 줄로, 청크당 2·총 40, `buildExchangesBlock` — 요약이 아니라 장면을 읽게), `[인물별 인용 후보 원문]`(`collectPersonaCandidates` — signals·roastMaterial·exchanges가 가리킨 그 사람 메시지, **상위 8명 25개·나머지 8개**, 2026-11-03까지는 사람당 ≤10). 사건 원문·후보·장부의 메시지는 모두 인용 허용 ID(`synthIds`)에 들어간다.
+> 비용·시간(미실측 추정): 입력은 공유 문맥이 캐시 읽기(10% 단가)라 호출 수가 늘어도 +30% 안쪽, 출력 총량은 같다. 시간 ≈ ① + max(②, ③ 묶음들) — 묶음 출력이 짧아 종전 두 갈래와 비슷하거나 빠르다.
+>
+> (2026-11-03 두 갈래 동시 종합: `SYNTHESIS_PERSONA`(장면+인물 전원)과 `SYNTHESIS_VERDICT` 두 호출. 스트림 하나가 절반으로 짧아져 끊김 노출이 줄고 총 시간은 max(두 갈래) ≈ 종전의 60%였다. 위 세 갈래가 이를 대체한다.)
 - 모델 `synthesis-model`, 구조화 출력 `ReportDraft`(07 §4.2), `maxTokens 16000`, effort HIGH.
 - 입력 구성: 시스템(페르소나·규칙·스키마 지침, 캐시) + 사용자 메시지:
   1. 대화 메타 + 참여자 목록(업로더 표시) + 초점·톤·질문

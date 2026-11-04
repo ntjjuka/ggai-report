@@ -44,11 +44,22 @@ export const ChunkExtractionSchema = z.object({
       reason: z.string(),
       topics: z.array(z.string()).describe("이 구간에서 이 사람이 주로 떠든 주제 1~3개, 구체 명사(상품·장소·사람·취미·불평거리)"),
       details: z.array(z.string()).describe("본인이 직접 말한 구체 디테일 1~3개(연애·돈·직장·건강·소비·여행·가족 사실, 선언·번복·허세·고백), 각 40자 이내, 끝에 메시지 ID 1개"),
-      callbacks: z.array(z.string()).describe("이 구간에서 그 사람에게 붙은 별명·놀림거리·테스트 결과·말버릇 0~2개, 대화 속 표현 그대로"),
+      callbacks: z.array(z.string()).describe("이 구간에서 그 사람에게 붙은 별명·놀림거리·테스트 결과, 그리고 그 사람만 쓰는 말버릇·특유의 오타·감탄사 0~3개, 대화 속 표현 그대로"),
       evidenceIds: Ids.describe("이 사람 메시지 중 캐릭터가 가장 드러나는 것 1~2개 (m123 형식)"),
     }),
   ),
   highlights: z.array(z.object({ messageId: z.string(), kind: z.enum(MOMENT_KINDS), caption: z.string().describe("60자 이내") })),
+  exchanges: z
+    .array(
+      z.object({
+        title: z.string().describe("사건 제목 ≤30자"),
+        messageIds: Ids.describe("연속된 메시지 2~4개의 ID, 주고받은 순서대로"),
+        participantIds: z.array(z.string()).describe("등장인물 participantId"),
+        why: z.string().describe("나중에 꺼내면 왜 웃기거나 부끄러운지 ≤40자 (허세→반박, 선언→놀림, 혼자 진지→무시, 훈수→본인 모순 …)"),
+      }),
+    )
+    .default([])
+    .describe("주고받은 사건 0~3개 — 종합이 원문 그대로 다시 읽는 티키타카. 요약이 아니라 장면이 웃긴 것만"),
   keywords: z.array(z.string()).describe("8개 이내"),
   roastMaterial: z.array(z.object({ participantId: z.string(), observation: z.string().describe("반복되는 행동 패턴"), evidenceIds: Ids, device: z.string().describe("유머 장치 id 제안") })),
   conflicts: z.array(z.object({ startMessageId: z.string(), endMessageId: z.string(), summary: z.string(), repaired: z.boolean(), repairedBy: z.string().nullable() })),
@@ -74,6 +85,7 @@ export const ReportDraftSchema = z.object({
   participants: z.array(
     z.object({
       participantId: z.string(),
+      thesis: z.string().describe("이 사람을 못 박는 논제 한 문장 ≤120자(내부 메모, 화면에 안 나감): 결합 라벨 또는 시간차 반전 + 과장된 동기 한 절. 예: '면허 없는 중고차 평론가 — 소유를 검색으로 대신하는 인간'. 아래 모든 필드는 이 논제에서 파생"),
       emoji: z.string().describe("이 사람 캐릭터를 요약하는 이모지 1개"),
       title: z.string().describe("칭호 20~45자: 「수식절 + '별명'」 꼴. 예: 회식 자리마다 다음 회식을 예약하는 '2차 사장'"),
       nickname: z.string().describe("title 속 따옴표 별명만"),
@@ -154,6 +166,11 @@ export const PersonaDraftSchema = ReportDraftSchema.pick({ moments: true, partic
 export type PersonaDraft = z.infer<typeof PersonaDraftSchema>;
 export const VerdictDraftSchema = ReportDraftSchema.omit({ moments: true, participants: true });
 export type VerdictDraft = z.infer<typeof VerdictDraftSchema>;
+/** 2026-11-04 세 갈래: 장(章)만 → 인물 2~3명씩 묶음(병렬) ∥ 판정. 장은 인물 호출의 입력이 된다 (docs/08 §7) */
+export const ScenesDraftSchema = ReportDraftSchema.pick({ moments: true });
+export type ScenesDraft = z.infer<typeof ScenesDraftSchema>;
+export const PersonaBatchSchema = ReportDraftSchema.pick({ participants: true });
+export type PersonaBatch = z.infer<typeof PersonaBatchSchema>;
 
 // 수리: 위반 경로별 교체 값(JSON 문자열)
 export const RepairResponseSchema = z.object({
@@ -199,6 +216,8 @@ export interface ReportContent {
     nickname: string;
     /** 목차용 한 줄 별칭. 구버전 보고서에는 없다 */
     epithet?: string;
+    /** 카드를 관통하는 논제(결합 라벨·시간차 반전). 화면에는 안 나가고 eval·디버그용. 2026-11-04부터 */
+    thesis?: string;
     type: { label: string; description: string };
     topics: string[];
     paragraphs: { text: string; quotes: Evidence[] }[];

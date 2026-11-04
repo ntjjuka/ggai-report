@@ -139,9 +139,11 @@ db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scri
 | `LLM_SINGLE_PASS_MAX_TOKENS` / `LLM_CHUNK_MAX_TOKENS` / `LLM_MAX_TOTAL_TOKENS` | 150000 / 60000 / 1500000 | - | PLAN |
 | `LLM_MAX_COST_USD` | 5 | ✓ | 비용 상한 |
 | `LLM_CALL_TIMEOUT_MS` | 600000 | - | 호출당 타임아웃 |
-| `LLM_PERSONA_EFFORT` | `high` | - | 인물 페르소나 갈래(`SYNTHESIS_PERSONA`)의 사고 수준. 메인 코너라 기본 high |
-| `LLM_SYNTH_SPLIT` | `on` | - | 종합을 장면·인물 / 판정·나머지 두 호출로 나눠 동시에(08 §7). `off`면 한 호출 |
-| `LLM_SYNTH_STAGGER_MS` | 15000 | - | 두 번째 종합 호출 지연 — 첫 호출이 쓴 프롬프트 캐시(공유 문맥) 적중용 |
+| `LLM_PERSONA_EFFORT` | `high` | - | 장(章)·인물 갈래(`SYNTHESIS_SCENES`·`SYNTHESIS_PERSONA`)의 사고 수준. 코미디 설계라 기본 high |
+| `LLM_SYNTH_SPLIT` | `on` | - | 종합을 세 갈래(장 → 인물 묶음 병렬 ∥ 판정)로(08 §7, 2026-11-04). `off`면 한 호출 |
+| `LLM_SYNTH_STAGGER_MS` | 15000 | - | 판정 갈래 호출 지연 — 장 호출이 쓴 프롬프트 캐시(공유 문맥) 적중용 |
+| `LLM_PERSONA_BATCH_SIZE` | 3 | - | 인물 묶음 호출 크기(텍스트 지분 상위 8명 기준, 나머지는 2배). 작을수록 카드가 촘촘하고 호출 수가 늘어난다 |
+| `LLM_PERSONA_MAX_CALLS` | 6 | - | 인물 호출 수 상한. 넘으면 묶음을 키운다 |
 | `UPLOAD_MAX_BYTES` / `UPLOAD_MAX_MESSAGES` / `UPLOAD_MIN_MESSAGES` / `UPLOAD_MAX_PARTICIPANTS` | 52428800 / 300000 / 30 / 60 | ✓ / - / ✓ / - | 03 §1.1 한도 |
 | `RAW_RETENTION_DAYS` | 7 | ✓ | `expires_at` |
 | `STAGE_RESULT_RETENTION_HOURS` | 24 | - | 체크포인트 보존 |

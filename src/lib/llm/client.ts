@@ -1,7 +1,10 @@
 import type { ZodType } from "zod";
 
-/** SYNTHESIS_PERSONA(장면·인물)·SYNTHESIS_VERDICT(판정·나머지)는 종합을 두 갈래로 나눠 동시에 돌릴 때의 단계명 (DB stage 컬럼 20자 이내) */
-export type Stage = "CHUNK" | "SYNTHESIS" | "SYNTHESIS_PERSONA" | "SYNTHESIS_VERDICT" | "REPAIR";
+/**
+ * 종합 갈래 단계명 (DB stage 컬럼 20자 이내): SYNTHESIS_SCENES(장·章만) → SYNTHESIS_PERSONA(인물 2~3명 묶음, 병렬) ∥ SYNTHESIS_VERDICT(판정·나머지).
+ * SYNTHESIS는 한 호출 종합(LLM_SYNTH_SPLIT=off)
+ */
+export type Stage = "CHUNK" | "SYNTHESIS" | "SYNTHESIS_SCENES" | "SYNTHESIS_PERSONA" | "SYNTHESIS_VERDICT" | "REPAIR";
 export type Effort = "low" | "medium" | "high" | "xhigh";
 
 export interface StageRequest<T> {
@@ -27,6 +30,8 @@ export interface StageRequest<T> {
     numbers: number[];
     scoreKeys: string[];
     priors: Record<string, number | null>;
+    /** SYNTHESIS_PERSONA 묶음 호출: 이 호출이 써야 하는 참여자 ID (없으면 전원) */
+    batchIds?: string[];
   };
 }
 

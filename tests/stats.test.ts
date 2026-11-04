@@ -146,11 +146,11 @@ describe("computeStats", () => {
 });
 
 describe("pickMood", () => {
-  it("never picks the dry or warm mood at random; warm only when forced by safety flags", async () => {
+  it("always picks the direct mood; warm only when forced by safety flags", async () => {
     const { pickMood } = await import("@/lib/report/moods");
     const seen = new Set<string>();
     for (let i = 0; i < 200; i++) seen.add(pickMood(`r${i}`));
-    expect([...seen].sort()).toEqual(["DIRECT", "HYPED"]);
+    expect([...seen]).toEqual(["DIRECT"]);
     expect(pickMood("r1", true)).toBe("WARM");
   });
 });
