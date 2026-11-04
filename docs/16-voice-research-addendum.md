@@ -489,3 +489,49 @@ AI 채팅 기억으로 28유형 성격 판정 + 로스트. `references/skill.md`
 - 특정성·3의 법칙·콜백: https://writingworkshops.com/blogs/news/how-to-write-humor-that-lands , https://writers.com/the-rule-of-three , https://nofilmschool.com/john-vorhaus-comedy-writing-tools , https://stand.app/en/guides/joke-structure-101
 
 **스크래치(세션 내 클론 위치, 커밋 금지)**: `/tmp/claude-0/-home-user/a5260177-cb98-5816-91b6-4fec251dfc58/scratchpad/voice-research/` (whatsanalyze/, toksai/, awesome-prompts/, roast/*)
+
+---
+
+## §7 추가 조사 (2026-11-04): 사람들이 실제로 공유하는 "폭로"는 무엇이고 어떤 화법인가
+
+> 사용자 요청("일반적으로 사람들이 좋아하는 페르소나의 폭로들을 조사하고 보통 어떤 화법인지 검토한 뒤 프롬프트에 넣어봐"). 이 세션은 대부분의 사이트를 직접 열 수 없어(DNS 차단) **검색 엔진 요약**을 교차 확인했다. 아래 인용은 요약문 기준이며 사적인 대화는 수집하지 않았다.
+
+### 7.1 어떤 폭로가 공유되는가 — 증거
+| 출처 | 공유된·광고된 폭로 | 유형 |
+|---|---|---|
+| What Brandon Thinks /friends·/relationship 후기(16 §1 B19~B27, 2026-11-04 재확인) | "the exact week things changed and what I kept excusing", "what I did to make it worse", "every late-night 'quick question'", "the night I sent four texts in a row with no reply", "who carries the group and who only shows up to split the bill", "eight months of 'we're not a thing'", "the group's unpaid therapist, who starts the investigation when a new guy shows up", "we had stopped asking about each other's days" | 바뀐 주와 변명 · 반복 완곡어 · 장면+횟수 · 역할 비대칭 · 집단의 거짓말 · 사라진 습관 |
+| Brandon 샘플 리포트(.org 클론, 가상) | "tomorrow people" — 방 공통의 농담이 실제 패턴(결정은 안 하고 지지만 한다)을 가리고 있다는 폭로, "the quiet closer"(조용히 날짜를 박는 사람) | 집단의 거짓말 · 역할 비대칭 |
+| Brandon 공식 SNS 캡션(B31) | "suddenly you know who's the problem" | "이 방의 문제는 ○○" |
+| ChatGPT 로스트 유행(2024~2025, 한국 2025 여름 "팩폭 요청" 챌린지) | "겉으론 쿨한 척하지만 속으론 예민하고 걱정이 많다"류가 가장 많이 돈다, "Your photo album is 90% screenshots and 10% regret", 리뷰어 공통 결론 "the more context you provide, the sharper and more specific the roast" | 가면과 속마음 · 가짜 통계 재정의 · 특정성 |
+| Wordware 트위터 로스트(2024, 7.3M 사용자) | 한 문장 성격 요약 + "previous life, animal, thing to buy, career, life suggestion" 같은 황당한 외삽 카테고리가 공유 포인트 | 황당한 외삽 |
+| GQ Korea "단톡방 친구 유형 7", 인사이트 "단톡방 꼴불견" | 읽씹 장인(읽긴 빨리 읽고 결정 때만 등장하는 은근한 실세), 공지 담당(아무도 안 시켰는데 운영), 약속 파괴자("진짜 가는 중"인데 집 근처), 드립 폭격기, 단답·ㅋㅋ족, 주제 돌리기, 하소연 투척 | 역할 비대칭 · 완곡어 · 전형적 발언 |
+| SNL 코리아 'MZ오피스' 작가 인터뷰 | "어디서 한번쯤 본 것 같은" 인물을 **에어팟·고기 굽기** 같은 사소한 행동 하나로 세운다. 표정·태도는 과장, 상황은 현실 | 전형적 발언·행동 하나 = 캐릭터 |
+| 무한도전·진짜 사나이 자막 분석(xportsnews, 학술 요약) | 사소한 행동에 장엄한 서술, 별명 자막을 반복해 캐릭터를 각인, 수용자는 자막 내용으로 출연자를 인식 | 장엄한 호칭 · 별명 반복 |
+| MBTI 과몰입 분석(칼럼 다수) | 공유 동기는 자기표현과 공감대, "듣기 좋은 설명"이 결과를 퍼뜨림 → 로스트는 그 반대로 "맞아 나 저래"가 나와야 공유된다(ABTI "that's SO me", 16 §2.4) | 자기 인식 공유 |
+| Benign violation(McGraw & Warren), Frontiers 2019 | 가까운 사람의 사소한 사고는 더 웃기다, 위반과 무해가 동시에 있어야 하며 거리 장치(숫자·보고서 어투·비유)가 무해화한다 | 안전선: 바꿀 수 있는 행동만 |
+| Spotify Wrapped 분석(The Conversation 등) | 공유는 소속감·자기표현, 카피는 "making fun of its users" + 청취 성격 라벨(The Shapeshifter) | 라벨 + 자기 과시형 자기 비하 |
+
+### 7.2 어떤 화법으로 쓰이는가 — 공통 구조
+1. **사실 → 재정의**: 숫자·사건 뒤에 명사로 다시 이름 붙인다(git-roast "That's not a break, that's a resignation nobody filed"; 한국어 "휴식이 아니라 아무도 제출 안 한 사표").
+2. **뒤통수 칭찬**(ABTI compliment-to-kill), 3. **수사의문**, 4. **데드팬**(느낌표 없이), 5. **장면 > 요약**("2 AM, asking AI to write a daily report about how busy you were").
+6. **속마음 자막**: 한국 예능 자막의 "속마음" 장치 — 그 순간 당사자가 속으로 했을 말을 괄호 한 줄로.
+7. **장엄한 호칭**: 사소한 행동에 격식 직함.
+8. **"맞아 저래" 테스트**: 이름을 가려도 그 방 사람이 누군지 알아야 한다(Roastin 특정성 테스트의 공유 버전).
+9. 설명하지 않는다(Toplyn), 끝에 펀치(Toplyn), 안심 문장으로 희석하지 않는다(Roastin).
+
+### 7.3 프롬프트 반영 (2026-11-04, `prompts.ts`)
+- 시스템 프롬프트에 `# 사람들이 공유하는 폭로 — 소재 메뉴` 열두 가지(말 vs 행동 · 집단의 거짓말 · 반복되는 완곡어 · 가면과 속마음 · 본인만 모르는 것 · 역할 비대칭 · 시간대 패턴 · 바뀐 주와 변명 · 사라진 습관 · 집착의 비용 · 전형적 발언 · 황당한 외삽)와 `# 공유되는 문장의 꼴`(사실→재정의 · 뒤통수 칭찬 · 수사의문 · 속마음 자막 · 장엄한 호칭 · "맞아 저래" 테스트)를 추가. **메뉴이고 할당량이 아니다**(14 §10의 원칙 유지).
+- 인물 지침 ① thesis: 열두 가지 중 하나 이상에 닿아야 하고 이름을 가려도 누군지 알 수 있어야 한다.
+- 청크 지침: `roastMaterial`은 위 유형으로 보일 때만, observation 앞에 유형명("완곡어: …"). "말이 많다·답이 느리다" 같은 통계 관찰은 제외.
+- 판정: 단톡 shareCard.subline에 "이 방의 문제는 ○○" 꼴 허용, findings 예시에 "사라진 습관".
+
+### 7.4 출처(검색 요약으로 확인, 직접 열람 불가)
+- https://www.whatbrandonthinks.com/friends · /relationship · /about · /faq (후기·카피) · https://whatbrandonthinks.org/sample-report (클론 가상 샘플) · https://www.facebook.com/61594080419176/videos/3070989919904157/ (공식 SNS 캡션)
+- ChatGPT 로스트: https://www.tomsguide.com/ai/everyones-asking-chatgpt-to-roast-them-heres-how-to-try-it · https://techradar.com/ai-platforms-assistants/i-tried-letting-chatgpt-roast-me-and-it-knew-exactly-where-to-aim · https://knowyourmeme.com/memes/chatgpt-instagram-roast-challenge · https://v.daum.net/v/20250717171502169 · https://www.wikitree.co.kr/articles/1066041 · https://aimatters.co.kr/ai-trend/26383/
+- Wordware: https://blog.wordware.ai/twitter-roast-ai-with-llm-orchestration · https://knowyourmeme.com/memes/wordware-ai-twitter-roast-bot · https://dataconomy.com/2024/07/31/wordware-ai-twitter-personality-roast
+- 한국 단톡방 유형: https://www.gqkorea.co.kr/?p=363248 · https://www.insight.co.kr/news/473829 · https://magazine.hankyung.com/job-joy/article/202102166119d
+- SNL MZ오피스: https://www.osen.co.kr/article/G1112039092 · https://v.daum.net/v/20230107154505706 · https://lady.khan.co.kr/entertainment/article/202303240721011
+- 예능 자막: https://www.xportsnews.com/article/346019 · https://dl.nanet.go.kr/detail/KINX2016047875 · https://www.etoday.co.kr/news/view/1203110
+- MBTI 과몰입: https://www.kyeonggi.com/article/20240109580369 · https://brunch.co.kr/@bidancheon/152 · https://gogumafarm.kr/?p=4436
+- 유머 이론: https://leeds-faculty.colorado.edu/mcgrawp/pdf/mcgraw.warren.2010.pdf · https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2019.01380/full · https://journals.sagepub.com/doi/10.1177/0956797612443831
+- Spotify Wrapped: https://www.dailymaverick.co.za/article/2024-12-06-spotify-wrapped-is-about-more-than-what-songs-you-listen-to-its-about-what-makes-you-you · https://medium.com/choice-hacking/how-spotify-used-psychology-to-perfect-its-experience-7e39e91e3cea

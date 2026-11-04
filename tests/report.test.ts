@@ -376,6 +376,12 @@ describe("prompts", () => {
     expect(a).toContain("갤주");
     expect(a).toContain("participants[영우].thesis");
     expect(a).toContain("심지어");
+    // 2026-11-04 조사 반영: 사람들이 공유하는 폭로 열두 가지 + 공유되는 문장의 꼴 (메뉴, 할당량 아님)
+    expect(a).toContain("# 사람들이 공유하는 폭로");
+    expect(a).toContain("12. 황당한 외삽");
+    expect(a).toContain("# 공유되는 문장의 꼴");
+    expect(a).toContain("속마음 자막");
+    expect(a).toContain("\"맞아 저래\" 테스트");
     expect(a).not.toContain("문단마다 최소");
     expect(a).not.toContain("처먹다");
     expect(a).not.toContain("대가리 박다");

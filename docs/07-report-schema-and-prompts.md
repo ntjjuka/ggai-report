@@ -328,3 +328,4 @@ REPAIR 호출은 종합 모델로 **1회**(`maxTokens 8000`, `effort medium`), �
 - 청크 지침: `exchanges`(주고받은 사건 0~3, 연속 메시지 2~4개 ID) 추출, `callbacks` 0~3(말버릇·특유의 오타·감탄사 포함).
 - 스키마: `participants[].thesis`(첫 키), `ChunkExtractionSchema.exchanges`, `ScenesDraftSchema`·`PersonaBatchSchema`. `ReportContent.participants[].thesis?`(미노출, eval용).
 - 기분: `pickMood` 직진 100%. `MOOD_INSTRUCTION.DIRECT` "농담은 장치 개수가 아니라 사실의 배치로".
+- 2026-11-04(2차): 시스템 프롬프트에 `# 사람들이 공유하는 폭로 — 소재 메뉴`(12종)와 `# 공유되는 문장의 꼴`(6종) 추가(16 §7). 청크 `roastMaterial.observation` 앞에 유형명 접두("완곡어: …"). 단톡 `shareCard.subline` "이 방의 문제는 ○○" 허용.
