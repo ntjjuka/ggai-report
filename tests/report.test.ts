@@ -321,6 +321,30 @@ describe("validator + assembler", () => {
     expect(story.violations.some((x) => x.reason === "STATS_IN_PERSONA")).toBe(false);
   });
 
+  it("flags police-report voice (date openers, '이 사람', record verbs) for repair but leaves verdict-first prose alone", async () => {
+    const s = await fakeDraft("ok");
+    const ctx = { evidence: s.evidence, participantIds: s.parts.map((p) => p.id), isGroup: true, scoreKeys: [], priors: {}, scoresEnabled: false, allowedNumbers: new Set<number>() };
+    const flat = {
+      ...s.draft,
+      participants: s.draft.participants.map((p, i) =>
+        i === 0
+          ? { ...p, paragraphs: [{ text: "2025년 11월 14일, 이 사람은 가방을 털렸다. 이 사람은 경찰서에 다녀왔다고 보고했고, 한 달 뒤엔 후속편을 중계했다. 이 사람은 울었다.", quoteIds: [] }, { text: "6월엔 알쓰라고 선언했고 같은 달 토했다고 공유했다. 짜장면만 먹고 귀가했다고 올렸다.", quoteIds: [] }] }
+          : p,
+      ),
+    };
+    const v = validateDraft(flat, ctx);
+    const fv = v.violations.filter((x) => x.reason === "FLAT_VOICE");
+    expect(fv.map((x) => x.path)).toEqual(["participants[0].paragraphs[0]", "participants[0].paragraphs[1]"]);
+    expect(fv[0].detail).toContain("날짜로 시작");
+    expect(fv[0].detail).toContain("\"이 사람\" 3회");
+    expect(fv[0].detail).toContain("기록 동사");
+    // 판결로 시작하고 거친 동사로 쓴 문단은 잡지 않는다
+    const good = { ...s.draft, participants: s.draft.participants.map((p) => ({ ...p, paragraphs: [{ text: "소매치기 예방 강사가 수업 끝나자마자 본인 지갑을 털린 꼴이다. 유럽에서 손님들한테 조심하라 해놓고 두 달 뒤 본인 가방이 통째로 날아갔고, 경찰서 다녀와선 소주가 먹고 싶다고 징징댔다. 너 지금 '그날 컨디션이'로 시작하는 변명 쓰고 있지.", quoteIds: [] }] })) };
+    expect(validateDraft(good, ctx).violations.some((x) => x.reason === "FLAT_VOICE")).toBe(false);
+    // 기본 fake 초안도 잡히지 않는다
+    expect(validateDraft(s.draft, ctx).violations.some((x) => x.reason === "FLAT_VOICE")).toBe(false);
+  });
+
   it("clamps scores to prior ±40 and downgrades confidence", async () => {
     const s = await fakeDraft("ok");
     s.draft.scores = s.priors.map((p) => ({ key: p.key, value: 100, oneLiner: "x", confidence: "HIGH" as const }));
@@ -400,6 +424,9 @@ describe("prompts", () => {
     expect(persona).toContain("participants (메인 코너");
     expect(persona).toContain("[관심사가 뼈대]");
     expect(persona).toContain("[팩트 장부 활용]");
+    expect(persona).toContain("[문단 구조]");
+    expect(persona).toContain("[기록 동사 금지]");
+    expect(persona).toContain("[나와 너]");
     expect(persona).toContain("결합 라벨");
     expect(persona).toContain("[숫자]");
     expect(persona).toContain("[인용 규칙]");

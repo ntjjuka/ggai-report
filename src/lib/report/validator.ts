@@ -12,7 +12,7 @@ export interface ValidationContext {
   allowedNumbers: Set<number>;
 }
 
-export type ViolationReason = "NON_KOREAN_SCRIPT" | "FORBIDDEN_TOPIC" | "NO_EVIDENCE" | "TOO_LONG" | "MISSING" | "BAD_ID" | "COUNSELOR_TONE" | "STATS_IN_PERSONA";
+export type ViolationReason = "NON_KOREAN_SCRIPT" | "FORBIDDEN_TOPIC" | "NO_EVIDENCE" | "TOO_LONG" | "MISSING" | "BAD_ID" | "COUNSELOR_TONE" | "STATS_IN_PERSONA" | "FLAT_VOICE";
 
 export interface Violation {
   path: string;
@@ -43,6 +43,10 @@ const QUOTES_PER_PARAGRAPH = 2; // 모바일에서 카드가 길어지지 않게
 // 인물 산문의 "분석가 말투" 탐지: 통계 어휘와 N회·N자·N%·메시지 N개 류 (날짜·가격 같은 이야기 숫자는 잡지 않는다)
 const PERSONA_STATS = /평균|중앙값|비율|최장|최단|\d+(?:\.\d+)?\s?(?:회|번째|자|%|퍼센트)(?![가-힣])|(?:메시지|텍스트|선톡|답장|사진)\s?\d[\d,]*(?:만|천|억)?\s?(?:개|건|장)/g;
 const INLINE_ID_GROUP = /\s*\(\s*(?:m\d+\s*[,·、]?\s*)+\)/g;
+// 조서 문체 탐지(14 §9.9): 날짜로 문단 시작 / "이 사람" 남발 / 기록 동사 남발 → REPAIR로 판결 문장·거친 동사·1·2인칭으로 다시 쓰게 한다
+const DATE_OPENER = /^\s*(?:\d{4}년\s*)?\d{1,2}월(?:\s*\d{1,2}일)?[,\s]/;
+const THIS_PERSON = /이 사람/g;
+const RECORD_VERBS = /(?:보고|중계|공유|선언|발표)(?:했|한|하며|하고)|올렸|올라왔|알렸/g;
 const HEADLINE_MAX = 40;
 const SUBLINE_MAX = 30;
 
@@ -142,6 +146,19 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
     });
     for (const [field, value] of [["title", p.title], ["oneLiner", p.oneLiner]] as const) {
       if ((value.match(PERSONA_STATS) ?? []).length >= 1) violations.push({ path: `participants[${i}].${field}`, reason: "STATS_IN_PERSONA", detail: "칭호·한 줄 결론에 통계 숫자 금지 — 말 vs 행동 대비나 격차 비유로" });
+    }
+    // 조서 문체: 문단이 날짜로 시작하거나, 카드 전체에 "이 사람" 3회↑ 또는 기록 동사 4회↑
+    const all = p.paragraphs.map((par) => par.text).join("\n");
+    const flat: string[] = [];
+    p.paragraphs.forEach((par, j) => {
+      if (DATE_OPENER.test(par.text)) flat.push(`paragraphs[${j}]가 날짜로 시작`);
+    });
+    const thisPerson = (all.match(THIS_PERSON) ?? []).length;
+    const recordVerbs = (all.match(RECORD_VERBS) ?? []).length;
+    if (thisPerson >= 3) flat.push(`"이 사람" ${thisPerson}회`);
+    if (recordVerbs >= 4) flat.push(`기록 동사(보고·중계·공유·올렸·선언) ${recordVerbs}회`);
+    if (flat.length) {
+      p.paragraphs.forEach((_, j) => violations.push({ path: `participants[${i}].paragraphs[${j}]`, reason: "FLAT_VOICE", detail: `조서 문체(${flat.join(", ")}) — 첫 문장은 날짜가 아니라 판결(명사형 라벨), 사건마다 판단 한 조각, 거친 동사, "이 사람" 대신 이름·별명·거친 명사, 까비서 1인칭 개입 1회·당사자에게 2인칭 한 방 1회` }));
     }
   });
   for (const pid of ctx.participantIds) {

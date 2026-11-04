@@ -314,7 +314,8 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       scoresEnabled: cfg.scoresEnabled,
       allowedNumbers: allowedNumbers(facts),
     };
-    let validation = validateDraft(synthDraft, vctx);
+    const firstValidation = validateDraft(synthDraft, vctx); // 근거 탈락(환각 ID) 지표는 원 초안 기준으로 남긴다
+    let validation = firstValidation;
     let repaired = false;
     const needsRepair = validation.violations.filter((v) => v.reason !== "MISSING" || v.path.startsWith("participants") || v.path === "whatIWouldDo");
     if (needsRepair.length > 0) {
@@ -354,7 +355,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       priors,
       evidence,
       plan: { mode: plan.mode, coveragePct: plan.coveragePct, chunksTotal: plan.chunks.length, chunksSucceeded: plan.chunks.length - chunkFailures },
-      metrics: { ...finalCheck.metrics, evidenceTotal: validation.metrics.evidenceTotal, evidenceDropped: validation.metrics.evidenceDropped, repaired },
+      metrics: { ...finalCheck.metrics, evidenceTotal: firstValidation.metrics.evidenceTotal, evidenceDropped: firstValidation.metrics.evidenceDropped, repaired },
       usage: { input: usage.input, output: usage.output, cacheRead: usage.cacheRead, costUsd: usage.costUsd, durationSec: Math.round((now() - started) / 1000), chunkModel: plan.mode === "CHUNKED" ? chunkModel : null, synthesisModel: synthModel },
       generatedAt: new Date(now()).toISOString(),
     });
@@ -485,7 +486,7 @@ export function buildFactLedger(
     }
     lines.push(`${p.id}=${p.name}:`);
     for (const f of picked) {
-      lines.push(`  ${FACT_KIND_LABEL[f.kind] ?? f.kind} · ${f.when} · ${f.claim} (${f.m.id})`);
+      lines.push(`  ${FACT_KIND_LABEL[f.kind] ?? f.kind} · ${f.when.slice(0, 7)} · ${f.claim} (${f.m.id})`); // 월 단위: 일 단위 날짜가 문단에 그대로 복사되는 것을 막는다
       messages.push(f.m);
     }
   }

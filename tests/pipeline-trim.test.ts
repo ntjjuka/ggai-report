@@ -87,9 +87,9 @@ describe("buildFactLedger", () => {
     const out = buildFactLedger(chunks, [{ id: "p1", name: "지훈" }, { id: "p2", name: "진호" }, { id: "p3", name: "눈팅" }], evidence, { topIds: ["p1"], perTop: 30, perRest: 1 });
     const lines = out.text!.split("\n");
     expect(lines[0]).toBe("p1=지훈:");
-    expect(lines[1]).toBe("  선호 · 2025-03-01 · 해산물 냄새만 맡아도 헛구역질 (m0)");
-    expect(lines[2]).toBe("  건강 · 2025-04-01 · 통풍 진단 받음 (m2)");
-    expect(lines[3]).toBe("  사건 · 2025-09-02 · 속초에서 오징어순대 먹음 (m8)");
+    expect(lines[1]).toBe("  선호 · 2025-03 · 해산물 냄새만 맡아도 헛구역질 (m0)");
+    expect(lines[2]).toBe("  건강 · 2025-04 · 통풍 진단 받음 (m2)");
+    expect(lines[3]).toBe("  사건 · 2025-09 · 속초에서 오징어순대 먹음 (m8)");
     expect(lines[4]).toBe("p2=진호:");
     expect(lines.length).toBe(6); // p2는 1개, 눈팅은 없음, 남의 메시지·없는 메시지는 제외
     expect(out.messages.map((m) => m.id)).toEqual(["m0", "m2", "m8", "m1"]);
