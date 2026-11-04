@@ -182,6 +182,6 @@ config 밖에서 직접 읽는 값: `MIGRATE_ON_START`(워커, `"false"`가 아�
 | `worker` | Dockerfile 타깃 `worker`: `deps` 스테이지 + `src`·`db`·`tsconfig.json`·`next.config.ts`·`public/fonts` 복사, non-root `app`, `CMD node_modules/.bin/tsx src/worker/index.ts` | `MIGRATE_ON_START=true` → 기동 시 마이그레이션. `.env` 전체 주입 |
 | `web` | 타깃 `web`: `pnpm next build` 산출 `.next/standalone` + `.next/static` + `public`, non-root, `PORT=3000 HOSTNAME=0.0.0.0`, `CMD node server.js` | 포트 `${WEB_PORT:-3000}:3000`, `APP_BASE_URL` 주입, `depends_on: worker started` |
 - 빌드 시 DB·키 불필요(모든 페이지 동적). `.dockerignore`가 `.env*`(예시 제외)·`docs`·`node_modules`를 제외한다.
-- 수평 확장: web N개는 무상태에 가깝지만 **공유 토큰 원문 캐시(`shareTokenCache`)가 프로세스 메모리**라 `GET report`의 `share.url`은 enable을 처리한 인스턴스에서만 채워진다(URL은 enable 응답에서 받는 것이 정본, 06 §2). worker M개는 pg-boss가 분배한다. Vercel 단독 배포는 장기 실행 워커 때문에 부적합.
+- 수평 확장: web N개는 무상태다(2026-11-04부터 공유 토큰 원문도 DB에 암호화 보관 — 그 전엔 프로세스 메모리 캐시라 재시작·다른 인스턴스에서 `share.url`이 비었다, 13 ADR-27). worker M개는 pg-boss가 분배한다. Vercel 단독 배포는 장기 실행 워커 때문에 부적합.
 - 헬스체크 엔드포인트·메트릭·백업 스케줄은 저장소에 없다(운영 과제). 원문은 암호화 상태로 백업되므로 키(`APP_CRYPTO_KEY`)는 DB와 분리해 보관해야 한다.
 - 로컬 실행 절차는 12 §10(README와 동일).

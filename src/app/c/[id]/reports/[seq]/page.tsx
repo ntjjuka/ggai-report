@@ -1,6 +1,9 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import ReportView from "@/components/report/ReportView";
 import { DeleteReportButton, FailedScreen, ShareControls, WritingScreen } from "@/components/report/ReportStatus";
+import { getConfig } from "@/server/config";
+import { publicBaseFromHeaders, rebaseUrl } from "@/server/http";
 import { readOwner } from "@/server/owner";
 import { getConversationDetail } from "@/server/services/conversations";
 import { getReportBySeq } from "@/server/services/reports";
@@ -41,6 +44,8 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     );
   }
   if (!view.content) notFound();
+  // 켜 둔 공유 링크는 새로 고침·재배포 뒤에도 그대로 보여 준다(토큰 원문은 암호화 보관). 주소는 지금 접속한 호스트 기준
+  const shareUrl = view.share.url ? rebaseUrl(view.share.url, publicBaseFromHeaders(await headers(), getConfig().APP_BASE_URL)) : null;
   return (
     <ReportView
       content={view.content}
@@ -48,7 +53,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       isOwner
       actions={
         <div className="space-y-2">
-          <ShareControls reportId={view.reportId} conversationId={id} seq={n} initialEnabled={view.share.enabled} />
+          <ShareControls reportId={view.reportId} conversationId={id} seq={n} initialEnabled={view.share.enabled} initialUrl={shareUrl} />
           <DeleteReportButton reportId={view.reportId} conversationId={id} />
         </div>
       }

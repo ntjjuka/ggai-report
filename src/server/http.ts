@@ -54,11 +54,16 @@ export function jsonWithOwner(body: unknown, owner: OwnerIdentity, init?: { stat
  * 공유 링크 등 사용자가 복사해 가는 절대 주소의 기준. APP_BASE_URL이 localhost면(기본값) 휴대폰·다른 기기에서 열 수 없으므로
  * 요청이 실제로 들어온 호스트(x-forwarded-host/host)를 쓴다. 역방향 프록시 뒤에서는 x-forwarded-proto/host를 따른다.
  */
-export function publicBaseUrl(req: Request, configured: string): string {
+export function publicBaseUrl(req: { headers: { get(name: string): string | null } }, configured: string): string {
   const host = req.headers.get("x-forwarded-host")?.split(",")[0].trim() || req.headers.get("host")?.trim();
   if (!host) return configured.replace(/\/$/, "");
   const proto = req.headers.get("x-forwarded-proto")?.split(",")[0].trim() || (configured.startsWith("https://") ? "https" : "http");
   return `${proto}://${host}`;
+}
+
+/** 서버 컴포넌트용: `next/headers`의 `headers()` 결과로 같은 기준 주소를 만든다 */
+export function publicBaseFromHeaders(h: { get(name: string): string | null }, configured: string): string {
+  return publicBaseUrl({ headers: h }, configured);
 }
 
 /** 저장된 절대 URL의 origin을 기준 주소로 바꾼다 (경로·쿼리는 유지) */

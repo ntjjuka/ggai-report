@@ -181,13 +181,24 @@ describe("end-to-end service flow", () => {
     expect(await runReport(v.reportId, { llm: new FakeLlmClient("ok") })).toBe("done");
   });
 
-  it("shares and unshares a report", async () => {
+  it("shares and unshares a report, and keeps showing the same link afterwards without storing the token in clear", async () => {
     const { url, token } = await enableShare(firstReportId, OWNER);
     expect(url).toContain("/r/");
     const shared = await getSharedReport(token);
     expect(shared.content.verdict.headline.length).toBeGreaterThan(0);
+    // 다시 조회해도(새로 고침·재배포 뒤 상황) 같은 링크가 나온다 — 프로세스 메모리 캐시가 아니라 DB(암호화)에서 복원
+    const again = await getReportBySeq(conversationId, shared.seq, OWNER);
+    expect(again.share).toEqual({ enabled: true, url });
+    // DB에는 해시와 암호문만: 토큰 원문은 어느 컬럼에도 없다 (docs/11 "DB 평문 토큰 0건")
+    const [row] = await getDb().select({ hash: schema.report.shareTokenHash, enc: schema.report.shareTokenEnc }).from(schema.report).where(sql`${schema.report.id} = ${firstReportId}`);
+    expect(row.hash).not.toBe(token);
+    expect(row.hash).toHaveLength(64);
+    expect(row.enc).not.toBeNull();
+    expect(Buffer.from(row.enc!).toString("latin1")).not.toContain(token);
+    expect(Buffer.from(row.enc!).toString("utf8")).not.toContain(token);
     await disableShare(firstReportId, OWNER);
     await expect(getSharedReport(token)).rejects.toMatchObject({ status: 404 });
+    expect((await getReportBySeq(conversationId, shared.seq, OWNER)).share).toEqual({ enabled: false, url: null });
     await expect(enableShare(firstReportId, OTHER_OWNER)).rejects.toMatchObject({ status: 404 });
   });
 

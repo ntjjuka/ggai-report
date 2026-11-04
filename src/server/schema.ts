@@ -97,6 +97,7 @@ export const report = pgTable("report", {
   errorMessage: varchar("error_message", { length: 500 }),
   errorRetryable: boolean("error_retryable"),
   shareTokenHash: char("share_token_hash", { length: 64 }),
+  shareTokenEnc: bytea("share_token_enc"), // 0002: 토큰 원문 AES-256-GCM(AAD = report.id) — 소유자 화면에 같은 링크를 다시 보여 주기 위해
   shareEnabled: boolean("share_enabled").notNull().default(false),
   createdAt: tz("created_at").notNull().defaultNow(),
   updatedAt: tz("updated_at").notNull().defaultNow(),

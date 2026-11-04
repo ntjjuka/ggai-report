@@ -136,8 +136,8 @@
 ### POST `/api/v1/reports/{reportId}/retry` → `202` `ReportView`(`status: "QUEUED"`, `progress.message: "다시 줄 서는 중"`)
 조건: `FAILED` **그리고** `attemptCount < WORKER_MAX_ATTEMPTS(3)` **그리고** 원문 미만료. 위반 시 409 `INVALID_STATE`(상태·횟수) 또는 409 `RAW_EXPIRED`. `attemptCount`는 워커가 클레임할 때 +1 된다.
 
-### POST `/api/v1/reports/{reportId}/share/enable` → `200` `{ "url": "{APP_BASE_URL}/r/{token}" }`
-`SUCCEEDED`만 가능(아니면 409 `INVALID_STATE`). 토큰은 32바이트 `base64url`, 재호출하면 **새 토큰 발급·구 토큰 무효**. URL은 이 응답으로만 확실히 받을 수 있다(해시만 저장).
+### POST `/api/v1/reports/{reportId}/share/enable` → `200` `{ "url": "{요청 호스트}/r/{token}", "token": "…" }`
+`SUCCEEDED`만 가능(아니면 409 `INVALID_STATE`). 토큰은 32바이트 `base64url`, 재호출하면 **새 토큰 발급·구 토큰 무효**(UI는 "링크 새로 만들기"에서 확인 대화상자 뒤에만 재호출한다). URL의 origin은 요청이 들어온 호스트(`x-forwarded-host`/`host`) 기준이라 `APP_BASE_URL`이 localhost여도 휴대폰·다른 PC에서 열린다. 토큰 원문은 `share_token_enc`에 암호화 보관되므로 `GET /conversations/{id}/reports/{seq}`·`GET /reports/{reportId}`의 `share.url`도 같은 링크를 돌려준다(2026-11-04, 13 ADR-27).
 
 ### POST `/api/v1/reports/{reportId}/share/disable` → `200` `{ "enabled": false }`
 
@@ -159,7 +159,8 @@
 | `/r/{token}` | 서버, `noindex` + OG(`card.png`) | 공유 보고서: 상단 "{페르소나} 보고서 · 공유됨", 소유자 액션 없음, 하단 CTA `/setup` |
 | `/r/{token}/card.png` | Route Handler(`next/og` ImageResponse) | 1080×1920 공유 카드 PNG(09 §4). 404면 텍스트 "not found" |
 | `/privacy`, `/terms` | 서버 | 개인정보 처리 안내(10 §8), 이용 안내 |
-| (404) | `not-found.tsx` | "여기엔 아무것도 없어요 … 대화는 만든 브라우저에서만 열 수 있어요" |
+| (404) | `not-found.tsx` | "여기엔 아무것도 없어요 … 대화는 만든 브라우저에서만 열 수 있어요"(소유자 페이지용) |
+| `/r/*` (404) | `r/[token]/not-found.tsx` | "이 공유 링크는 더 열리지 않아요" — 공유를 끄거나 링크를 새로 만들었거나 삭제된 경우. 쿠키·브라우저와 무관함을 명시(2026-11-04) |
 `next.config.ts` 헤더: `/r/*`에 `X-Robots-Tag: noindex, nofollow, noarchive`, `/c/*`에 같은 헤더 + `Cache-Control: private, no-store`. **없는 페이지**: `/faq`, `/support`, 유형별 랜딩(`/relationship` 등), 대화 목록("내 보고서") — docs/18 P1-6·P1-11 백로그. 푸터의 문의 링크도 없다(프라이버시 페이지에 "저장소 이슈 트래커" 문구만).
 
 ## 4. 레이트리밋·남용 방지

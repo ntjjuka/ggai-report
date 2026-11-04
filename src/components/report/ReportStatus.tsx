@@ -51,7 +51,7 @@ export function WritingScreen({ conversationId, seq, persona, initial, etaMinute
       </div>
       <p className="mt-6 text-sm text-muted">{view.progress.message ?? `약 ${etaMinutes}분 걸려요.`}</p>
       {view.progress.stage === "SYNTH" && <p className="mt-1 text-xs text-muted">마지막 단계예요. 장면·인물과 판정을 두 갈래로 나눠 동시에 쓰고 있어요. 대화가 길면 1~3분 머물고, 연결이 끊기면 20초 뒤 자동으로 다시 써요.</p>}
-      <p className="mt-1 text-xs text-muted">보통 {etaMinutes}분 안에 나와요. 이 페이지를 닫아도 "내 보고서"에서 다시 열 수 있어요.</p>
+      <p className="mt-1 text-xs text-muted">보통 {etaMinutes}분 안에 나와요. 이 페이지를 닫아도 &ldquo;내 보고서&rdquo;에서 다시 열 수 있어요.</p>
       <CancelReportButton reportId={view.reportId} />
     </div>
   );
@@ -143,28 +143,35 @@ export function FailedScreen({ reportId, persona, error }: { reportId: string; p
   );
 }
 
-export function ShareControls({ reportId, conversationId, seq, initialEnabled }: { reportId: string; conversationId: string; seq: number; initialEnabled: boolean }) {
+export function ShareControls({ reportId, conversationId, seq, initialEnabled, initialUrl = null }: { reportId: string; conversationId: string; seq: number; initialEnabled: boolean; initialUrl?: string | null }) {
   const [enabled, setEnabled] = useState(initialEnabled);
-  const [url, setUrl] = useState<string | null>(null);
+  // 서버가 준 링크(암호화 보관된 토큰, 접속 호스트 기준으로 이미 맞춰짐)로 시작한다 → 새로 고침·재배포 뒤에도 같은 링크가 보인다.
+  // 0002 이전에 켠 공유는 원문이 없어 null → 아래 "링크 다시 만들기"
+  const [url, setUrl] = useState<string | null>(initialUrl);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState<"ok" | "manual" | null>(null);
+  // 새로 발급받은 링크는 브라우저 주소 기준으로 맞춘다(서버 설정이 localhost 등이어도 휴대폰에서 열리게)
+  function localize(u: string): string {
+    try {
+      const parsed = new URL(u, window.location.origin);
+      return `${window.location.origin}${parsed.pathname}${parsed.search}`;
+    } catch {
+      return u;
+    }
+  }
   async function enable() {
     setBusy(true);
     try {
       const r = await api<{ url: string }>(`/api/v1/reports/${reportId}/share/enable`, { method: "POST" });
-      // 서버가 준 주소의 origin이 지금 보고 있는 주소와 다르면(설정이 localhost 등) 브라우저 주소 기준으로 바꾼다
-      let next = r.url;
-      try {
-        const u = new URL(r.url, window.location.origin);
-        next = `${window.location.origin}${u.pathname}${u.search}`;
-      } catch {
-        /* 그대로 */
-      }
-      setUrl(next);
+      setUrl(localize(r.url));
       setEnabled(true);
     } finally {
       setBusy(false);
     }
+  }
+  async function rotate() {
+    if (!confirm("링크를 새로 만들면 이미 보내 준 링크는 더 열리지 않아요. 새로 만들까요?")) return;
+    await enable();
   }
   async function copy(text: string) {
     // http://<LAN IP> 처럼 보안 컨텍스트가 아니면 navigator.clipboard가 없다 → 선택 + execCommand 폴백, 그것도 안 되면 길게 눌러 복사 안내
@@ -206,11 +213,17 @@ export function ShareControls({ reportId, conversationId, seq, initialEnabled }:
               <a className="text-xs text-muted underline" href={url} target="_blank" rel="noreferrer">
                 열어 보기
               </a>
+              <button type="button" className="text-xs text-muted underline" disabled={busy} onClick={rotate}>
+                링크 새로 만들기
+              </button>
             </span>
           ) : (
-            <button type="button" className="btn-secondary text-sm" disabled={busy} onClick={enable}>
-              새 공유 링크 만들기
-            </button>
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted">공유는 켜져 있지만 이 서버에 링크 원문이 없어요(예전 방식). 보내 준 링크는 그대로 열려요.</span>
+              <button type="button" className="btn-secondary text-sm" disabled={busy} onClick={rotate}>
+                링크 다시 만들기
+              </button>
+            </span>
           )}
           <button type="button" className="text-xs text-muted underline" disabled={busy} onClick={disable}>
             공유 끄기

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq, isNotNull, lt, sql } from "drizzle-orm";
 import type { Focus, ReportContent } from "@/lib/report/schema";
 import { getConfig } from "../config";
-import { randomToken, sha256Hex } from "../crypto";
+import { decryptRaw, encryptRaw, randomToken, sha256Hex } from "../crypto";
 import { getDb, schema } from "../db";
 import { ApiError, conflict, notFound } from "../errors";
 import { cancelReportJob, enqueueReportJob, getReportJobState, releaseReportJob } from "../queue";
@@ -66,7 +66,8 @@ export function shareUrl(token: string): string {
   return `${getConfig().APP_BASE_URL.replace(/\/$/, "")}/r/${token}`;
 }
 
-export function toReportView(row: ReportRow, shareToken: string | null = null): ReportView {
+export function toReportView(row: ReportRow): ReportView {
+  const shareToken = row.shareEnabled ? shareTokenOf(row) : null;
   return {
     reportId: row.id,
     conversationId: row.conversationId,
@@ -228,16 +229,26 @@ export async function getReportBySeq(conversationId: string, seq: number, ownerH
     .where(and(eq(schema.report.conversationId, conversationId), eq(schema.report.seq, seq), eq(schema.conversation.ownerTokenHash, ownerHash)))
     .limit(1);
   if (!rows[0]) throw notFound();
-  return toReportView(rows[0].r, shareTokenCache.get(rows[0].r.id) ?? null);
+  return toReportView(rows[0].r);
 }
 
 export async function getReportById(reportId: string, ownerHash: string): Promise<ReportView> {
   const row = await findOwnedReport(reportId, ownerHash);
-  return toReportView(row, shareTokenCache.get(row.id) ?? null);
+  return toReportView(row);
 }
 
-/** 공유 토큰 원문은 DB에 없으므로(해시만) 발급 직후 응답에만 포함. 재조회 시 URL은 enable 재호출로 받는다. */
-const shareTokenCache = new Map<string, string>();
+/**
+ * 공유 토큰 원문: `share_token_enc`(AES-256-GCM, AAD = report.id)를 풀어서 돌려준다. 0002 이전에 켠 공유(해시만 있음)나
+ * 키가 바뀐 뒤에는 null → 화면은 "링크 다시 만들기"를 보여 준다(기존 링크 자체는 해시가 남아 있어 계속 열린다).
+ */
+function shareTokenOf(row: Pick<ReportRow, "id" | "shareTokenEnc">): string | null {
+  if (!row.shareTokenEnc) return null;
+  try {
+    return decryptRaw(row.shareTokenEnc, row.id).toString("utf8");
+  } catch {
+    return null;
+  }
+}
 
 export async function cancelReport(reportId: string, ownerHash: string): Promise<ReportView> {
   const row = await findOwnedReport(reportId, ownerHash);
@@ -279,16 +290,17 @@ export async function enableShare(reportId: string, ownerHash: string): Promise<
   const row = await findOwnedReport(reportId, ownerHash);
   if (row.status !== "SUCCEEDED") throw conflict("INVALID_STATE", "완성된 보고서만 공유할 수 있어요");
   const token = randomToken();
-  await getDb().update(schema.report).set({ shareTokenHash: sha256Hex(token), shareEnabled: true, updatedAt: new Date() }).where(eq(schema.report.id, reportId));
-  shareTokenCache.set(reportId, token);
+  await getDb()
+    .update(schema.report)
+    .set({ shareTokenHash: sha256Hex(token), shareTokenEnc: encryptRaw(Buffer.from(token, "utf8"), reportId), shareEnabled: true, updatedAt: new Date() })
+    .where(eq(schema.report.id, reportId));
   await audit("SHARE_ON", { reportId, conversationId: row.conversationId, ownerHash });
   return { url: shareUrl(token), token };
 }
 
 export async function disableShare(reportId: string, ownerHash: string): Promise<void> {
   const row = await findOwnedReport(reportId, ownerHash);
-  await getDb().update(schema.report).set({ shareTokenHash: null, shareEnabled: false, updatedAt: new Date() }).where(eq(schema.report.id, reportId));
-  shareTokenCache.delete(reportId);
+  await getDb().update(schema.report).set({ shareTokenHash: null, shareTokenEnc: null, shareEnabled: false, updatedAt: new Date() }).where(eq(schema.report.id, reportId));
   await audit("SHARE_OFF", { reportId, conversationId: row.conversationId, ownerHash });
 }
 
@@ -299,7 +311,6 @@ export async function deleteReport(reportId: string, ownerHash: string): Promise
   // 자동 재시도로 예약된(지연) 잡이 남아 있으면 같은 대화의 다음 보고서가 singleton 충돌로 막힌다 → 행을 지우기 전에 비운다
   await releaseReportJob(row.jobId);
   await getDb().delete(schema.report).where(eq(schema.report.id, reportId));
-  shareTokenCache.delete(reportId);
   // audit_event.report_id는 FK(ON DELETE SET NULL)라 삭제된 ID를 넣을 수 없다 → 대화 ID만 남긴다
   await audit("REPORT_DELETE", { conversationId: row.conversationId, ownerHash });
 }

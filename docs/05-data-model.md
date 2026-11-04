@@ -1,4 +1,4 @@
-# 05. 데이터 모델 (PostgreSQL 16, SQL 마이그레이션 `db/migrations/0001_init.sql`)
+# 05. 데이터 모델 (PostgreSQL 16, SQL 마이그레이션 `db/migrations/*.sql` — 0001 초기, 0002 공유 토큰 암호문)
 
 > 2026-11-03 Node 구현 기준으로 갱신 (docs/18 P0-9). §3의 DDL은 `db/migrations/0001_init.sql`을 **그대로** 옮긴 것이고, drizzle 스키마 `src/server/schema.ts`는 이 DDL과 1:1로 수동 동기한다(DDL이 정본). 18 §5·§11-4가 지적한 드리프트 컬럼(`tier0_json`, `merge_suggestions`, `default_focus`, `report_language`, `job_id`, `progress_message`, `error_retryable`, `audit_event.owner_hash`, `ix_audit_*`)은 전부 반영했다.
 
@@ -113,6 +113,7 @@ CREATE TABLE report (
   error_message    VARCHAR(500),
   error_retryable  BOOLEAN,
   share_token_hash CHAR(64),
+  share_token_enc  BYTEA,                                -- 0002: 토큰 원문 AES-256-GCM(APP_CRYPTO_KEY, AAD = id)
   share_enabled    BOOLEAN NOT NULL DEFAULT false,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -187,7 +188,8 @@ CREATE INDEX ix_audit_owner ON audit_event (event_type, owner_hash, created_at);
 | `report.progress_message` | 워커 하트비트 | 사용자 노출 진행 문구(≤200자, 09 §5) |
 | `report.schema_version` | 성공 | `ReportContent.schemaVersion`(현재 1) |
 | `report.quality_json` | 성공 | `ReportContent.quality`(06 §2) — `content_json`에도 같은 값이 들어 있다 |
-| `report.share_token_hash` | 공유 켬 | `sha256(token)`. 토큰 원문은 DB에 없다(응답 1회 + 프로세스 메모리 캐시) |
+| `report.share_token_hash` | 공유 켬 | `sha256(token)`. 공유 페이지·`GET /shared/{token}` 조회 키 |
+| `report.share_token_enc` | 공유 켬 | 토큰 원문의 AES-256-GCM 암호문(`APP_CRYPTO_KEY`, AAD = `report.id`). 소유자 화면 `share.url`을 새로 고침·재배포 뒤에도 같은 링크로 보여 주기 위한 것. 0002 이전에 켠 공유는 NULL(화면은 "링크 다시 만들기") |
 | `audit_event.owner_hash` | 서비스 | 소유자 해시(보고서 일일 상한 카운트 키). `ip_hash`는 업로드 상한 키 |
 
 ## 4. drizzle · 서비스 계층 메모 (`src/server/schema.ts`, `src/server/services/*`)
@@ -196,7 +198,7 @@ CREATE INDEX ix_audit_owner ON audit_event (event_type, owner_hash, created_at);
 - 상태 전이는 **서비스 함수의 CAS UPDATE로만** 한다(`claimReport`, `heartbeat`, `markSucceeded`, `markFailed`, `cancelReport`, `retryReport`, `recoverStaleReports`). 상태 컬럼을 다른 곳에서 직접 set하지 않는다. 불가 전이는 409 `INVALID_STATE`.
 - 소유자 격리는 모든 조회에 `owner_token_hash = ?`를 조인/조건으로 붙여서(`findOwnedConversation`, `findOwnedReport`) 불일치 시 404.
 - 알려진 비용: `findOwnedConversation`·`loadMessagesForReport`가 `select()`로 전체 행을 읽으므로 `raw_cipher`(최대 수십 MB)도 함께 끌어온다. 목록 화면이 없어 현재는 문제가 없지만 목록을 만들 때는 컬럼을 골라 읽어야 한다.
-- 토큰은 해시만 저장(`owner_token_hash`, `share_token_hash`). 공유 토큰 원문은 `enableShare` 응답에 1회 노출되고 `shareTokenCache`(프로세스 메모리)에만 남는다 → `GET report`의 `share.url`은 같은 인스턴스에서만 채워진다(04 §5).
+- 소유자 토큰은 해시만 저장(`owner_token_hash`). 공유 토큰은 해시(조회 키) + 암호문(`share_token_enc`, 표시용)을 함께 저장한다 — DB만 유출돼도 키(`APP_CRYPTO_KEY`) 없이는 링크를 만들 수 없고, web은 무상태라 어느 인스턴스에서 조회해도 `share.url`이 같다(13 ADR-27). 2026-11-03까지 쓰던 프로세스 메모리 캐시(`shareTokenCache`)는 제거했다.
 
 ## 5. 보존·삭제 (코드 동작)
 | 대상 | 규칙 | 구현 |
@@ -215,5 +217,7 @@ CREATE INDEX ix_audit_owner ON audit_event (event_type, owner_hash, created_at);
 - 실행 경로: `pnpm db:migrate`(dotenv로 `.env` 읽음) · 워커 기동 시 `MIGRATE_ON_START !== "false"`(compose 기본 `"true"`) · 통합 테스트 `beforeAll`.
 - 규칙: 변경은 항상 **새 버전 파일**(`0002_….sql`). 기존 파일 수정 금지(이미 적용된 DB에서 재실행되지 않는다). 같은 PR에서 `src/server/schema.ts`를 함께 갱신한다. JSONB 구조 변경은 `schema_version` 증가 + 읽기 분기(현재 `ReportContent.schemaVersion = 1`, `inlineEvidence`는 구버전 호환을 위해 선택 필드).
 - 롤백 SQL은 두지 않는다(전진 전용). 되돌릴 일은 새 버전으로 쓴다.
+
+> 2026-11-04: `0002_report_share_token_enc.sql` — `report.share_token_enc BYTEA` 추가(위 §3). 워커 기동 시 자동 적용. 데이터 이행 없음(기존 공유는 해시만 있어 화면에서 "링크 다시 만들기"를 1회 안내).
 
 > 2026-11-03: `MessageKind`에 `DATA`(헥스 덤프·해시·base64·로그 덩어리, 03 부록 C) 추가. 저장 형식은 그대로(원문 JSON 안의 `kind` 문자열), 마이그레이션 없음. 통계에서는 첨부(`media.other`)로 센다.

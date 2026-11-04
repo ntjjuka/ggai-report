@@ -10,7 +10,8 @@
 | 통계 `stats_json` | 중간(인용 없음, `index`만) | 대화와 함께 | 동일 | `conversation_stats` |
 | Tier 0 `tier0_json` | 중간~높음(첫날·마지막날 말풍선 ≤200자, 최장 메시지 ≤400자 **마스킹 후** 포함) | 대화와 함께 | 소유자만(`/c/{id}/story`) | `buildTier0`/`buildStory` |
 | LLM 원출력 체크포인트 `report_stage_result.result_json` | 높음 | 생성 후 24시간(`STAGE_RESULT_RETENTION_HOURS`) — **보고서가 SUCCEEDED인 경우만** 정리. 실패 보고서의 체크포인트는 보고서 삭제 때까지 남음 | 소유자 API로 노출 안 됨 | `cleanupStageResults`(60분 주기) |
-| 토큰(소유자·공유) | 비밀 | 해시만 저장(SHA-256). 원문은 쿠키 / `enable` 응답 / 프로세스 메모리 캐시에만 | - | `owner.ts`, `enableShare` |
+| 토큰(소유자) | 비밀 | 해시만 저장(SHA-256). 원문은 쿠키에만 | - | `owner.ts` |
+| 토큰(공유) | 비밀 | 해시(조회 키) + AES-256-GCM 암호문(`share_token_enc`, AAD = report.id, 표시용). 평문은 DB·로그에 없다. 키(`APP_CRYPTO_KEY`) 없이는 복원 불가 | - | `enableShare`, `shareTokenOf` |
 | 호출 로그 `llm_call_log` | 낮음(토큰 수·비용·지연·상태만) | 정리 없음(무기한) | 본문 없음 | `logLlmCall` |
 | 감사 로그 `audit_event` | 낮음(IP·소유자 **해시**, ID) | 정리 없음(무기한). 이전 목표 "90일"은 **미구현** | - | `audit()` |
 | 서버 로그(`console`) | 낮음 | 컨테이너 로그 정책에 따름 | 본문·이름·질문 미출력(§5) | - |
@@ -23,7 +24,7 @@
 
 ## 3. 접근 제어 (`src/server/owner.ts`, `http.ts`, `next.config.ts`)
 - 소유자 토큰: 32바이트 CSPRNG → `base64url`, 쿠키 `gg_owner` `HttpOnly; SameSite=Lax; Path=/; Max-Age=1년; Secure(production)`. 서버는 해시로 조회. 분실(쿠키 삭제·다른 브라우저·시크릿 창·폰↔PC) = 접근 불가. **복구 수단 없음** — 이메일 인증·완료 메일(docs/18 P0-1)은 13 ADR-08에서 사용자 결정 대기. 고지 위치: 위저드 7단계("이 브라우저에서만 열 수 있으니 링크를 잃어버리지 마세요"), 404 페이지("대화는 만든 브라우저에서만 열 수 있어요"), `/privacy` "접근과 복구".
-- 공유 토큰: 보고서별 32바이트, 재발급 시 구 토큰 무효(해시 교체), `disable`로 철회. 공유 페이지 `/r/*`와 `GET /api/v1/shared/*`는 `X-Robots-Tag: noindex, nofollow, noarchive`(설정 헤더 + 핸들러 헤더) + `metadata.robots { index:false, follow:false }`. `/c/*`도 `noindex` + `Cache-Control: private, no-store`. `card.png`는 `Cache-Control: private, max-age=300`, `X-Robots-Tag: noindex`.
+- 공유 토큰: 보고서별 32바이트, 재발급 시 구 토큰 무효(해시·암호문 교체), `disable`로 철회(둘 다 NULL). 원문은 `APP_CRYPTO_KEY`로 암호화해 보관하므로 소유자 화면이 새로 고침·재배포 뒤에도 같은 링크를 보여 준다(13 ADR-27). 공유 페이지는 쿠키 없이 누구나 열 수 있다(`/r/*` 전용 404 문구가 이를 명시). 공유 페이지 `/r/*`와 `GET /api/v1/shared/*`는 `X-Robots-Tag: noindex, nofollow, noarchive`(설정 헤더 + 핸들러 헤더) + `metadata.robots { index:false, follow:false }`. `/c/*`도 `noindex` + `Cache-Control: private, no-store`. `card.png`는 `Cache-Control: private, max-age=300`, `X-Robots-Tag: noindex`.
 - 존재 노출 방지: 쿠키 없음·소유자 불일치·없는 리소스 모두 404 `NOT_FOUND`(403 없음). 페이지도 `notFound()`.
 - **CSRF**: CSRF 토큰·`Origin`/`Referer` 검증은 **미구현**. 방어는 전적으로 `SameSite=Lax` 쿠키에 의존한다 — 상태 변경 엔드포인트가 모두 `POST`/`DELETE`(JSON 또는 multipart)이고 `Lax` 쿠키는 교차 사이트 서브리소스·폼 POST에 붙지 않으므로 현대 브라우저에서는 교차 사이트 요청 위조가 막힌다. 권고: `withApi`에 `Origin`(또는 `Sec-Fetch-Site`) 검사를 추가해 다층 방어로 올릴 것. 외부 API 공개 계획이 생기면 Bearer 토큰으로 전환.
 - 레이트리밋: 06 §4(IP 해시·소유자 해시, `audit_event` 카운트). 공개 경로(`/r/*`, `/shared/*`)는 제한 없음(미구현).
