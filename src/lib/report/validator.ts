@@ -147,7 +147,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
     for (const [field, value] of [["title", p.title], ["oneLiner", p.oneLiner]] as const) {
       if ((value.match(PERSONA_STATS) ?? []).length >= 1) violations.push({ path: `participants[${i}].${field}`, reason: "STATS_IN_PERSONA", detail: "칭호·한 줄 결론에 통계 숫자 금지 — 말 vs 행동 대비나 격차 비유로" });
     }
-    // 조서 문체: 문단이 날짜로 시작하거나, 카드 전체에 "이 사람" 3회↑ 또는 기록 동사 4회↑
+    // 조서 문체: 문단이 날짜로 시작하거나, "이 사람"이 문단당 1회를 넘거나(지침과 같은 기준), 기록 동사 4회↑(지침은 2회 — 1~2회 초과는 눈감아 준다)
     const all = p.paragraphs.map((par) => par.text).join("\n");
     const flat: string[] = [];
     p.paragraphs.forEach((par, j) => {
@@ -155,7 +155,7 @@ export function validateDraft(input: ReportDraft, ctx: ValidationContext): Valid
     });
     const thisPerson = (all.match(THIS_PERSON) ?? []).length;
     const recordVerbs = (all.match(RECORD_VERBS) ?? []).length;
-    if (thisPerson >= 3) flat.push(`"이 사람" ${thisPerson}회`);
+    if (thisPerson > p.paragraphs.length) flat.push(`"이 사람" ${thisPerson}회(문단 ${p.paragraphs.length}개)`);
     if (recordVerbs >= 4) flat.push(`기록 동사(보고·중계·공유·올렸·선언) ${recordVerbs}회`);
     if (flat.length) {
       p.paragraphs.forEach((_, j) => violations.push({ path: `participants[${i}].paragraphs[${j}]`, reason: "FLAT_VOICE", detail: `조서 문체(${flat.join(", ")}) — 첫 문장은 날짜가 아니라 판결(명사형 라벨), 사건마다 판단 한 조각, 거친 동사, "이 사람" 대신 이름·별명·거친 명사, 까비서 1인칭 개입 1회·당사자에게 2인칭 한 방 1회` }));
