@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ggai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ggai}
+      POSTGRES_DB: ggai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ggai -d ggai"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build:
+      context: .
+      target: worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://ggai:${POSTGRES_PASSWORD:-ggai}@postgres:5432/ggai
+      MIGRATE_ON_START: "true"
+      WORKER_READY_FILE: /tmp/worker-ready
+    healthcheck:
+      # 마이그레이션 + 큐 준비 후 워커가 만드는 파일. web은 이 상태가 healthy 가 된 뒤 뜬다
+      test: ["CMD-SHELL", "test -f /tmp/worker-ready"]
+      interval: 3s
+      timeout: 2s
+      retries: 60
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      target: web
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://ggai:${POSTGRES_PASSWORD:-ggai}@postgres:5432/ggai
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

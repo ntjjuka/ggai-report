@@ -1,0 +1,131 @@
+{
+ "title": "Project Team (All) (3)",
+ "sourceFormat": "KAKAO_EN",
+ "messageCount": 9,
+ "participants": [
+  {
+   "rawName": "Alex Kim",
+   "messageCount": 2,
+   "firstAt": "2026-10-02T09:02",
+   "lastAt": "2026-10-02T09:03"
+  },
+  {
+   "rawName": "Jamie Lee",
+   "messageCount": 1,
+   "firstAt": "2026-10-02T09:10",
+   "lastAt": "2026-10-02T09:10"
+  },
+  {
+   "rawName": "Sam Park",
+   "messageCount": 1,
+   "firstAt": "2026-10-02T14:15",
+   "lastAt": "2026-10-02T14:15"
+  },
+  {
+   "rawName": "Dana",
+   "messageCount": 2,
+   "firstAt": "2026-10-03T00:00",
+   "lastAt": "2026-10-03T12:30"
+  }
+ ],
+ "warnings": {
+  "orphanLines": 0,
+  "unknownSystemLines": 0,
+  "dateUnknownBeforeSeparator": 0,
+  "encodingFallback": false,
+  "dedupedCount": 0,
+  "nonMonotonicTimestamp": 0
+ },
+ "messages": [
+  {
+   "index": 0,
+   "at": "2026-10-02T09:02",
+   "sender": null,
+   "kind": "SYSTEM_INVITE",
+   "text": "Alex Kim invited Jamie Lee, Sam Park and Chris.",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 1,
+   "at": "2026-10-02T09:02",
+   "sender": "Alex Kim",
+   "kind": "TEXT",
+   "text": "안녕하세요?\n전체 공지용 단톡방을 만들었습니다.\n가급적 여기서 소식 전해주세요.",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 2,
+   "at": "2026-10-02T09:03",
+   "sender": "Alex Kim",
+   "kind": "TEXT",
+   "text": "빠진 분 있으면 추가해 주세요",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 3,
+   "at": "2026-10-02T09:03",
+   "sender": null,
+   "kind": "SYSTEM_INVITE",
+   "text": "Chris invited Dana.",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 4,
+   "at": "2026-10-02T09:03",
+   "sender": null,
+   "kind": "DELETED",
+   "text": "The message has been deleted.",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 5,
+   "at": "2026-10-02T09:10",
+   "sender": "Jamie Lee",
+   "kind": "PHOTO",
+   "text": "Photo",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 6,
+   "at": "2026-10-02T14:15",
+   "sender": "Sam Park",
+   "kind": "TEXT",
+   "text": "넵 확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 7,
+   "at": "2026-10-03T00:00",
+   "sender": "Dana",
+   "kind": "TEXT",
+   "text": "자정 메시지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 8,
+   "at": "2026-10-03T12:30",
+   "sender": "Dana",
+   "kind": "TEXT",
+   "text": "정오 메시지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  }
+ ]
+}

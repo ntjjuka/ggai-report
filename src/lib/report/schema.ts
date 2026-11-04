@@ -1,0 +1,266 @@
+// docs/07 §3·§4 — LLM 출력 스키마(zod, 구조화 출력용으로 단순하게)와 최종 ReportContent
+import { z } from "zod";
+
+export const FOCUS = ["AUTO", "ROMANCE", "FRIENDS_GROUP", "FRIEND_ONE", "FAMILY", "WORK", "OTHER"] as const;
+export const FOCUS_LABEL: Record<(typeof FOCUS)[number], string> = { AUTO: "자동", ROMANCE: "연애", FRIENDS_GROUP: "친구 단톡방", FRIEND_ONE: "친구 한 명", FAMILY: "가족", WORK: "회사/팀", OTHER: "기타" };
+export type Focus = (typeof FOCUS)[number];
+export const MOOD = ["DIRECT", "WARM", "DRY", "HYPED"] as const;
+export type Mood = (typeof MOOD)[number];
+export const MOOD_LABEL: Record<Mood, string> = { DIRECT: "직진", WARM: "다정", DRY: "건조", HYPED: "들뜸" };
+export const CONFIDENCE = ["HIGH", "MEDIUM", "LOW"] as const;
+export type Confidence = (typeof CONFIDENCE)[number];
+export const CONFIDENCE_LABEL: Record<Confidence, string> = { HIGH: "확실해", MEDIUM: "아마도", LOW: "감이야" };
+export const MOMENT_KINDS = ["funny", "flutter", "touching", "banter", "awkward", "clash"] as const;
+export type MomentKind = (typeof MOMENT_KINDS)[number];
+export const SAFETY_FLAGS = ["SELF_HARM", "VIOLENCE", "ABUSE", "STALKING", "MINOR"] as const;
+
+const Conf = z.enum(CONFIDENCE);
+const Ids = z.array(z.string()).describe("근거 메시지 ID 목록 (m123 형식). 텍스트 인용 금지");
+
+// ── 청크 추출 (docs/07 §4.1) ───────────────────────────────────────────
+export const FACT_KINDS = ["health", "preference", "possession", "habit", "declaration", "event", "money", "work", "relationship", "other"] as const;
+export type FactKind = (typeof FACT_KINDS)[number];
+
+export const ChunkExtractionSchema = z.object({
+  summary: z.string().describe("이 구간의 흐름 2~3문장"),
+  facts: z
+    .array(
+      z.object({
+        participantId: z.string(),
+        kind: z.enum(FACT_KINDS).describe("health 건강 | preference 선호(좋아함·싫어함) | possession 소유(차·집·물건) | habit 습관(AI 사용·술·운동) | declaration 선언(다이어트·금연·연애 안 함) | event 사건(이직·연애 시작·구매·여행) | money 돈 | work 직장 | relationship 관계 | other"),
+        claim: z.string().describe("그 사람이 자기 입으로 말한 사실 한 줄 ≤40자, 추측 금지 (예: '해산물 냄새만 맡아도 헛구역질')"),
+        when: z.string().describe("YYYY-MM-DD"),
+        messageId: z.string().describe("근거 메시지 m123"),
+      }),
+    )
+    .describe("사람별 지속적 사실(팩트 장부 재료) — 구간에서 말한 참여자당 ≤4개. 나중에 뒤집히거나 결합될 수 있는 사실 우선"),
+  events: z.array(z.object({ date: z.string().describe("YYYY-MM-DD"), title: z.string(), summary: z.string(), evidenceIds: Ids })),
+  signals: z.array(
+    z.object({
+      participantId: z.string(),
+      interest: z.number().describe("상대/방에 대한 관심 0~100"),
+      effort: z.number().describe("노력 0~100"),
+      toneLabel: z.string(),
+      reason: z.string(),
+      topics: z.array(z.string()).describe("이 구간에서 이 사람이 주로 떠든 주제 1~3개, 구체 명사(상품·장소·사람·취미·불평거리)"),
+      details: z.array(z.string()).describe("본인이 직접 말한 구체 디테일 1~3개(연애·돈·직장·건강·소비·여행·가족 사실, 선언·번복·허세·고백), 각 40자 이내, 끝에 메시지 ID 1개"),
+      callbacks: z.array(z.string()).describe("이 구간에서 그 사람에게 붙은 별명·놀림거리·테스트 결과, 그리고 그 사람만 쓰는 말버릇·특유의 오타·감탄사 0~3개, 대화 속 표현 그대로"),
+      evidenceIds: Ids.describe("이 사람 메시지 중 캐릭터가 가장 드러나는 것 1~2개 (m123 형식)"),
+    }),
+  ),
+  highlights: z.array(z.object({ messageId: z.string(), kind: z.enum(MOMENT_KINDS), caption: z.string().describe("60자 이내") })),
+  exchanges: z
+    .array(
+      z.object({
+        title: z.string().describe("사건 제목 ≤30자"),
+        messageIds: Ids.describe("연속된 메시지 2~4개의 ID, 주고받은 순서대로"),
+        participantIds: z.array(z.string()).describe("등장인물 participantId"),
+        why: z.string().describe("나중에 꺼내면 왜 웃기거나 부끄러운지 ≤40자 (허세→반박, 선언→놀림, 혼자 진지→무시, 훈수→본인 모순 …)"),
+      }),
+    )
+    .default([])
+    .describe("주고받은 사건 0~3개 — 종합이 원문 그대로 다시 읽는 티키타카. 요약이 아니라 장면이 웃긴 것만"),
+  keywords: z.array(z.string()).describe("8개 이내"),
+  roastMaterial: z.array(z.object({ participantId: z.string(), observation: z.string().describe("반복되는 행동 패턴"), evidenceIds: Ids, device: z.string().describe("유머 장치 id 제안") })),
+  conflicts: z.array(z.object({ startMessageId: z.string(), endMessageId: z.string(), summary: z.string(), repaired: z.boolean(), repairedBy: z.string().nullable() })),
+  plans: z.array(z.object({ proposedMessageId: z.string(), what: z.string(), followedThrough: z.enum(["YES", "NO", "UNKNOWN"]), evidenceIds: Ids })),
+  safetyFlags: z.array(z.string()).describe("SELF_HARM|VIOLENCE|ABUSE|STALKING|MINOR 중 해당하는 것, 없으면 빈 배열"),
+});
+export type ChunkExtraction = z.infer<typeof ChunkExtractionSchema>;
+
+// ── 종합 초안 (docs/07 §4.2) ─────────────────────────────────────────
+// 키 순서 = 작성 순서: ① 재밌게 읽은 장면(moments) ② 인물 페르소나(participants) ③ 판정(verdict) … (책 한 권을 다 읽고 → 인상적인 장면 → 사람별 정리 → 명쾌한 결론)
+export const ReportDraftSchema = z.object({
+  moments: z
+    .array(
+      z.object({
+        kind: z.enum(MOMENT_KINDS),
+        title: z.string().describe("장 제목: \"제N장: '조어' — 부제\" ≤40자"),
+        summary: z.string().describe("장 본문 2~3문단(각 100~250자, 문단 사이 빈 줄): 기믹 선언·증상 → 대표 사건 재구성 → 황당한 결론. 2인칭 '너희', 조어는 **굵게**"),
+        participantIds: z.array(z.string()).describe("등장인물 participantId 1~4"),
+        messageIds: Ids.describe("그 사건의 실제 메시지 2~4개, 주고받은 순서대로"),
+      }),
+    )
+    .describe("이 방을 관통하는 가장 큰 코미디를 3~5개의 장(章)으로 — 반복되는 기믹·사건 하나가 한 장. 이 장면들이 인물 페르소나의 재료다"),
+  participants: z.array(
+    z.object({
+      participantId: z.string(),
+      thesis: z.string().describe("이 사람을 못 박는 논제 한 문장 ≤120자(내부 메모, 화면에 안 나감): 결합 라벨 또는 시간차 반전 + 과장된 동기 한 절. 예: '면허 없는 중고차 평론가 — 소유를 검색으로 대신하는 인간'. 아래 모든 필드는 이 논제에서 파생"),
+      emoji: z.string().describe("이 사람 캐릭터를 요약하는 이모지 1개"),
+      title: z.string().describe("칭호 20~45자: 「수식절 + '별명'」 꼴. 예: 회식 자리마다 다음 회식을 예약하는 '2차 사장'"),
+      nickname: z.string().describe("title 속 따옴표 별명만"),
+      epithet: z.string().describe("목차용 한 줄 별칭 8~18자 명사구, 그 사람의 드라마를 한 방에"),
+      type: z.object({
+        label: z.string().describe("이 방에서 이 사람의 유형 라벨 4~12자(…형/…파/…족), 예: 프로 불참러형"),
+        description: z.string().describe("그 유형이 이 대화에서 어떻게 드러나는지 한 문장"),
+      }),
+      topics: z.array(z.string()).describe("이 사람이 주로 떠든 주제 2~4개, 구체 명사(상품·장소·취미·불평거리·자랑거리). '일상'처럼 뭉개지 않는다"),
+      paragraphs: z.array(
+        z.object({
+          text: z.string().describe("로스트 문단 150~450자: 재밌게 읽은 장면 속 본인의 말·행동 디테일 2~3개를 쌓고 마지막 절에서 꺾는다"),
+          quoteIds: Ids.describe("이 문단을 뒷받침하는 그 사람 메시지 0~2개. 서버가 문단 아래 말풍선으로 붙인다"),
+        }),
+      ).describe("2~3문단(참여자 9명 이상이면 텍스트 지분 상위 8명만 2~3문단, 나머지 1문단)"),
+      oneLiner: z.string().describe("이 사람을 끝내는 명쾌한 한 줄 결론 15~40자, '결론:'으로 시작"),
+      badgeIds: z.array(z.string()).describe("뱃지 id 0~2개"),
+    }),
+  ),
+  verdict: z.object({
+    reportTitle: z.string().describe("보고서 제목 조어 20~40자: 「○○ 보고서: 부제」 꼴. 이 방에서만 나올 수 있는 명사로"),
+    headline: z.string().describe("40자 이내, 이모지 0, 숫자 1개 이하. 스크린샷용 한 문장 판정"),
+    body: z.array(z.string()).describe("3~4문단: 결론+숫자 / '그런데 m####를 봐' 반전 / 진짜였던 것·바뀐 것 / 애정 한 줄"),
+    relationType: z.object({ code: z.string().describe("영문 4~8자"), label: z.string().describe("한국어 라벨"), description: z.string() }),
+    confidence: Conf,
+    predictions: z.array(z.string()).describe("총평 및 미래 예측: '이름: 다음 행보 한 줄' 3~6줄, 그 사람의 드라마를 이어받은 황당하지만 근거 있는 예언"),
+  }),
+  dynamic: z.object({
+    paragraphs: z.array(z.string()).describe("2~3문단 선언문"),
+    groupRoles: z.object({
+      holdsTogether: z.string().nullable().describe("판을 들고 있는 사람 participantId (단톡만)"),
+      goesQuiet: z.string().nullable().describe("사라지는 사람 participantId"),
+      runsTheShow: z.string().nullable().describe("판을 쥔 사람 participantId"),
+    }),
+    evidenceIds: Ids,
+  }),
+  firstMove: z.object({
+    initiatorId: z.string().nullable().describe("먼저 치는 사람 participantId"),
+    pretenderId: z.string().nullable().describe("아닌 척하는 사람 participantId (없으면 null)"),
+    body: z.string().describe("누가 먼저 치고 누가 아닌 척하는지 2~3문장. 숫자 1개 + 근거 ID"),
+    evidenceIds: Ids,
+  }),
+  privateLanguage: z.object({
+    phrases: z.array(z.object({ phrase: z.string(), meaning: z.string().describe("이 대화에서 그 표현이 뜻하는 것"), evidenceIds: Ids })).describe("둘(방)만의 언어·말버릇 0~5개, 실제 반복된 것만"),
+    runningJokes: z.array(z.object({ title: z.string(), summary: z.string(), evidenceIds: Ids })).describe("반복되는 농담 0~4개"),
+  }),
+  weekChanged: z.object({
+    exists: z.boolean().describe("뚜렷한 변화가 있으면 true"),
+    weekLabel: z.string().describe("예: 2025년 6월 둘째 주"),
+    weekStart: z.string().describe("그 주 월요일 YYYY-MM-DD"),
+    before: z.string(),
+    after: z.string(),
+    pivotMessageId: z.string().nullable().describe("결정적 한 줄 메시지 ID"),
+    evidenceIds: Ids,
+    confidence: Conf,
+  }),
+  findings: z.array(
+    z.object({
+      title: z.string(),
+      observed: z.string().describe("보인 것 1문장"),
+      interpretation: z.string().describe("내 해석 1~2문장"),
+      evidenceIds: Ids,
+      confidence: Conf,
+      tags: z.array(z.string()),
+    }),
+  ),
+  whatIWouldDo: z.array(z.object({ title: z.string(), body: z.string().describe("'내가 너라면 …'으로 시작, 2문장"), deadline: z.string().describe("예: 이번 주") })),
+  awards: z.array(z.object({ name: z.string().describe("행동 기반 상 이름, 예: 읽씹 장인상"), participantId: z.string().nullable(), reason: z.string(), evidenceIds: Ids })),
+  scores: z.array(z.object({ key: z.string(), value: z.number().describe("0~100"), oneLiner: z.string().describe("숫자나 ID 1개 이상 포함"), confidence: Conf })),
+  visualCaptions: z.object({ monthly: z.string(), heatmap: z.string(), reply: z.string(), initiation: z.string() }),
+  answer: z.object({ body: z.string(), confidence: Conf, evidenceIds: Ids }).nullable(),
+  shareCard: z.object({ headline: z.string(), subline: z.string().describe("30자 이내") }),
+  safetyFlags: z.array(z.string()),
+});
+export type ReportDraft = z.infer<typeof ReportDraftSchema>;
+/** 종합 두 갈래: ① 장면·인물(출력이 가장 긴 쪽) ② 판정·나머지. 서버가 합쳐 ReportDraft로 검증한다 */
+export const PersonaDraftSchema = ReportDraftSchema.pick({ moments: true, participants: true });
+export type PersonaDraft = z.infer<typeof PersonaDraftSchema>;
+export const VerdictDraftSchema = ReportDraftSchema.omit({ moments: true, participants: true });
+export type VerdictDraft = z.infer<typeof VerdictDraftSchema>;
+/** 2026-11-04 세 갈래: 장(章)만 → 인물 2~3명씩 묶음(병렬) ∥ 판정. 장은 인물 호출의 입력이 된다 (docs/08 §7) */
+export const ScenesDraftSchema = ReportDraftSchema.pick({ moments: true });
+export type ScenesDraft = z.infer<typeof ScenesDraftSchema>;
+export const PersonaBatchSchema = ReportDraftSchema.pick({ participants: true });
+export type PersonaBatch = z.infer<typeof PersonaBatchSchema>;
+
+// 수리: 위반 경로별 교체 값(JSON 문자열)
+export const RepairResponseSchema = z.object({
+  patches: z.array(z.object({ path: z.string().describe("예: findings[2], verdict.headline"), valueJson: z.string().describe("교체 값의 JSON 문자열") })),
+});
+export type RepairResponse = z.infer<typeof RepairResponseSchema>;
+
+// ── 최종 콘텐츠 (서버 조립) ───────────────────────────────────────────
+export interface Evidence {
+  messageId: string;
+  participantId: string;
+  participantName: string;
+  at: string;
+  text: string;
+}
+
+export interface ReportContent {
+  schemaVersion: 1;
+  persona: { name: string };
+  mood: Mood;
+  meta: {
+    title: string;
+    focus: Focus;
+    resolvedFocus: Exclude<Focus, "AUTO">;
+    period: { from: string; to: string; days: number };
+    messageCount: number;
+    participants: { id: string; name: string; isUploader: boolean }[];
+    coveragePct: number;
+    generatedAt: string;
+    /** 인물 판정·예측의 기준 구간(마지막 N개월). 짧은 대화는 null(전체가 "지금"). 2026-11-04부터, 구버전 보고서에는 없다 */
+    recentWindow?: { from: string; to: string; months: number } | null;
+  };
+  verdict: ReportDraft["verdict"];
+  dynamic: { paragraphs: string[]; groupRoles: ReportDraft["dynamic"]["groupRoles"]; evidence: Evidence[] };
+  firstMove: { initiator: { id: string; name: string } | null; pretender: { id: string; name: string } | null; body: string; evidence: Evidence[] };
+  privateLanguage: { phrases: { phrase: string; meaning: string; evidence: Evidence[] }[]; runningJokes: { title: string; summary: string; evidence: Evidence[] }[] };
+  weekChanged: Omit<ReportDraft["weekChanged"], "pivotMessageId" | "evidenceIds"> & { pivot: Evidence | null; evidence: Evidence[] };
+  /** 인물 페르소나 — 보고서의 메인 코너. 문단마다 그 사람의 실제 메시지(quotes)를 말풍선으로 붙인다 */
+  participants: {
+    participantId: string;
+    name: string;
+    isUploader: boolean;
+    emoji: string;
+    title: string;
+    nickname: string;
+    /** 목차용 한 줄 별칭. 구버전 보고서에는 없다 */
+    epithet?: string;
+    /** 카드를 관통하는 논제(결합 라벨·시간차 반전). 화면에는 안 나가고 eval·디버그용. 2026-11-04부터 */
+    thesis?: string;
+    type: { label: string; description: string };
+    topics: string[];
+    paragraphs: { text: string; quotes: Evidence[] }[];
+    /** 명쾌한 한 줄 결론 ("결론: …"). 구버전 보고서에는 없다 */
+    oneLiner?: string;
+    badges: { id: string; name: string; icon: string }[];
+    awardNames: string[];
+  }[];
+  findings: (Omit<ReportDraft["findings"][number], "evidenceIds"> & { id: number; evidence: Evidence[] })[];
+  whatIWouldDo: ReportDraft["whatIWouldDo"];
+  awards: (Omit<ReportDraft["awards"][number], "evidenceIds"> & { participantName: string | null; evidence: Evidence[] })[];
+  scores: (ReportDraft["scores"][number] & { label: string; prior: number | null })[];
+  /** 까비서가 재밌게 읽은 장면(판정 직후). 구버전 보고서는 caption만 있다 */
+  moments: { kind: MomentKind; title: string; summary: string; caption?: string; participants: { id: string; name: string }[]; messages: Evidence[] }[];
+  visuals: {
+    monthly: { month: string; total: number; perPerson: Record<string, number> }[];
+    heatmap: number[][];
+    replyLatency: Record<string, { medianSec: number | null; p90Sec: number | null }>;
+    initiationShare: Record<string, number>;
+    media: { photo: number; video: number; emoticon: number; voice: number; file: number };
+    captions: ReportDraft["visualCaptions"];
+  };
+  answer: (Omit<NonNullable<ReportDraft["answer"]>, "evidenceIds"> & { question: string; evidence: Evidence[] }) | null;
+  /** 산문 속 m123 참조 → 실제 메시지 (UI가 칩으로 렌더). 구버전 보고서에는 없을 수 있다 */
+  inlineEvidence?: Record<string, Evidence>;
+  shareCard: ReportDraft["shareCard"] & { emoji: string };
+  signature: string;
+  safety: { flags: string[]; notice: string | null };
+  disclaimer: string;
+  quality: {
+    mode: "SINGLE" | "CHUNKED";
+    chunks: { total: number; succeeded: number };
+    evidence: { total: number; dropped: number };
+    lowFindings: number;
+    repaired: boolean;
+    unverifiedNumbers: number;
+    models: { chunk: string | null; synthesis: string };
+    tokens: { input: number; output: number; cacheRead: number };
+    costUsd: number;
+    durationSec: number;
+  };
+}
+
+export const DISCLAIMER = "까비서의 보고서는 대화에서 관찰된 패턴에 대한 해석이에요. 마음을 읽는 것도, 진단이나 전문 조언도 아니에요.";

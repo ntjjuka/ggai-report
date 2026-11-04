@@ -1,0 +1,3317 @@
+{
+ "title": "프로젝트 단톡 30",
+ "sourceFormat": "KAKAO_ANDROID_KO",
+ "messageCount": 304,
+ "participants": [
+  {
+   "rawName": "참여자05",
+   "messageCount": 14,
+   "firstAt": "2026-03-01T09:02",
+   "lastAt": "2026-03-01T16:24"
+  },
+  {
+   "rawName": "참여자03",
+   "messageCount": 15,
+   "firstAt": "2026-03-01T09:02",
+   "lastAt": "2026-03-01T16:27"
+  },
+  {
+   "rawName": "참여자12",
+   "messageCount": 7,
+   "firstAt": "2026-03-01T09:02",
+   "lastAt": "2026-03-01T14:59"
+  },
+  {
+   "rawName": "참여자30",
+   "messageCount": 13,
+   "firstAt": "2026-03-01T09:02",
+   "lastAt": "2026-03-01T16:14"
+  },
+  {
+   "rawName": "참여자02",
+   "messageCount": 9,
+   "firstAt": "2026-03-01T09:03",
+   "lastAt": "2026-03-01T13:56"
+  },
+  {
+   "rawName": "참여자14",
+   "messageCount": 7,
+   "firstAt": "2026-03-01T09:06",
+   "lastAt": "2026-03-01T16:05"
+  },
+  {
+   "rawName": "참여자08",
+   "messageCount": 9,
+   "firstAt": "2026-03-01T09:10",
+   "lastAt": "2026-03-01T16:17"
+  },
+  {
+   "rawName": "참여자19",
+   "messageCount": 9,
+   "firstAt": "2026-03-01T09:10",
+   "lastAt": "2026-03-01T16:22"
+  },
+  {
+   "rawName": "참여자18",
+   "messageCount": 9,
+   "firstAt": "2026-03-01T09:13",
+   "lastAt": "2026-03-01T15:38"
+  },
+  {
+   "rawName": "참여자04",
+   "messageCount": 9,
+   "firstAt": "2026-03-01T09:16",
+   "lastAt": "2026-03-01T15:34"
+  },
+  {
+   "rawName": "참여자16",
+   "messageCount": 10,
+   "firstAt": "2026-03-01T09:18",
+   "lastAt": "2026-03-01T15:31"
+  },
+  {
+   "rawName": "참여자25",
+   "messageCount": 8,
+   "firstAt": "2026-03-01T09:21",
+   "lastAt": "2026-03-01T15:55"
+  },
+  {
+   "rawName": "참여자10",
+   "messageCount": 9,
+   "firstAt": "2026-03-01T09:26",
+   "lastAt": "2026-03-01T14:22"
+  },
+  {
+   "rawName": "참여자23",
+   "messageCount": 10,
+   "firstAt": "2026-03-01T09:27",
+   "lastAt": "2026-03-01T16:27"
+  },
+  {
+   "rawName": "참여자29",
+   "messageCount": 7,
+   "firstAt": "2026-03-01T09:30",
+   "lastAt": "2026-03-01T15:49"
+  },
+  {
+   "rawName": "참여자06",
+   "messageCount": 10,
+   "firstAt": "2026-03-01T09:36",
+   "lastAt": "2026-03-01T15:21"
+  },
+  {
+   "rawName": "참여자11",
+   "messageCount": 12,
+   "firstAt": "2026-03-01T09:42",
+   "lastAt": "2026-03-01T15:46"
+  },
+  {
+   "rawName": "참여자27",
+   "messageCount": 9,
+   "firstAt": "2026-03-01T09:45",
+   "lastAt": "2026-03-01T14:54"
+  },
+  {
+   "rawName": "참여자24",
+   "messageCount": 10,
+   "firstAt": "2026-03-01T09:47",
+   "lastAt": "2026-03-01T15:15"
+  },
+  {
+   "rawName": "참여자01",
+   "messageCount": 16,
+   "firstAt": "2026-03-01T09:52",
+   "lastAt": "2026-03-01T16:37"
+  },
+  {
+   "rawName": "참여자13",
+   "messageCount": 14,
+   "firstAt": "2026-03-01T09:59",
+   "lastAt": "2026-03-01T16:28"
+  },
+  {
+   "rawName": "참여자22",
+   "messageCount": 9,
+   "firstAt": "2026-03-01T10:07",
+   "lastAt": "2026-03-01T14:02"
+  },
+  {
+   "rawName": "참여자09",
+   "messageCount": 14,
+   "firstAt": "2026-03-01T10:11",
+   "lastAt": "2026-03-01T15:58"
+  },
+  {
+   "rawName": "참여자20",
+   "messageCount": 11,
+   "firstAt": "2026-03-01T10:13",
+   "lastAt": "2026-03-01T15:18"
+  },
+  {
+   "rawName": "참여자15",
+   "messageCount": 11,
+   "firstAt": "2026-03-01T10:15",
+   "lastAt": "2026-03-01T16:31"
+  },
+  {
+   "rawName": "참여자07",
+   "messageCount": 4,
+   "firstAt": "2026-03-01T10:24",
+   "lastAt": "2026-03-01T15:08"
+  },
+  {
+   "rawName": "참여자28",
+   "messageCount": 6,
+   "firstAt": "2026-03-01T10:28",
+   "lastAt": "2026-03-01T15:01"
+  },
+  {
+   "rawName": "참여자21",
+   "messageCount": 7,
+   "firstAt": "2026-03-01T10:49",
+   "lastAt": "2026-03-01T16:33"
+  },
+  {
+   "rawName": "참여자17",
+   "messageCount": 12,
+   "firstAt": "2026-03-01T10:51",
+   "lastAt": "2026-03-01T16:36"
+  },
+  {
+   "rawName": "참여자26",
+   "messageCount": 10,
+   "firstAt": "2026-03-01T10:55",
+   "lastAt": "2026-03-01T16:29"
+  },
+  {
+   "rawName": "참여자31",
+   "messageCount": 1,
+   "firstAt": "2026-03-01T14:00",
+   "lastAt": "2026-03-01T14:00"
+  }
+ ],
+ "warnings": {
+  "orphanLines": 0,
+  "unknownSystemLines": 0,
+  "dateUnknownBeforeSeparator": 0,
+  "encodingFallback": false,
+  "dedupedCount": 0,
+  "nonMonotonicTimestamp": 0
+ },
+ "messages": [
+  {
+   "index": 0,
+   "at": "2026-03-01T09:02",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 1,
+   "at": "2026-03-01T09:02",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 2,
+   "at": "2026-03-01T09:02",
+   "sender": "참여자12",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 3,
+   "at": "2026-03-01T09:02",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 4,
+   "at": "2026-03-01T09:03",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 5,
+   "at": "2026-03-01T09:06",
+   "sender": "참여자14",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 6,
+   "at": "2026-03-01T09:07",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 7,
+   "at": "2026-03-01T09:10",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 8,
+   "at": "2026-03-01T09:10",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 9,
+   "at": "2026-03-01T09:10",
+   "sender": "참여자19",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 10,
+   "at": "2026-03-01T09:13",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 11,
+   "at": "2026-03-01T09:13",
+   "sender": "참여자18",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 12,
+   "at": "2026-03-01T09:15",
+   "sender": "참여자14",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 13,
+   "at": "2026-03-01T09:15",
+   "sender": "참여자19",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 14,
+   "at": "2026-03-01T09:16",
+   "sender": "참여자04",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 15,
+   "at": "2026-03-01T09:17",
+   "sender": "참여자12",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 16,
+   "at": "2026-03-01T09:17",
+   "sender": "참여자19",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 17,
+   "at": "2026-03-01T09:18",
+   "sender": "참여자16",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 18,
+   "at": "2026-03-01T09:21",
+   "sender": "참여자25",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 19,
+   "at": "2026-03-01T09:24",
+   "sender": "참여자19",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 20,
+   "at": "2026-03-01T09:26",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 21,
+   "at": "2026-03-01T09:27",
+   "sender": "참여자23",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 22,
+   "at": "2026-03-01T09:27",
+   "sender": "참여자19",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 23,
+   "at": "2026-03-01T09:30",
+   "sender": "참여자29",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 24,
+   "at": "2026-03-01T09:33",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 25,
+   "at": "2026-03-01T09:33",
+   "sender": "참여자04",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 26,
+   "at": "2026-03-01T09:36",
+   "sender": "참여자06",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 27,
+   "at": "2026-03-01T09:37",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 28,
+   "at": "2026-03-01T09:40",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 29,
+   "at": "2026-03-01T09:42",
+   "sender": "참여자11",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 30,
+   "at": "2026-03-01T09:45",
+   "sender": "참여자19",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 31,
+   "at": "2026-03-01T09:45",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 32,
+   "at": "2026-03-01T09:47",
+   "sender": "참여자16",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 33,
+   "at": "2026-03-01T09:47",
+   "sender": "참여자24",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 34,
+   "at": "2026-03-01T09:50",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 35,
+   "at": "2026-03-01T09:52",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 36,
+   "at": "2026-03-01T09:54",
+   "sender": "참여자06",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 37,
+   "at": "2026-03-01T09:54",
+   "sender": "참여자16",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 38,
+   "at": "2026-03-01T09:55",
+   "sender": "참여자25",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 39,
+   "at": "2026-03-01T09:56",
+   "sender": "참여자24",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 40,
+   "at": "2026-03-01T09:59",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 41,
+   "at": "2026-03-01T09:59",
+   "sender": "참여자06",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 42,
+   "at": "2026-03-01T10:02",
+   "sender": "참여자18",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 43,
+   "at": "2026-03-01T10:03",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 44,
+   "at": "2026-03-01T10:05",
+   "sender": "참여자23",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 45,
+   "at": "2026-03-01T10:07",
+   "sender": "참여자22",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 46,
+   "at": "2026-03-01T10:08",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 47,
+   "at": "2026-03-01T10:09",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 48,
+   "at": "2026-03-01T10:10",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 49,
+   "at": "2026-03-01T10:11",
+   "sender": "참여자09",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 50,
+   "at": "2026-03-01T10:11",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 51,
+   "at": "2026-03-01T10:13",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 52,
+   "at": "2026-03-01T10:15",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 53,
+   "at": "2026-03-01T10:15",
+   "sender": "참여자15",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 54,
+   "at": "2026-03-01T10:18",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 55,
+   "at": "2026-03-01T10:21",
+   "sender": "참여자04",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 56,
+   "at": "2026-03-01T10:24",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 57,
+   "at": "2026-03-01T10:24",
+   "sender": "참여자07",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 58,
+   "at": "2026-03-01T10:25",
+   "sender": "참여자04",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 59,
+   "at": "2026-03-01T10:25",
+   "sender": "참여자04",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 60,
+   "at": "2026-03-01T10:26",
+   "sender": "참여자18",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 61,
+   "at": "2026-03-01T10:28",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 62,
+   "at": "2026-03-01T10:28",
+   "sender": "참여자28",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 63,
+   "at": "2026-03-01T10:31",
+   "sender": "참여자05",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 64,
+   "at": "2026-03-01T10:33",
+   "sender": "참여자20",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 65,
+   "at": "2026-03-01T10:36",
+   "sender": "참여자04",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 66,
+   "at": "2026-03-01T10:39",
+   "sender": "참여자15",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 67,
+   "at": "2026-03-01T10:42",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 68,
+   "at": "2026-03-01T10:43",
+   "sender": "참여자04",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 69,
+   "at": "2026-03-01T10:45",
+   "sender": "참여자16",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 70,
+   "at": "2026-03-01T10:45",
+   "sender": "참여자07",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 71,
+   "at": "2026-03-01T10:47",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 72,
+   "at": "2026-03-01T10:47",
+   "sender": "참여자25",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 73,
+   "at": "2026-03-01T10:49",
+   "sender": "참여자21",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 74,
+   "at": "2026-03-01T10:51",
+   "sender": "참여자17",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 75,
+   "at": "2026-03-01T10:52",
+   "sender": "참여자12",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 76,
+   "at": "2026-03-01T10:54",
+   "sender": "참여자21",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 77,
+   "at": "2026-03-01T10:55",
+   "sender": "참여자26",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 78,
+   "at": "2026-03-01T10:58",
+   "sender": "참여자24",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 79,
+   "at": "2026-03-01T10:59",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 80,
+   "at": "2026-03-01T11:01",
+   "sender": "참여자24",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 81,
+   "at": "2026-03-01T11:01",
+   "sender": "참여자26",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 82,
+   "at": "2026-03-01T11:04",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 83,
+   "at": "2026-03-01T11:06",
+   "sender": "참여자15",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 84,
+   "at": "2026-03-01T11:08",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 85,
+   "at": "2026-03-01T11:08",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 86,
+   "at": "2026-03-01T11:09",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 87,
+   "at": "2026-03-01T11:12",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 88,
+   "at": "2026-03-01T11:12",
+   "sender": "참여자16",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 89,
+   "at": "2026-03-01T11:12",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 90,
+   "at": "2026-03-01T11:15",
+   "sender": "참여자26",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 91,
+   "at": "2026-03-01T11:18",
+   "sender": "참여자29",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 92,
+   "at": "2026-03-01T11:21",
+   "sender": "참여자26",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 93,
+   "at": "2026-03-01T11:21",
+   "sender": "참여자26",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 94,
+   "at": "2026-03-01T11:24",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 95,
+   "at": "2026-03-01T11:25",
+   "sender": "참여자06",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 96,
+   "at": "2026-03-01T11:25",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 97,
+   "at": "2026-03-01T11:28",
+   "sender": "참여자26",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 98,
+   "at": "2026-03-01T11:31",
+   "sender": "참여자22",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 99,
+   "at": "2026-03-01T11:32",
+   "sender": "참여자18",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 100,
+   "at": "2026-03-01T11:33",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 101,
+   "at": "2026-03-01T11:33",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 102,
+   "at": "2026-03-01T11:36",
+   "sender": "참여자28",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 103,
+   "at": "2026-03-01T11:37",
+   "sender": "참여자01",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 104,
+   "at": "2026-03-01T11:38",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 105,
+   "at": "2026-03-01T11:39",
+   "sender": "참여자25",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 106,
+   "at": "2026-03-01T11:41",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 107,
+   "at": "2026-03-01T11:44",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 108,
+   "at": "2026-03-01T11:44",
+   "sender": "참여자30",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 109,
+   "at": "2026-03-01T11:47",
+   "sender": "참여자22",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 110,
+   "at": "2026-03-01T11:50",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 111,
+   "at": "2026-03-01T11:51",
+   "sender": "참여자18",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 112,
+   "at": "2026-03-01T11:51",
+   "sender": "참여자28",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 113,
+   "at": "2026-03-01T11:52",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 114,
+   "at": "2026-03-01T11:53",
+   "sender": "참여자06",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 115,
+   "at": "2026-03-01T11:56",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 116,
+   "at": "2026-03-01T11:56",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 117,
+   "at": "2026-03-01T11:59",
+   "sender": "참여자26",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 118,
+   "at": "2026-03-01T11:59",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 119,
+   "at": "2026-03-01T12:01",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 120,
+   "at": "2026-03-01T12:04",
+   "sender": "참여자18",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 121,
+   "at": "2026-03-01T12:04",
+   "sender": "오픈채팅봇",
+   "kind": "BOT",
+   "text": "공지가 등록되었습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 122,
+   "at": "2026-03-01T12:04",
+   "sender": "참여자15",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 123,
+   "at": "2026-03-01T12:05",
+   "sender": "참여자23",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 124,
+   "at": "2026-03-01T12:08",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 125,
+   "at": "2026-03-01T12:11",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 126,
+   "at": "2026-03-01T12:13",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 127,
+   "at": "2026-03-01T12:14",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 128,
+   "at": "2026-03-01T12:15",
+   "sender": "참여자14",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 129,
+   "at": "2026-03-01T12:18",
+   "sender": "참여자15",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 130,
+   "at": "2026-03-01T12:18",
+   "sender": "참여자22",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 131,
+   "at": "2026-03-01T12:21",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 132,
+   "at": "2026-03-01T12:23",
+   "sender": "참여자26",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 133,
+   "at": "2026-03-01T12:24",
+   "sender": "참여자23",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 134,
+   "at": "2026-03-01T12:25",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 135,
+   "at": "2026-03-01T12:28",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 136,
+   "at": "2026-03-01T12:31",
+   "sender": "참여자29",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 137,
+   "at": "2026-03-01T12:32",
+   "sender": "참여자22",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 138,
+   "at": "2026-03-01T12:33",
+   "sender": "참여자23",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 139,
+   "at": "2026-03-01T12:36",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 140,
+   "at": "2026-03-01T12:37",
+   "sender": "참여자12",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 141,
+   "at": "2026-03-01T12:37",
+   "sender": "참여자24",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 142,
+   "at": "2026-03-01T12:37",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 143,
+   "at": "2026-03-01T12:40",
+   "sender": "참여자15",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 144,
+   "at": "2026-03-01T12:43",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 145,
+   "at": "2026-03-01T12:45",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 146,
+   "at": "2026-03-01T12:45",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 147,
+   "at": "2026-03-01T12:45",
+   "sender": "참여자03",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 148,
+   "at": "2026-03-01T12:47",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 149,
+   "at": "2026-03-01T12:49",
+   "sender": "참여자25",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 150,
+   "at": "2026-03-01T12:52",
+   "sender": "참여자28",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 151,
+   "at": "2026-03-01T12:55",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 152,
+   "at": "2026-03-01T12:58",
+   "sender": "참여자23",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 153,
+   "at": "2026-03-01T12:58",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 154,
+   "at": "2026-03-01T12:59",
+   "sender": "참여자14",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 155,
+   "at": "2026-03-01T13:01",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 156,
+   "at": "2026-03-01T13:03",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 157,
+   "at": "2026-03-01T13:04",
+   "sender": "참여자03",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 158,
+   "at": "2026-03-01T13:04",
+   "sender": "참여자15",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 159,
+   "at": "2026-03-01T13:06",
+   "sender": "참여자18",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 160,
+   "at": "2026-03-01T13:08",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 161,
+   "at": "2026-03-01T13:08",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 162,
+   "at": "2026-03-01T13:08",
+   "sender": "참여자06",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 163,
+   "at": "2026-03-01T13:08",
+   "sender": "참여자06",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 164,
+   "at": "2026-03-01T13:10",
+   "sender": "참여자21",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 165,
+   "at": "2026-03-01T13:11",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 166,
+   "at": "2026-03-01T13:12",
+   "sender": "참여자09",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 167,
+   "at": "2026-03-01T13:12",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 168,
+   "at": "2026-03-01T13:12",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 169,
+   "at": "2026-03-01T13:13",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 170,
+   "at": "2026-03-01T13:14",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 171,
+   "at": "2026-03-01T13:14",
+   "sender": "참여자22",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 172,
+   "at": "2026-03-01T13:17",
+   "sender": "참여자18",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 173,
+   "at": "2026-03-01T13:19",
+   "sender": "참여자23",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 174,
+   "at": "2026-03-01T13:20",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 175,
+   "at": "2026-03-01T13:21",
+   "sender": "참여자13",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 176,
+   "at": "2026-03-01T13:21",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 177,
+   "at": "2026-03-01T13:21",
+   "sender": "참여자03",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 178,
+   "at": "2026-03-01T13:24",
+   "sender": "참여자06",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 179,
+   "at": "2026-03-01T13:24",
+   "sender": "참여자22",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 180,
+   "at": "2026-03-01T13:26",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 181,
+   "at": "2026-03-01T13:28",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 182,
+   "at": "2026-03-01T13:29",
+   "sender": "참여자06",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 183,
+   "at": "2026-03-01T13:32",
+   "sender": "참여자01",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 184,
+   "at": "2026-03-01T13:34",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 185,
+   "at": "2026-03-01T13:36",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 186,
+   "at": "2026-03-01T13:38",
+   "sender": "참여자07",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 187,
+   "at": "2026-03-01T13:39",
+   "sender": "참여자01",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 188,
+   "at": "2026-03-01T13:42",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 189,
+   "at": "2026-03-01T13:44",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 190,
+   "at": "2026-03-01T13:45",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 191,
+   "at": "2026-03-01T13:45",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 192,
+   "at": "2026-03-01T13:46",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 193,
+   "at": "2026-03-01T13:46",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 194,
+   "at": "2026-03-01T13:48",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 195,
+   "at": "2026-03-01T13:48",
+   "sender": "참여자19",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 196,
+   "at": "2026-03-01T13:49",
+   "sender": "참여자22",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 197,
+   "at": "2026-03-01T13:52",
+   "sender": "참여자25",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 198,
+   "at": "2026-03-01T13:55",
+   "sender": "참여자05",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 199,
+   "at": "2026-03-01T13:56",
+   "sender": "참여자02",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 200,
+   "at": "2026-03-01T13:59",
+   "sender": "참여자24",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 201,
+   "at": "2026-03-01T14:00",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 202,
+   "at": "2026-03-01T14:00",
+   "sender": null,
+   "kind": "SYSTEM_INVITE",
+   "text": "참여자03님이 참여자31님을 초대했습니다.",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 203,
+   "at": "2026-03-01T14:00",
+   "sender": "참여자31",
+   "kind": "TEXT",
+   "text": "안녕하세요",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 204,
+   "at": "2026-03-01T14:00",
+   "sender": null,
+   "kind": "SYSTEM_LEAVE",
+   "text": "참여자31님이 나갔습니다.",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 205,
+   "at": "2026-03-01T14:00",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 206,
+   "at": "2026-03-01T14:01",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 207,
+   "at": "2026-03-01T14:01",
+   "sender": "참여자05",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 208,
+   "at": "2026-03-01T14:01",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 209,
+   "at": "2026-03-01T14:01",
+   "sender": "참여자21",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 210,
+   "at": "2026-03-01T14:02",
+   "sender": "참여자16",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 211,
+   "at": "2026-03-01T14:02",
+   "sender": "참여자15",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 212,
+   "at": "2026-03-01T14:02",
+   "sender": "참여자22",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 213,
+   "at": "2026-03-01T14:02",
+   "sender": "참여자24",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 214,
+   "at": "2026-03-01T14:04",
+   "sender": "참여자26",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 215,
+   "at": "2026-03-01T14:06",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 216,
+   "at": "2026-03-01T14:07",
+   "sender": "참여자24",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 217,
+   "at": "2026-03-01T14:10",
+   "sender": "참여자28",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 218,
+   "at": "2026-03-01T14:10",
+   "sender": "참여자16",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 219,
+   "at": "2026-03-01T14:10",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 220,
+   "at": "2026-03-01T14:10",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 221,
+   "at": "2026-03-01T14:12",
+   "sender": "참여자09",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 222,
+   "at": "2026-03-01T14:13",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 223,
+   "at": "2026-03-01T14:13",
+   "sender": "참여자16",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 224,
+   "at": "2026-03-01T14:13",
+   "sender": "참여자23",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 225,
+   "at": "2026-03-01T14:16",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 226,
+   "at": "2026-03-01T14:18",
+   "sender": "참여자15",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 227,
+   "at": "2026-03-01T14:21",
+   "sender": "참여자25",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 228,
+   "at": "2026-03-01T14:22",
+   "sender": "참여자10",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 229,
+   "at": "2026-03-01T14:25",
+   "sender": "참여자01",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 230,
+   "at": "2026-03-01T14:28",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 231,
+   "at": "2026-03-01T14:31",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 232,
+   "at": "2026-03-01T14:32",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 233,
+   "at": "2026-03-01T14:32",
+   "sender": "참여자19",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 234,
+   "at": "2026-03-01T14:33",
+   "sender": "참여자24",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 235,
+   "at": "2026-03-01T14:35",
+   "sender": "참여자12",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 236,
+   "at": "2026-03-01T14:37",
+   "sender": "참여자29",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 237,
+   "at": "2026-03-01T14:39",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 238,
+   "at": "2026-03-01T14:42",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 239,
+   "at": "2026-03-01T14:43",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 240,
+   "at": "2026-03-01T14:46",
+   "sender": "참여자13",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 241,
+   "at": "2026-03-01T14:47",
+   "sender": "참여자14",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 242,
+   "at": "2026-03-01T14:50",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 243,
+   "at": "2026-03-01T14:52",
+   "sender": "참여자01",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 244,
+   "at": "2026-03-01T14:54",
+   "sender": "참여자27",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 245,
+   "at": "2026-03-01T14:54",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 246,
+   "at": "2026-03-01T14:54",
+   "sender": "참여자29",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 247,
+   "at": "2026-03-01T14:56",
+   "sender": "참여자12",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 248,
+   "at": "2026-03-01T14:59",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 249,
+   "at": "2026-03-01T14:59",
+   "sender": "참여자12",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 250,
+   "at": "2026-03-01T15:01",
+   "sender": "참여자28",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 251,
+   "at": "2026-03-01T15:03",
+   "sender": "참여자04",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 252,
+   "at": "2026-03-01T15:05",
+   "sender": "참여자21",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 253,
+   "at": "2026-03-01T15:06",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 254,
+   "at": "2026-03-01T15:08",
+   "sender": "참여자07",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 255,
+   "at": "2026-03-01T15:11",
+   "sender": "참여자29",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 256,
+   "at": "2026-03-01T15:14",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 257,
+   "at": "2026-03-01T15:15",
+   "sender": "참여자24",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 258,
+   "at": "2026-03-01T15:15",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 259,
+   "at": "2026-03-01T15:18",
+   "sender": "참여자20",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 260,
+   "at": "2026-03-01T15:20",
+   "sender": "참여자16",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 261,
+   "at": "2026-03-01T15:21",
+   "sender": "참여자06",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 262,
+   "at": "2026-03-01T15:24",
+   "sender": "참여자11",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 263,
+   "at": "2026-03-01T15:26",
+   "sender": "참여자09",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 264,
+   "at": "2026-03-01T15:29",
+   "sender": "참여자21",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 265,
+   "at": "2026-03-01T15:31",
+   "sender": "참여자16",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 266,
+   "at": "2026-03-01T15:34",
+   "sender": "참여자04",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 267,
+   "at": "2026-03-01T15:35",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 268,
+   "at": "2026-03-01T15:38",
+   "sender": "참여자18",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 269,
+   "at": "2026-03-01T15:41",
+   "sender": "참여자30",
+   "kind": "EMOTICON",
+   "text": "이모티콘",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 270,
+   "at": "2026-03-01T15:44",
+   "sender": "참여자14",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 271,
+   "at": "2026-03-01T15:45",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 272,
+   "at": "2026-03-01T15:46",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 273,
+   "at": "2026-03-01T15:46",
+   "sender": "참여자11",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 274,
+   "at": "2026-03-01T15:48",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 275,
+   "at": "2026-03-01T15:49",
+   "sender": "참여자29",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 276,
+   "at": "2026-03-01T15:52",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 277,
+   "at": "2026-03-01T15:53",
+   "sender": "참여자13",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 278,
+   "at": "2026-03-01T15:55",
+   "sender": "참여자25",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 279,
+   "at": "2026-03-01T15:58",
+   "sender": "참여자09",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 280,
+   "at": "2026-03-01T16:00",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 281,
+   "at": "2026-03-01T16:01",
+   "sender": "참여자03",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 282,
+   "at": "2026-03-01T16:02",
+   "sender": "참여자13",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 283,
+   "at": "2026-03-01T16:05",
+   "sender": "참여자14",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 284,
+   "at": "2026-03-01T16:05",
+   "sender": "참여자05",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 285,
+   "at": "2026-03-01T16:08",
+   "sender": "참여자23",
+   "kind": "TEXT",
+   "text": "오늘 늦을 것 같아요 ㅠ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 286,
+   "at": "2026-03-01T16:11",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 287,
+   "at": "2026-03-01T16:14",
+   "sender": "참여자30",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 288,
+   "at": "2026-03-01T16:17",
+   "sender": "참여자15",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 289,
+   "at": "2026-03-01T16:17",
+   "sender": "참여자08",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 290,
+   "at": "2026-03-01T16:18",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 291,
+   "at": "2026-03-01T16:21",
+   "sender": "참여자03",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 292,
+   "at": "2026-03-01T16:21",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "ㅋㅋㅋㅋ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 293,
+   "at": "2026-03-01T16:22",
+   "sender": "참여자19",
+   "kind": "TEXT",
+   "text": "넵",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 294,
+   "at": "2026-03-01T16:24",
+   "sender": "참여자05",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 295,
+   "at": "2026-03-01T16:27",
+   "sender": "참여자23",
+   "kind": "TEXT",
+   "text": "확인했습니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 296,
+   "at": "2026-03-01T16:27",
+   "sender": "참여자03",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 297,
+   "at": "2026-03-01T16:28",
+   "sender": "참여자13",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 298,
+   "at": "2026-03-01T16:29",
+   "sender": "참여자26",
+   "kind": "TEXT",
+   "text": "링크 https://example.org/x",
+   "fileName": null,
+   "hasLink": true,
+   "mentions": []
+  },
+  {
+   "index": 299,
+   "at": "2026-03-01T16:29",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "@참여자01 확인 부탁",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": [
+    "참여자01"
+   ]
+  },
+  {
+   "index": 300,
+   "at": "2026-03-01T16:31",
+   "sender": "참여자15",
+   "kind": "PHOTO",
+   "text": "사진",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 301,
+   "at": "2026-03-01T16:33",
+   "sender": "참여자21",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 302,
+   "at": "2026-03-01T16:36",
+   "sender": "참여자17",
+   "kind": "TEXT",
+   "text": "회의 몇 시죠?",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 303,
+   "at": "2026-03-01T16:37",
+   "sender": "참여자01",
+   "kind": "TEXT",
+   "text": "자료 올립니다",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  }
+ ]
+}

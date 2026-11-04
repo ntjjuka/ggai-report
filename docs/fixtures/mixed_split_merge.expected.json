@@ -1,0 +1,69 @@
+{
+ "title": "박민수",
+ "sourceFormat": "KAKAO_ANDROID_KO",
+ "messageCount": 4,
+ "participants": [
+  {
+   "rawName": "박민수",
+   "messageCount": 3,
+   "firstAt": "2026-09-25T20:02",
+   "lastAt": "2026-09-25T20:10"
+  },
+  {
+   "rawName": "이서연",
+   "messageCount": 1,
+   "firstAt": "2026-09-25T20:05",
+   "lastAt": "2026-09-25T20:05"
+  }
+ ],
+ "warnings": {
+  "orphanLines": 0,
+  "unknownSystemLines": 0,
+  "dateUnknownBeforeSeparator": 0,
+  "encodingFallback": false,
+  "dedupedCount": 1,
+  "nonMonotonicTimestamp": 1
+ },
+ "messages": [
+  {
+   "index": 0,
+   "at": "2026-09-25T20:02",
+   "sender": "박민수",
+   "kind": "TEXT",
+   "text": "첫 파일 첫 메시지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 1,
+   "at": "2026-09-25T20:05",
+   "sender": "이서연",
+   "kind": "TEXT",
+   "text": "첫 파일 마지막 메시지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 2,
+   "at": "2026-09-25T20:01",
+   "sender": "박민수",
+   "kind": "TEXT",
+   "text": "시간 역행(기기 시계)",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 3,
+   "at": "2026-09-25T20:10",
+   "sender": "박민수",
+   "kind": "TEXT",
+   "text": "둘째 파일 메시지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  }
+ ]
+}

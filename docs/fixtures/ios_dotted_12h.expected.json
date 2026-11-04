@@ -1,0 +1,135 @@
+{
+ "title": null,
+ "sourceFormat": "KAKAO_IOS_DOTTED",
+ "messageCount": 10,
+ "participants": [
+  {
+   "rawName": "김승현",
+   "messageCount": 5,
+   "firstAt": "2025-04-04T23:42",
+   "lastAt": "2025-04-05T12:05"
+  },
+  {
+   "rawName": "곽민성",
+   "messageCount": 4,
+   "firstAt": "2025-04-04T23:58",
+   "lastAt": "2025-04-05T12:01"
+  },
+  {
+   "rawName": "이마따전 🤯⚒️💙",
+   "messageCount": 1,
+   "firstAt": "2025-04-05T12:30",
+   "lastAt": "2025-04-05T12:30"
+  }
+ ],
+ "warnings": {
+  "orphanLines": 0,
+  "unknownSystemLines": 0,
+  "dateUnknownBeforeSeparator": 0,
+  "encodingFallback": false,
+  "dedupedCount": 1,
+  "nonMonotonicTimestamp": 0
+ },
+ "messages": [
+  {
+   "index": 0,
+   "at": "2025-04-04T23:42",
+   "sender": "김승현",
+   "kind": "TEXT",
+   "text": "민성아",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 1,
+   "at": "2025-04-04T23:42",
+   "sender": "김승현",
+   "kind": "TEXT",
+   "text": "너근데 검사 언제옴 ㅡㅡ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 2,
+   "at": "2025-04-04T23:58",
+   "sender": "곽민성",
+   "kind": "TEXT",
+   "text": "나 진짜",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 3,
+   "at": "2025-04-04T23:58",
+   "sender": "곽민성",
+   "kind": "TEXT",
+   "text": "만간 갈거야",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 4,
+   "at": "2025-04-05T00:19",
+   "sender": "김승현",
+   "kind": "TEXT",
+   "text": "ㅃㄹ 해 ㅡㅡ",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 5,
+   "at": "2025-04-05T08:20",
+   "sender": "김승현",
+   "kind": "TEXT",
+   "text": "아~~왜5월~~",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 6,
+   "at": "2025-04-05T12:00",
+   "sender": "곽민성",
+   "kind": "TEXT",
+   "text": "점심",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 7,
+   "at": "2025-04-05T12:01",
+   "sender": "곽민성",
+   "kind": "PHOTO",
+   "text": "사진 2장",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 8,
+   "at": "2025-04-05T12:05",
+   "sender": "김승현",
+   "kind": "TEXT",
+   "text": "첫줄\n둘째줄\n\n넷째줄(빈 줄 포함)",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  },
+  {
+   "index": 9,
+   "at": "2025-04-05T12:30",
+   "sender": "이마따전 🤯⚒️💙",
+   "kind": "TEXT",
+   "text": "이름에 이모지",
+   "fileName": null,
+   "hasLink": false,
+   "mentions": []
+  }
+ ]
+}
