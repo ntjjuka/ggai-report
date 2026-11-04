@@ -39,7 +39,7 @@ const COUNSELOR = /전반적으로|긍정적인\s?관계|소통이\s?(?:잘|부�
 const TITLE_MAX = 60;
 const TOPIC_MAX = 4;
 const PARAGRAPH_MAX = 3;
-const QUOTES_PER_PARAGRAPH = 3;
+const QUOTES_PER_PARAGRAPH = 2; // 모바일에서 카드가 길어지지 않게. 실측(2026-11-03) 문단당 3개면 카드당 6개로 과함
 // 인물 산문의 "분석가 말투" 탐지: 통계 어휘와 N회·N자·N%·메시지 N개 류 (날짜·가격 같은 이야기 숫자는 잡지 않는다)
 const PERSONA_STATS = /평균|중앙값|비율|최장|최단|\d+(?:\.\d+)?\s?(?:회|번째|자|%|퍼센트)(?![가-힣])|(?:메시지|텍스트|선톡|답장|사진)\s?\d[\d,]*(?:만|천|억)?\s?(?:개|건|장)/g;
 const INLINE_ID_GROUP = /\s*\(\s*(?:m\d+\s*[,·、]?\s*)+\)/g;

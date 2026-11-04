@@ -314,7 +314,7 @@ describe("validator + assembler", () => {
     const v = validateDraft(s.draft, ctx);
     const q = v.draft.participants[0];
     expect(q.paragraphs[0].text).toBe("큰소리를 쳤는데, 정작 결과는 한 마리다. 그래도 봐.");
-    expect(q.paragraphs[0].quoteIds).toEqual(own.slice(0, 3));
+    expect(q.paragraphs[0].quoteIds).toEqual(own.slice(0, 2)); // 문단당 말풍선 ≤2
     expect(v.violations.filter((x) => x.reason === "STATS_IN_PERSONA").map((x) => x.path).sort()).toEqual(["participants[0].oneLiner", "participants[0].paragraphs[1]", "participants[0].title"]);
     // 이야기 속 숫자(날짜·개수·년)는 통계로 보지 않는다
     const story = validateDraft({ ...s.draft, participants: s.draft.participants.map((p) => ({ ...p, title: "소주 열 병 시키고 한 마리 잡은 '조과 한 마리'", oneLiner: "결론: 금연은 월요일마다, 편의점은 매일", paragraphs: [{ text: "1월에 헬스장 6개월을 끊고 3년 만에 참이슬 10병을 주문했다. 5000자 의뢰도 보냈다.", quoteIds: [] }] })) }, ctx);
