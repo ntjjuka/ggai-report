@@ -144,6 +144,7 @@ db/migrations      0001_init.sql (05 §3)        tests/  vitest (11)        scri
 | `LLM_SYNTH_STAGGER_MS` | 15000 | - | 판정 갈래 호출 지연 — 장 호출이 쓴 프롬프트 캐시(공유 문맥) 적중용 |
 | `LLM_PERSONA_BATCH_SIZE` | 3 | - | 인물 묶음 호출 크기(텍스트 지분 상위 8명 기준, 나머지는 2배). 작을수록 카드가 촘촘하고 호출 수가 늘어난다 |
 | `LLM_PERSONA_MAX_CALLS` | 6 | - | 인물 호출 수 상한. 넘으면 묶음을 키운다 |
+| `REPORT_RECENT_MONTHS` | 6 | - | 평가 기준 구간(개월). 대화가 이 길이의 1.5배를 넘으면 마지막 N개월을 "지금"으로 보고 최근 통계를 따로 넘기고 장부·후보·사건 원문의 절반을 이 구간에 배정한다(08 §7, 14 §12). 0이면 끔 |
 | `UPLOAD_MAX_BYTES` / `UPLOAD_MAX_MESSAGES` / `UPLOAD_MIN_MESSAGES` / `UPLOAD_MAX_PARTICIPANTS` | 52428800 / 300000 / 30 / 60 | ✓ / - / ✓ / - | 03 §1.1 한도 |
 | `RAW_RETENTION_DAYS` | 7 | ✓ | `expires_at` |
 | `STAGE_RESULT_RETENTION_HOURS` | 24 | - | 체크포인트 보존 |

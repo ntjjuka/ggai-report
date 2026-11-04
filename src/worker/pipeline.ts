@@ -30,7 +30,7 @@ import {
   type TranscriptMessage,
   type VerdictDraft,
 } from "@/lib/report";
-import { allowedNumbers, computePriors, computeStats, factsToText, pickScoreSet, renderStatsFacts, toEffectiveMessages } from "@/lib/stats";
+import { allowedNumbers, computePriors, computeStats, factsToText, isRecent, pickScoreSet, recentWindow, renderRecentFacts, renderStatsFacts, toEffectiveMessages } from "@/lib/stats";
 import { getConfig } from "@/server/config";
 import { getDb, schema } from "@/server/db";
 import { ApiError } from "@/server/errors";
@@ -116,7 +116,10 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
     const stats = computeStats(messages, map, uploaderId);
     const scoreSet = pickScoreSet(participants.length, focus);
     const priors = computePriors(stats, scoreSet);
-    const facts = renderStatsFacts(stats, messages, priors);
+    // 평가 기준 구간: 긴 대화는 마지막 N개월이 "지금" — 최근 통계를 전체와 나란히 넘기고, 장부·후보·사건 원문도 이 구간에 더 배정한다 (docs/14 §12)
+    const recent = recentWindow(stats.period, cfg.REPORT_RECENT_MONTHS);
+    const recentStats = recent ? computeStats(messages.filter((m) => m.at >= recent.from), map, uploaderId) : null;
+    const facts = [...renderStatsFacts(stats, messages, priors), ...(recent && recentStats ? renderRecentFacts(stats, recentStats, recent, messages) : [])];
     const priorMap = Object.fromEntries(priors.map((p) => [p.key, p.prior]));
 
     // [3] RENDER
@@ -175,7 +178,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
     };
 
     // [5] CHUNK
-    const chunkResults: { label: string; value: ChunkExtraction; highlights: TranscriptMessage[] }[] = [];
+    const chunkResults: { label: string; value: ChunkExtraction; highlights: TranscriptMessage[]; endAt: string }[] = [];
     let chunkFailures = 0;
     let safetyFlagged = false;
     if (plan.mode === "CHUNKED") {
@@ -206,7 +209,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
             );
             const ids = new Set(res.value.highlights.map((h) => h.messageId));
             const highlights = chunk.messages.filter((m) => ids.has(m.id)).slice(0, 25);
-            chunkResults[chunk.index] = { label: chunk.label, value: res.value, highlights };
+            chunkResults[chunk.index] = { label: chunk.label, value: res.value, highlights, endAt: chunk.messages[chunk.messages.length - 1]?.at ?? "" };
             if (res.value.safetyFlags.some((f) => f && f !== "NONE")) safetyFlagged = true;
           } catch (e) {
             if (e instanceof LlmError && !e.retryable && e.code === "LLM_REFUSED") throw e;
@@ -231,16 +234,19 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
     // facts는 별도 장부로 넘기므로 청크 JSON에서는 뺀다 (중복 입력 방지)
     const chunkJson = plan.mode === "CHUNKED" ? JSON.stringify(okChunks.map((c) => ({ label: c.label, ...stripFacts(dense ? trimChunkForSynthesis(c.value) : c.value) }))) : null;
     const perChunkHighlights = okChunks.length ? Math.max(2, Math.floor(160 / okChunks.length)) : 25;
-    const highlightMessages = plan.mode === "CHUNKED" ? okChunks.flatMap((c) => c.highlights.slice(0, perChunkHighlights)) : [];
+    const isRecentChunk = (c: { endAt: string }) => isRecent(c.endAt, recent);
+    // 평가 기준 구간의 청크는 하이라이트를 1.5배 — 평가 기준은 지금이다
+    const highlightMessages = plan.mode === "CHUNKED" ? okChunks.flatMap((c) => c.highlights.slice(0, recent && isRecentChunk(c) ? Math.ceil(perChunkHighlights * 1.5) : perChunkHighlights)) : [];
     // 인물 팩트 장부: 청크 facts를 사람별·시간순으로. 말 많은 상위 8명은 30개, 나머지 10개 (뒤집힘·결합·선언 vs 결과의 재료)
     const byText = [...stats.perPerson].sort((a, b) => b.textMessages - a.textMessages).map((p) => p.id);
     const majorIds = byText.slice(0, 8);
     const chunkValues = okChunks.map((c) => c.value);
-    const ledger = plan.mode === "CHUNKED" ? buildFactLedger(chunkValues, participants, evidence, { topIds: majorIds }) : { text: null, messages: [] as TranscriptMessage[], byPerson: {} as Record<string, string> };
-    // 사건 원문: 청크 exchanges(주고받은 2~4개)를 원문 그대로 — 장(章)의 대표 사건과 인물 장면 재구성의 재료 (요약은 웃기지 않다, docs/14 §10)
-    const exchanges = plan.mode === "CHUNKED" ? buildExchangesBlock(chunkValues, participants, evidence) : { text: null, messages: [] as TranscriptMessage[] };
-    // 인물별 인용 후보: 청크 signals/roastMaterial/exchanges가 가리킨 그 사람의 실제 메시지 + 장부 메시지 (상위 8명 25개, 나머지 8개)
-    const personaMessages = plan.mode === "CHUNKED" ? collectPersonaCandidates(chunkValues, participants.map((p) => p.id), evidence, { topIds: majorIds }) : new Map<string, TranscriptMessage[]>();
+    const recentFrom = recent?.from ?? null;
+    const ledger = plan.mode === "CHUNKED" ? buildFactLedger(chunkValues, participants, evidence, { topIds: majorIds, recentFrom }) : { text: null, messages: [] as TranscriptMessage[], byPerson: {} as Record<string, string> };
+    // 사건 원문: 청크 exchanges(주고받은 2~4개)를 원문 그대로 — 장(章)의 대표 사건과 인물 장면 재구성의 재료 (요약은 웃기지 않다, docs/14 §10). 최근 청크 우선
+    const exchanges = plan.mode === "CHUNKED" ? buildExchangesBlock(chunkValues, participants, evidence, { recentFrom }) : { text: null, messages: [] as TranscriptMessage[] };
+    // 인물별 인용 후보: 청크 signals/roastMaterial/exchanges가 가리킨 그 사람의 실제 메시지 + 장부 메시지 (상위 8명 25개, 나머지 8개; 절반은 최근 구간에서)
+    const personaMessages = plan.mode === "CHUNKED" ? collectPersonaCandidates(chunkValues, participants.map((p) => p.id), evidence, { topIds: majorIds, recentFrom }) : new Map<string, TranscriptMessage[]>();
     for (const m of ledger.messages) {
       const arr = personaMessages.get(m.pid) ?? [];
       if (!arr.some((x) => x.id === m.id)) arr.push(m);
@@ -249,7 +255,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
     const nameOf = (pid: string) => participants.find((p) => p.id === pid)?.name ?? pid;
     const personaCandidateLines = new Map([...personaMessages.entries()].map(([pid, msgs]) => [pid, `${pid}=${nameOf(pid)}:\n${msgs.map(renderLine).join("\n")}`] as const));
     const personaCandidates = personaCandidateLines.size ? [...personaCandidateLines.values()].join("\n") : null;
-    const interestDigest = plan.mode === "CHUNKED" ? buildInterestDigest(chunkValues, participants) : null;
+    const interestDigest = plan.mode === "CHUNKED" ? buildInterestDigest(chunkValues, participants, 6, recent ? okChunks.map(isRecentChunk) : undefined) : null;
     const synthArgs = {
       title: conv.title ?? "카카오톡 대화",
       period: `${stats.period.startedAt.slice(0, 10)} ~ ${stats.period.endedAt.slice(0, 10)}`,
@@ -269,6 +275,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       interestDigest,
       factLedger: ledger.text,
       exchanges: exchanges.text,
+      recentWindow: recent,
       badgeCatalog: BADGE_CATALOG,
     };
     const synthContext = buildSynthesisContext(synthArgs);
@@ -386,6 +393,7 @@ export async function runReport(reportId: string, deps: PipelineDeps): Promise<R
       metrics: { ...finalCheck.metrics, evidenceTotal: firstValidation.metrics.evidenceTotal, evidenceDropped: firstValidation.metrics.evidenceDropped, repaired },
       usage: { input: usage.input, output: usage.output, cacheRead: usage.cacheRead, costUsd: usage.costUsd, durationSec: Math.round((now() - started) / 1000), chunkModel: plan.mode === "CHUNKED" ? chunkModel : null, synthesisModel: synthModel },
       generatedAt: new Date(now()).toISOString(),
+      recentWindow: recent,
     });
     await markSucceeded(reportId, attempt, content);
     return "done";
@@ -438,11 +446,12 @@ export function collectPersonaCandidates(
   chunks: ChunkExtraction[],
   participantIds: string[],
   evidence: Map<string, TranscriptMessage>,
-  opts: { topIds?: string[]; perTop?: number; perRest?: number } = {},
+  opts: { topIds?: string[]; perTop?: number; perRest?: number; recentFrom?: string | null } = {},
 ): Map<string, TranscriptMessage[]> {
   const perTop = Math.max(1, opts.perTop ?? 25);
   const perRest = Math.max(1, opts.perRest ?? 8);
   const topIds = new Set(opts.topIds ?? []);
+  const recentFrom = opts.recentFrom ?? null;
   const pool = new Map<string, TranscriptMessage[]>();
   const seen = new Set<string>();
   const add = (pid: string, ids: string[]) => {
@@ -470,16 +479,31 @@ export function collectPersonaCandidates(
     const arr = (pool.get(pid) ?? []).sort((a, b) => a.index - b.index);
     if (arr.length === 0) continue;
     const cap = topIds.has(pid) ? perTop : perRest;
-    if (arr.length <= cap) {
-      out.set(pid, arr);
-      continue;
-    }
-    const step = arr.length / cap;
-    const picked: TranscriptMessage[] = [];
-    for (let i = 0; i < cap; i++) picked.push(arr[Math.floor(i * step)]);
-    out.set(pid, picked);
+    out.set(pid, sampleWithRecency(arr, cap, (m) => !!recentFrom && m.at >= recentFrom));
   }
   return out;
+}
+
+/**
+ * 시간순 목록을 cap개로 고르게 줄인다. recentFrom이 있으면 절반(recentShare)은 최근 구간에서, 나머지는 그 이전에서 — 한쪽이 모자라면 다른 쪽이 채운다.
+ * 결과는 시간순. "평가 기준은 지금이다"(docs/14 §12): 3년치 대화에서 최근 6개월이 1/6만 차지하던 것을 절반으로 끌어올린다.
+ */
+export function sampleWithRecency<T>(items: T[], cap: number, isRecentItem: (t: T) => boolean, recentShare = 0.5): T[] {
+  if (items.length <= cap) return items;
+  const spread = (arr: T[], n: number): T[] => {
+    if (n <= 0) return [];
+    if (arr.length <= n) return arr;
+    const step = arr.length / n;
+    return Array.from({ length: n }, (_, i) => arr[Math.floor(i * step)]);
+  };
+  const recentItems = items.filter(isRecentItem);
+  const older = items.filter((t) => !isRecentItem(t));
+  if (recentItems.length === 0 || older.length === 0) return spread(items, cap);
+  let quotaRecent = Math.min(recentItems.length, Math.ceil(cap * recentShare));
+  let quotaOlder = Math.min(older.length, cap - quotaRecent);
+  if (quotaRecent + quotaOlder < cap) quotaRecent = Math.min(recentItems.length, cap - quotaOlder);
+  if (quotaRecent + quotaOlder < cap) quotaOlder = Math.min(older.length, cap - quotaRecent);
+  return [...spread(older, quotaOlder), ...spread(recentItems, quotaRecent)];
 }
 
 const FACT_KIND_LABEL: Record<string, string> = { health: "건강", preference: "선호", possession: "소유", habit: "습관", declaration: "선언", event: "사건", money: "돈", work: "직장", relationship: "관계", other: "기타" };
@@ -498,10 +522,11 @@ export function buildFactLedger(
   chunks: ChunkExtraction[],
   participants: { id: string; name: string }[],
   evidence: Map<string, TranscriptMessage>,
-  opts: { topIds: string[]; perTop?: number; perRest?: number } = { topIds: [] },
+  opts: { topIds: string[]; perTop?: number; perRest?: number; recentFrom?: string | null } = { topIds: [] },
 ): { text: string | null; messages: TranscriptMessage[]; byPerson: Record<string, string> } {
   const perTop = opts.perTop ?? 30;
   const perRest = opts.perRest ?? 10;
+  const recentFrom = opts.recentFrom ?? null;
   const byPid = new Map<string, { kind: string; claim: string; when: string; m: TranscriptMessage }[]>();
   const seen = new Set<string>();
   for (const c of chunks) {
@@ -526,15 +551,13 @@ export function buildFactLedger(
     const all = (byPid.get(p.id) ?? []).sort((a, b) => a.when.localeCompare(b.when) || a.m.index - b.m.index);
     if (all.length === 0) continue;
     const cap = opts.topIds.includes(p.id) ? perTop : perRest;
-    let picked = all;
-    if (all.length > cap) {
-      const step = all.length / cap;
-      picked = Array.from({ length: cap }, (_, i) => all[Math.floor(i * step)]);
-    }
+    const isRecentFact = (f: { m: TranscriptMessage }) => !!recentFrom && f.m.at >= recentFrom;
+    const picked = sampleWithRecency(all, cap, isRecentFact); // 절반은 평가 기준 구간(최근)에서
     lines.push(`${p.id}=${p.name}:`);
     const own: string[] = [];
     for (const f of picked) {
-      own.push(`  ${FACT_KIND_LABEL[f.kind] ?? f.kind} · ${f.when.slice(0, 7)} · ${f.claim} (${f.m.id})`); // 월 단위: 일 단위 날짜가 문단에 그대로 복사되는 것을 막는다
+      // 월 단위: 일 단위 날짜가 문단에 그대로 복사되는 것을 막는다. ★ = 평가 기준 구간(최근)의 사실
+      own.push(`  ${isRecentFact(f) ? "★ " : ""}${FACT_KIND_LABEL[f.kind] ?? f.kind} · ${f.when.slice(0, 7)} · ${f.claim} (${f.m.id})`);
       messages.push(f.m);
     }
     lines.push(...own);
@@ -544,26 +567,32 @@ export function buildFactLedger(
 }
 
 /** 청크 signals의 topics(구간 수)·callbacks(별명)를 사람별로 집계 — 인물 로스트의 뼈대인 "관심사"를 결정적으로 뽑아 종합에 넘긴다 */
-export function buildInterestDigest(chunks: ChunkExtraction[], participants: { id: string; name: string }[], topN = 6): string | null {
-  const topics = new Map<string, Map<string, number>>();
+export function buildInterestDigest(chunks: ChunkExtraction[], participants: { id: string; name: string }[], topN = 6, recentFlags?: boolean[]): string | null {
+  const topics = new Map<string, Map<string, { n: number; recent: number }>>();
   const callbacks = new Map<string, Map<string, number>>();
   const norm = (t: string) => t.replace(/\s+/g, " ").trim().replace(/[.,·]+$/g, "").toLowerCase();
-  for (const c of chunks) {
+  chunks.forEach((c, ci) => {
+    const isRecentChunk = recentFlags?.[ci] === true;
     for (const sg of c.signals) {
-      const t = topics.get(sg.participantId) ?? new Map<string, number>();
-      for (const raw of new Set((sg.topics ?? []).map(norm).filter((x) => x.length >= 2 && x.length <= 30))) t.set(raw, (t.get(raw) ?? 0) + 1);
+      const t = topics.get(sg.participantId) ?? new Map<string, { n: number; recent: number }>();
+      for (const raw of new Set((sg.topics ?? []).map(norm).filter((x) => x.length >= 2 && x.length <= 30))) {
+        const cur = t.get(raw) ?? { n: 0, recent: 0 };
+        t.set(raw, { n: cur.n + 1, recent: cur.recent + (isRecentChunk ? 1 : 0) });
+      }
       topics.set(sg.participantId, t);
       const cb = callbacks.get(sg.participantId) ?? new Map<string, number>();
       for (const raw of new Set((sg.callbacks ?? []).map(norm).filter((x) => x.length >= 1 && x.length <= 30))) cb.set(raw, (cb.get(raw) ?? 0) + 1);
       callbacks.set(sg.participantId, cb);
     }
-  }
+  });
   const lines: string[] = [];
   for (const p of participants) {
-    const t = [...(topics.get(p.id)?.entries() ?? [])].sort((a, b) => b[1] - a[1]).slice(0, topN);
+    // 최근 구간 플래그가 있으면 최근 등장 횟수를 함께 적고, 최근에도 나온 집착을 앞에 둔다 — 지금의 집착이 논제의 뼈대
+    const t = [...(topics.get(p.id)?.entries() ?? [])].sort((a, b) => (recentFlags ? b[1].recent - a[1].recent || b[1].n - a[1].n : b[1].n - a[1].n)).slice(0, topN);
     const cb = [...(callbacks.get(p.id)?.entries() ?? [])].sort((a, b) => b[1] - a[1]).slice(0, 4);
     if (t.length === 0 && cb.length === 0) continue;
-    lines.push(`${p.id}=${p.name}: 집착 ${t.length ? t.map(([k, n]) => `${k}(${n})`).join(", ") : "(없음)"}${cb.length ? ` · 별명·놀림거리 ${cb.map(([k]) => k).join(", ")}` : ""}`);
+    const fmt = ([k, v]: [string, { n: number; recent: number }]) => (recentFlags ? `${k}(${v.n}, 최근 ${v.recent})` : `${k}(${v.n})`);
+    lines.push(`${p.id}=${p.name}: 집착 ${t.length ? t.map(fmt).join(", ") : "(없음)"}${cb.length ? ` · 별명·놀림거리 ${cb.map(([k]) => k).join(", ")}` : ""}`);
   }
   return lines.length ? lines.join("\n") : null;
 }
@@ -576,17 +605,18 @@ export function buildExchangesBlock(
   chunks: ChunkExtraction[],
   participants: { id: string; name: string }[],
   evidence: Map<string, TranscriptMessage>,
-  opts: { perChunk?: number; total?: number } = {},
+  opts: { perChunk?: number; total?: number; recentFrom?: string | null } = {},
 ): { text: string | null; messages: TranscriptMessage[] } {
   const perChunk = opts.perChunk ?? 2;
   const total = opts.total ?? 40;
+  const recentFrom = opts.recentFrom ?? null;
   const nameOf = (pid: string) => participants.find((p) => p.id === pid)?.name ?? pid;
-  const picked: { title: string; why: string; msgs: TranscriptMessage[] }[] = [];
+  type Picked = { title: string; why: string; msgs: TranscriptMessage[] };
+  // 1) 청크마다 유효한 사건만 시간순으로 모으고 중복(같은 메시지 묶음)은 먼저 나온 청크의 제목으로 한 번만
   const seen = new Set<string>();
-  for (const c of chunks) {
-    let n = 0;
+  const perChunkLists: Picked[][] = chunks.map((c) => {
+    const list: Picked[] = [];
     for (const x of c.exchanges ?? []) {
-      if (n >= perChunk || picked.length >= total) break;
       const msgs = [...new Set(x.messageIds)]
         .map((id) => evidence.get(id))
         .filter((m): m is TranscriptMessage => !!m)
@@ -596,10 +626,22 @@ export function buildExchangesBlock(
       const key = msgs.map((m) => m.id).join(",");
       if (seen.has(key)) continue;
       seen.add(key);
-      picked.push({ title: x.title.replace(/\s+/g, " ").trim().slice(0, 40), why: x.why.replace(/\s+/g, " ").trim().slice(0, 60), msgs });
-      n += 1;
+      list.push({ title: x.title.replace(/\s+/g, " ").trim().slice(0, 40), why: x.why.replace(/\s+/g, " ").trim().slice(0, 60), msgs });
+    }
+    return list;
+  });
+  // 2) 최근 청크부터 채운다(총량 상한에 걸려도 최근 사건이 남게) — 평가 기준 구간의 청크는 perChunk + 1. 출력은 시간순
+  const picked: Picked[] = [];
+  for (let ci = perChunkLists.length - 1; ci >= 0; ci--) {
+    const list = perChunkLists[ci];
+    const isRecentChunk = !!recentFrom && list.length > 0 && list[list.length - 1].msgs[list[list.length - 1].msgs.length - 1].at >= recentFrom;
+    const limit = isRecentChunk ? perChunk + 1 : perChunk;
+    for (const x of list.slice(0, limit)) {
+      if (picked.length >= total) break;
+      picked.push(x);
     }
   }
+  picked.sort((a, b) => a.msgs[0].index - b.msgs[0].index);
   if (picked.length === 0) return { text: null, messages: [] };
   const lines: string[] = [];
   const messages: TranscriptMessage[] = [];

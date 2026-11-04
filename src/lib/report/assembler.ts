@@ -22,6 +22,8 @@ export interface AssembleContext {
   metrics: { evidenceTotal: number; evidenceDropped: number; lowFindings: number; unverifiedNumbers: number; repaired: boolean };
   usage: { input: number; output: number; cacheRead: number; costUsd: number; durationSec: number; chunkModel: string | null; synthesisModel: string };
   generatedAt: string;
+  /** 인물 판정의 기준 구간(마지막 N개월). 짧은 대화는 null */
+  recentWindow?: { from: string; to: string; months: number } | null;
 }
 
 export function assembleReport(input: ReportDraft, ctx: AssembleContext): ReportContent {
@@ -105,6 +107,7 @@ export function assembleReport(input: ReportDraft, ctx: AssembleContext): Report
       participants: ctx.participants,
       coveragePct: ctx.plan.coveragePct,
       generatedAt: ctx.generatedAt,
+      recentWindow: ctx.recentWindow ? { from: ctx.recentWindow.from.slice(0, 10), to: ctx.recentWindow.to.slice(0, 10), months: ctx.recentWindow.months } : null,
     },
     verdict: draft.verdict,
     dynamic: { paragraphs: draft.dynamic.paragraphs, groupRoles: draft.dynamic.groupRoles, evidence: ev(draft.dynamic.evidenceIds) },

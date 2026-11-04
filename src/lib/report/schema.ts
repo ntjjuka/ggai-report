@@ -200,6 +200,8 @@ export interface ReportContent {
     participants: { id: string; name: string; isUploader: boolean }[];
     coveragePct: number;
     generatedAt: string;
+    /** 인물 판정·예측의 기준 구간(마지막 N개월). 짧은 대화는 null(전체가 "지금"). 2026-11-04부터, 구버전 보고서에는 없다 */
+    recentWindow?: { from: string; to: string; months: number } | null;
   };
   verdict: ReportDraft["verdict"];
   dynamic: { paragraphs: string[]; groupRoles: ReportDraft["dynamic"]["groupRoles"]; evidence: Evidence[] };

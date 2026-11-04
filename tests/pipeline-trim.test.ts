@@ -130,6 +130,66 @@ describe("buildExchangesBlock / batchParticipants / buildPersonaMaterial / rende
   });
 });
 
+describe("recency allocation — 평가 기준은 지금", () => {
+  const mk = (i: number, pid: string, at: string) => ({ id: `m${i}`, index: i, pid, name: pid, isUploader: false, kind: "TEXT" as const, text: `t${i}`, rawText: `t${i}`, at, ms: i, tokens: 1, contextBreakBefore: 0 });
+
+  it("sampleWithRecency gives half of the cap to the recent window and keeps time order", async () => {
+    const { sampleWithRecency } = await import("@/worker/pipeline");
+    const items = Array.from({ length: 30 }, (_, i) => i); // 0~19 옛날, 20~29 최근
+    const picked = sampleWithRecency(items, 10, (i) => i >= 20);
+    expect(picked.length).toBe(10);
+    expect(picked.filter((i) => i >= 20).length).toBe(5);
+    expect(picked).toEqual([...picked].sort((a, b) => a - b)); // 시간순
+    expect(sampleWithRecency(items, 10, () => false).length).toBe(10); // 최근이 없으면 고르게
+    expect(sampleWithRecency(items, 40, () => true)).toEqual(items); // 상한 아래면 그대로
+    // 최근이 모자라면 옛날이 채운다
+    expect(sampleWithRecency(items, 10, (i) => i >= 28).filter((i) => i >= 28).length).toBe(2);
+  });
+
+  it("fact ledger stars recent facts and takes half of a capped list from the recent window", async () => {
+    const { buildFactLedger } = await import("@/worker/pipeline");
+    const evidence = new Map<string, ReturnType<typeof mk>>();
+    for (let i = 0; i < 12; i++) evidence.set(`m${i}`, mk(i, "p1", i < 8 ? `2025-0${i + 1}-01T10:00` : `2026-1${i - 8}-01T10:00`));
+    const facts = Array.from({ length: 12 }, (_, i) => ({ participantId: "p1", kind: "event" as const, claim: `사실 ${i}`, when: evidence.get(`m${i}`)!.at.slice(0, 10), messageId: `m${i}` }));
+    const chunk = { summary: "", facts, events: [], highlights: [], keywords: [], conflicts: [], plans: [], safetyFlags: [], roastMaterial: [], signals: [], exchanges: [] };
+    const out = buildFactLedger([chunk], [{ id: "p1", name: "지훈" }], evidence, { topIds: ["p1"], perTop: 4, recentFrom: "2026-10-01T00:00" });
+    const lines = out.text!.split("\n").slice(1);
+    expect(lines.length).toBe(4);
+    expect(lines.filter((l) => l.startsWith("  ★ ")).length).toBe(2); // 최근 4개(m8~m11) 중 절반 = 2
+    expect(lines[2]).toMatch(/^ {2}★ 사건 · 2026-1\d · 사실 (8|9|10|11) \(m(8|9|10|11)\)$/);
+    expect(out.byPerson.p1).toBe(lines.join("\n"));
+  });
+
+  it("exchanges block fills from the newest chunk first (recent chunks get one extra) and renders in time order", async () => {
+    const { buildExchangesBlock } = await import("@/worker/pipeline");
+    const evidence = new Map<string, ReturnType<typeof mk>>();
+    for (let i = 0; i < 20; i++) evidence.set(`m${i}`, mk(i, i % 2 ? "p2" : "p1", i < 10 ? "2025-01-01T10:00" : "2026-10-01T10:00"));
+    const x = (a: number, b: number) => ({ title: `x${a}`, messageIds: [`m${a}`, `m${b}`], participantIds: ["p1", "p2"], why: "w" });
+    const chunk = (xs: ReturnType<typeof x>[]) => ({ summary: "", facts: [], events: [], highlights: [], keywords: [], conflicts: [], plans: [], safetyFlags: [], roastMaterial: [], signals: [], exchanges: xs });
+    const old = chunk([x(0, 1), x(2, 3), x(4, 5)]);
+    const recentChunk = chunk([x(10, 11), x(12, 13), x(14, 15), x(16, 17)]);
+    const people = [{ id: "p1", name: "지훈" }, { id: "p2", name: "진호" }];
+    const out = buildExchangesBlock([old, recentChunk], people, evidence, { perChunk: 2, total: 4, recentFrom: "2026-01-01T00:00" });
+    const titles = out.text!.split("\n").filter((l) => l.startsWith("[사건")).map((l) => l.split("] ")[1].split(" — ")[0]);
+    expect(titles).toEqual(["x0", "x10", "x12", "x14"]); // 최근 청크 3개(perChunk+1) + 옛 청크 1개, 출력은 시간순
+    const noRecent = buildExchangesBlock([old, recentChunk], people, evidence, { perChunk: 2, total: 4 });
+    expect(noRecent.text!.split("\n").filter((l) => l.startsWith("[사건")).length).toBe(4);
+    expect(noRecent.text!.split("\n").filter((l) => l.startsWith("[사건")).map((l) => l.split("] ")[1].split(" — ")[0])).toEqual(["x0", "x2", "x10", "x12"]);
+  });
+
+  it("interest digest counts recent-chunk appearances and puts current obsessions first", async () => {
+    const { buildInterestDigest } = await import("@/worker/pipeline");
+    const chunk = (topics: string[]) => ({
+      summary: "", facts: [], events: [], highlights: [], keywords: [], conflicts: [], plans: [], safetyFlags: [], roastMaterial: [], exchanges: [],
+      signals: [{ participantId: "p1", interest: 0, effort: 0, toneLabel: "", reason: "", topics, details: [], callbacks: [], evidenceIds: [] }],
+    });
+    const chunks = [chunk(["낚시", "주식"]), chunk(["낚시"]), chunk(["낚시", "테슬라"]), chunk(["테슬라"])];
+    const out = buildInterestDigest(chunks, [{ id: "p1", name: "지훈" }], 6, [false, false, true, true])!;
+    expect(out).toBe("p1=지훈: 집착 테슬라(2, 최근 2), 낚시(3, 최근 1), 주식(1, 최근 0)");
+    expect(buildInterestDigest(chunks, [{ id: "p1", name: "지훈" }])).toBe("p1=지훈: 집착 낚시(3), 테슬라(2), 주식(1)");
+  });
+});
+
 describe("buildInterestDigest", () => {
   it("aggregates chunk topics per person by chunk count and lists callbacks", async () => {
     const { buildInterestDigest } = await import("@/worker/pipeline");

@@ -329,3 +329,4 @@ REPAIR 호출은 종합 모델로 **1회**(`maxTokens 8000`, `effort medium`), �
 - 스키마: `participants[].thesis`(첫 키), `ChunkExtractionSchema.exchanges`, `ScenesDraftSchema`·`PersonaBatchSchema`. `ReportContent.participants[].thesis?`(미노출, eval용).
 - 기분: `pickMood` 직진 100%. `MOOD_INSTRUCTION.DIRECT` "농담은 장치 개수가 아니라 사실의 배치로".
 - 2026-11-04(2차): 시스템 프롬프트에 `# 사람들이 공유하는 폭로 — 소재 메뉴`(12종)와 `# 공유되는 문장의 꼴`(6종) 추가(16 §7). 청크 `roastMaterial.observation` 앞에 유형명 접두("완곡어: …"). 단톡 `shareCard.subline` "이 방의 문제는 ○○" 허용.
+- 2026-11-04(3차): `ReportContent.meta.recentWindow?: {from,to,months}|null`(평가 기준 구간, 화면 머리에 표시). 종합 문맥 `[평가 기준]` 블록, 장부 `★`(최근), 관심사 집계 `(전체 n, 최근 r)`, 통계 사실 뒤 `[평가 기준 구간]` 문장들. 시스템 화법 "평가 기준은 지금이다", 인물 thesis 현재형 조건, predictions "최근 행보의 연장" (08 §7, 14 §12).

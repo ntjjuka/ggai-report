@@ -382,6 +382,7 @@ describe("prompts", () => {
     expect(a).toContain("# 공유되는 문장의 꼴");
     expect(a).toContain("속마음 자막");
     expect(a).toContain("\"맞아 저래\" 테스트");
+    expect(a).toContain("평가 기준은 지금이다");
     expect(a).not.toContain("문단마다 최소");
     expect(a).not.toContain("처먹다");
     expect(a).not.toContain("대가리 박다");
@@ -428,6 +429,9 @@ describe("prompts", () => {
     const ctx = buildSynthesisContext(args);
     expect(ctx).toContain("<transcript>");
     expect(ctx).not.toContain("[작성 지침");
+    // 평가 기준 구간: 없으면 "전체가 지금", 있으면 최근 N개월을 "지금"으로
+    expect(ctx).toContain("[평가 기준] 대화가 짧아 전체가 \"지금\"이다");
+    expect(buildSynthesisContext({ ...args, recentWindow: { from: "2026-05-02T00:00", to: "2026-10-31T23:00", months: 6 } })).toContain("[평가 기준] \"지금\"은 최근 6개월(2026-05~2026-10)이다");
     const persona = buildSynthesisInstructions(args, "PERSONA");
     const verdict = buildSynthesisInstructions(args, "VERDICT");
     const all = buildSynthesisInstructions(args, "ALL");

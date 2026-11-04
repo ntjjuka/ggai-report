@@ -34,6 +34,8 @@ const EnvSchema = z.object({
   /** 인물 묶음 호출: 말 많은 상위 8명은 LLM_PERSONA_BATCH_SIZE명씩, 나머지는 그 2배씩. 호출 수 상한 LLM_PERSONA_MAX_CALLS(넘으면 묶음을 키운다) */
   LLM_PERSONA_BATCH_SIZE: z.coerce.number().int().min(1).max(8).default(3),
   LLM_PERSONA_MAX_CALLS: z.coerce.number().int().min(1).max(12).default(6),
+  /** 평가 기준 구간(개월): 대화가 이 길이의 1.5배를 넘으면 마지막 N개월을 "지금"으로 보고 통계·장부·후보를 더 배정한다. 0이면 끔 */
+  REPORT_RECENT_MONTHS: z.coerce.number().min(0).max(36).default(6),
   UPLOAD_MAX_BYTES: z.coerce.number().default(50 * 1024 * 1024),
   UPLOAD_MAX_MESSAGES: z.coerce.number().default(300_000),
   UPLOAD_MIN_MESSAGES: z.coerce.number().default(30),

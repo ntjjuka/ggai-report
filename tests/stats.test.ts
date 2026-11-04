@@ -145,6 +145,47 @@ describe("computeStats", () => {
   });
 });
 
+describe("recent window — 평가 기준은 지금", () => {
+  it("splits only conversations longer than 1.5× the window and marks the last N months", async () => {
+    const { recentWindow, isRecent } = await import("@/lib/stats");
+    expect(recentWindow({ startedAt: "2026-01-01T00:00", endedAt: "2026-08-01T00:00" })).toBeNull(); // 7개월 < 9개월
+    const w = recentWindow({ startedAt: "2024-01-01T00:00", endedAt: "2026-10-31T23:00" })!;
+    expect(w.months).toBe(6);
+    expect(w.to).toBe("2026-10-31T23:00");
+    expect(w.from).toBe("2026-05-02T00:00"); // 182일 전의 날짜, 자정부터
+    expect(isRecent("2026-09-01T10:00", w)).toBe(true);
+    expect(isRecent("2025-01-01T10:00", w)).toBe(false);
+    expect(isRecent("2025-01-01T10:00", null)).toBe(true);
+    expect(recentWindow({ startedAt: "2024-01-01T00:00", endedAt: "2026-10-31T23:00" }, 0)).toBeNull(); // 끔
+    expect(recentWindow({ startedAt: "2026-01-01T00:00", endedAt: "2026-01-01T00:00" })).toBeNull();
+  });
+
+  it("renders recent-window facts next to the whole-period stats, with the numbers registered for validation", async () => {
+    const { recentWindow, renderRecentFacts } = await import("@/lib/stats");
+    // 2024년 1월에 A가 많이 떠들고, 2026년 10월(최근)에는 B가 떠든다 → 최근 기준으로는 B의 지분이 높아야 한다
+    const early: [string, string, string][] = Array.from({ length: 12 }, (_, i) => [`2024. 1. ${(i % 9) + 1}. 오전 9:0${i % 10}`, i % 4 === 0 ? "B" : "A", `옛날 얘기 ${i}`]);
+    const late: [string, string, string][] = Array.from({ length: 10 }, (_, i) => [`2026. 10. ${(i % 9) + 1}. 오후 9:0${i % 10}`, i % 5 === 0 ? "A" : "B", `요즘 얘기 ${i}`]);
+    const msgs = synth([...early, ...late]);
+    const map: ParticipantMap = new Map([
+      ["A", { id: "a", name: "A", rawNames: ["A"], isUploader: true }],
+      ["B", { id: "b", name: "B", rawNames: ["B"], isUploader: false }],
+    ]);
+    const all = computeStats(msgs, map, "a");
+    const w = recentWindow(all.period)!;
+    expect(w.from.slice(0, 7)).toBe("2026-04");
+    const recent = computeStats(msgs.filter((m) => m.at >= w.from), map, "a");
+    const facts = renderRecentFacts(all, recent, w, msgs);
+    expect(facts[0].text).toContain("[평가 기준 구간] 최근 6개월(2026-04~2026-10): 메시지 10개(전체의 45%)");
+    expect(facts[0].text).toContain("인물 판정·칭호·예측은 이 구간의 모습을 기준으로 한다");
+    expect(facts[0].numbers).toEqual(expect.arrayContaining([10, 45]));
+    const b = facts.find((f) => f.text.startsWith("B(최근)"))!;
+    expect(b.text).toContain("텍스트 지분 80%(전체 50%, 최근에 더 떠든다)");
+    const a = facts.find((f) => f.text.startsWith("A(최근)"))!;
+    expect(a.text).toContain("텍스트 지분 20%(전체 50%, 최근엔 조용해졌다)");
+    expect(allowedNumbers(facts).has(80)).toBe(true);
+  });
+});
+
 describe("pickMood", () => {
   it("always picks the direct mood; warm only when forced by safety flags", async () => {
     const { pickMood } = await import("@/lib/report/moods");

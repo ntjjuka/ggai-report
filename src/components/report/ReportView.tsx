@@ -31,6 +31,7 @@ export default function ReportView({ content, seq, actions, isOwner }: { content
           <span>·</span>
           <span>
             {content.meta.period.from} ~ {content.meta.period.to} · {content.meta.period.days}일 · 메시지 {content.meta.messageCount.toLocaleString()}개
+            {content.meta.recentWindow ? ` · 인물 평가는 최근 ${content.meta.recentWindow.months}개월(${content.meta.recentWindow.from.slice(0, 7)}~${content.meta.recentWindow.to.slice(0, 7)}) 기준` : ""}
           </span>
         </div>
         {content.verdict.reportTitle && <h1 className="text-3xl font-black leading-tight sm:text-4xl">{content.verdict.reportTitle}</h1>}
